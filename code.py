@@ -37,7 +37,7 @@ local_css("style.css")
 @st.cache_data
 def load_data():
     url = "https://raw.githubusercontent.com/Gnatey/M-moire_Deepfake/main/DeepFakes.csv"
-    df = pd.read_csv(url, delimiter=";", encoding='utf-8')
+    df = pd.read_csv(url, delimiter=";", encoding="utf-8")
     
     # Nettoyage et préparation des données
     df = df.rename(columns={
@@ -183,31 +183,13 @@ with tab1:
         st.metric("Exposition aux DeepFakes", f"{exposure}%", "78% globale")
     
     with col3:
-     def get_percentage_distribution(column_name, categories_order=None, multi_choice=False):
-    if column_name not in df_filtered.columns:
-        st.error(f"La colonne '{column_name}' est introuvable.")
-        return pd.Series(dtype=float)
-    
-    if total_respondents == 0:
-        return pd.Series(dtype=float)
-    
-    if multi_choice:
-        answers_series = df_filtered[column_name].dropna().str.split(';').explode().str.strip()
-        counts = answers_series.value_counts()
-    else:
-        counts = df_filtered[column_name].dropna().value_counts()
-    
-    perc = (counts * 100 / total_respondents).round(1)
-    
-    if categories_order:
-        for cat in categories_order:
-            if cat not in perc.index:
-                perc.loc[cat] = 0.0
-        perc = perc[categories_order]
-    
-    return perc
+        neg_impact = get_percentage_distribution(
+        "Selon vous, quel est l'impact global des Deep Fakes sur la société ?", 
+        ["Très négatif", "Négatif"]
+    )
+    total_neg_impact = neg_impact.get("Très négatif", 0) + neg_impact.get("Négatif", 0)
+    st.metric("Impact négatif", f"{total_neg_impact}%", "65% globale")
 
-)
     with col4:
         verification = get_percentage_distribution("À quelle fréquence vérifiez-vous l'authenticité d'une information avant de la partager ?", ["Souvent", "Toujours"])
         total_verify = verification.get("Souvent", 0) + verification.get("Toujours", 0)
