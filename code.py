@@ -58,44 +58,28 @@ def load_and_validate_data():
         st.session_state['raw_columns'] = df.columns.tolist()
         
         # Normalisation des noms de colonnes
-        df.columns = df.columns.str.strip().str.replace("[’'‘]", "'", regex=True)
+        df.columns = df.columns.str.strip()
         
-        # Mapping intelligent des colonnes
+        # Mapping spécifique basé sur votre structure de données
         column_mapping = {
-            'age': ["age", "tranche d'âge", "quel est votre âge"],
-            'genre': ["genre", "vous êtes", "sexe"],
-            'education': ["éducation", "niveau d'éducation", "diplôme"],
-            'reseau_social': ["réseau social", "plateforme", "réseaux utilisés"],
-            'impact': ["impact", "conséquence", "effet"],
-            'connaissance': ["connaissance", "familiarité", "notions"],
-            'exposition': ["exposition", "déjà vu", "rencontré"],
-            'confiance': ["confiance", "fiabilité"],
-            'verification': ["vérification", "authentification"]
+            "Quel est votre tranche d'âge ?": "Age",
+            "Vous êtes ...?": "Genre",
+            "Quel est votre niveau d'éducation actuel ?": "Education",
+            "Quel est votre principal réseau social utilisé au quotidien ?": "Reseau_Social",
+            "Avez-vous déjà entendu parler des Deep Fakes ?": "Awareness",
+            "Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?": "Knowledge",
+            "Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?": "Exposure",
+            "Selon vous, quel est l'impact global des Deep Fakes sur la société ?": "Impact",
+            "À quelle fréquence vérifiez-vous l'authenticité d'une information avant de la partager ?": "Verification",
+            "Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?": "Trust"
         }
         
-        # Trouver les colonnes correspondantes
-        final_mapping = {}
-        for standard_name, possible_names in column_mapping.items():
-            for col in df.columns:
-                if any(name.lower() in col.lower() for name in possible_names):
-                    final_mapping[col] = standard_name
-                    break
-        
         # Renommage des colonnes
-        df = df.rename(columns=final_mapping)
+        df = df.rename(columns=column_mapping)
         
-        # Vérification des colonnes essentielles
-        required_cols = ['age', 'genre', 'education', 'impact']
-        missing_cols = [col for col in required_cols if col not in df.columns]
-        
-        if missing_cols:
-            st.error(f"Colonnes manquantes: {missing_cols}")
-            st.write("Colonnes disponibles:", df.columns.tolist())
-            st.stop()
-            
         # Nettoyage des données
-        if 'reseau_social' in df.columns:
-            df['reseau_social'] = df['reseau_social'].replace({
+        if "Reseau_Social" in df.columns:
+            df["Reseau_Social"] = df["Reseau_Social"].replace({
                 "X anciennement Twitter": "Twitter",
                 "Aucun": "Pas de réseau"
             })
@@ -132,9 +116,7 @@ with st.sidebar:
         selected_edu = st.multiselect("Niveau d'éducation", edu_categories, default=edu_categories)
     
     with st.expander("Plateformes", expanded=False):
-        selected_platforms = st.multiselect("Réseaux sociaux principaux", 
-                                          platform_categories, 
-                                          default=platform_categories)
+        selected_platforms = st.multiselect("Réseaux sociaux principaux", platform_categories, default=platform_categories)
     
     with st.expander("Options avancées", expanded=False):
         show_raw_data = st.checkbox("Afficher les données brutes")
@@ -154,25 +136,14 @@ def apply_filters(df, ages, genders, edus, platforms):
     try:
         df_filtered = df.copy()
         
-        # Filtrage par âge
         if ages and len(ages) != len(age_categories):
-            if 'age' in df_filtered.columns:
-                df_filtered = df_filtered[df_filtered["age"].isin(ages)]
-        
-        # Filtrage par genre
+            df_filtered = df_filtered[df_filtered["Age"].isin(ages)]
         if genders and len(genders) != len(gender_categories):
-            if 'genre' in df_filtered.columns:
-                df_filtered = df_filtered[df_filtered["genre"].isin(genders)]
-        
-        # Filtrage par éducation
+            df_filtered = df_filtered[df_filtered["Genre"].isin(genders)]
         if edus and len(edus) != len(edu_categories):
-            if 'education' in df_filtered.columns:
-                df_filtered = df_filtered[df_filtered["education"].isin(edus)]
-        
-        # Filtrage par plateforme
+            df_filtered = df_filtered[df_filtered["Education"].isin(edus)]
         if platforms and len(platforms) != len(platform_categories):
-            if 'reseau_social' in df_filtered.columns:
-                df_filtered = df_filtered[df_filtered["reseau_social"].isin(platforms)]
+            df_filtered = df_filtered[df_filtered["Reseau_Social"].isin(platforms)]
                 
         return df_filtered
     except Exception as e:
@@ -235,7 +206,7 @@ def create_safe_chart(chart_type, data, **kwargs):
                 name=kwargs.get('title', '')
             ))
             fig.update_layout(
-                polar=dict(radialaxis=dict(visible=True)),
+                polar=dict(radialaxis=dict(visible=True, range=[0, max(data['value'])*1.1]),
                 showlegend=False,
                 title=kwargs.get('title', '')
             )
@@ -264,20 +235,20 @@ with tab1:
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        awareness = safe_get_distribution(df_filtered, "connaissance", ["Oui"]).get("Oui", 0)
+        awareness = safe_get_distribution(df_filtered, "Awareness", ["Oui"]).get("Oui", 0)
         st.metric("Conscience des DeepFakes", f"{awareness}%", "92% globale")
     
     with col2:
-        exposure = safe_get_distribution(df_filtered, "exposition", ["Oui"]).get("Oui", 0)
+        exposure = safe_get_distribution(df_filtered, "Exposure", ["Oui"]).get("Oui", 0)
         st.metric("Exposition aux DeepFakes", f"{exposure}%", "78% globale")
     
     with col3:
-        neg_impact = safe_get_distribution(df_filtered, "impact", ["Très négatif", "Négatif"])
+        neg_impact = safe_get_distribution(df_filtered, "Impact", ["Très négatif", "Négatif"])
         total_neg_impact = neg_impact.get("Très négatif", 0) + neg_impact.get("Négatif", 0)
         st.metric("Impact négatif", f"{total_neg_impact}%", "65% globale")
 
     with col4:
-        verification = safe_get_distribution(df_filtered, "verification", ["Souvent", "Toujours"])
+        verification = safe_get_distribution(df_filtered, "Verification", ["Souvent", "Toujours"])
         total_verify = verification.get("Souvent", 0) + verification.get("Toujours", 0)
         st.metric("Vérification active", f"{total_verify}%", "72% globale")
     
@@ -290,7 +261,7 @@ with tab1:
         st.subheader("Connaissance des DeepFakes")
         knowledge = safe_get_distribution(
             df_filtered,
-            "connaissance",
+            "Knowledge",
             ["Pas du tout informé(e)", "Peu informé(e)", "Moyennement informé(e)", "Bien informé(e)", "Très bien informé(e)"]
         )
         
@@ -313,22 +284,20 @@ with tab1:
             st.warning("Aucune donnée disponible pour ce filtre")
     
     with col2:
-        st.subheader("Impact perçu par domaine")
-        domains = safe_get_distribution(
+        st.subheader("Impact perçu")
+        impact = safe_get_distribution(
             df_filtered,
-            "impact",  # À adapter selon votre colonne réelle
-            ["Politique", "Divertissement", "Journalisme", "Finance", "Événements sociaux"],
-            multi_choice=True
+            "Impact",
+            ["Très négatif", "Négatif", "Neutre", "Positif", "Très positif"]
         )
         
-        if not domains.empty:
+        if not impact.empty:
             fig = create_safe_chart(
-                "radar",
-                data=pd.DataFrame({
-                    'category': domains.index,
-                    'value': domains.values
-                }),
-                title="Domaines les plus impactés"
+                "pie",
+                data_frame=impact.reset_index().rename(columns={'index': 'Impact', 0: 'Pourcentage'}),
+                values='Pourcentage',
+                names='Impact',
+                title="Perception de l'impact global"
             )
             st.plotly_chart(fig, use_container_width=True)
         else:
@@ -342,14 +311,14 @@ with tab2:
     with tab2_col1:
         st.subheader("Répartition démographique")
         
-        if all(col in df_filtered.columns for col in ['age', 'genre', 'education']):
-            df_demo = df_filtered.groupby(['age', 'genre', 'education']).size().reset_index(name='counts')
+        if all(col in df_filtered.columns for col in ['Age', 'Genre', 'Education']):
+            df_demo = df_filtered.groupby(['Age', 'Genre', 'Education']).size().reset_index(name='counts')
             
             if not df_demo.empty:
                 fig = create_safe_chart(
                     "sunburst",
                     data_frame=df_demo,
-                    path=['age', 'genre', 'education'],
+                    path=['Age', 'Genre', 'Education'],
                     values='counts',
                     title="Répartition par Âge, Genre et Éducation"
                 )
@@ -364,11 +333,11 @@ with tab2:
         
         cross_var1 = st.selectbox(
             "Variable 1 pour l'analyse croisée",
-            [col for col in ['age', 'genre', 'education', 'reseau_social'] if col in df_filtered.columns],
+            [col for col in ['Age', 'Genre', 'Education', 'Reseau_Social'] if col in df_filtered.columns],
             index=0
         )
         
-        cross_var2_options = [col for col in ['connaissance', 'impact', 'exposition'] if col in df_filtered.columns]
+        cross_var2_options = [col for col in ['Knowledge', 'Impact', 'Exposure'] if col in df_filtered.columns]
         cross_var2 = st.selectbox(
             "Variable 2 pour l'analyse croisée",
             cross_var2_options,
@@ -383,12 +352,11 @@ with tab2:
                     normalize='index'
                 ).round(2) * 100
                 
-                fig = create_safe_chart(
-                    "heatmap",
-                    data_frame=cross_tab,
+                fig = px.imshow(
+                    cross_tab,
                     color_continuous_scale='Blues',
                     labels={'x': cross_var2, 'y': cross_var1, 'color': "Pourcentage"},
-                    title=f"Analyse croisée: {cross_var1} vs {cross_var2}"
+                    text_auto=True
                 )
                 st.plotly_chart(fig, use_container_width=True)
             except Exception as e:
@@ -399,25 +367,25 @@ with tab2:
 with tab3:
     st.title("📱 Analyse par Plateforme")
     
-    if 'reseau_social' not in df_filtered.columns:
-        st.warning("La colonne 'reseau_social' est manquante")
+    if 'Reseau_Social' not in df_filtered.columns:
+        st.warning("La colonne 'Reseau_Social' est manquante")
         st.stop()
     
-    platform_tab1, platform_tab2, platform_tab3 = st.tabs(["Exposition", "Confiance", "Comportements"])
+    platform_tab1, platform_tab2 = st.tabs(["Exposition", "Confiance"])
     
     with platform_tab1:
-        st.subheader("Exposition aux DeepFakes par plateforme")
+        st.subheader("Exposition aux DeepFakes")
         
-        platform_exposure = safe_get_distribution(
+        exposure = safe_get_distribution(
             df_filtered,
-            "exposition",
+            "Exposure",
             ["Oui", "Non", "Je ne suis pas sûr(e)"]
         )
         
-        if not platform_exposure.empty:
+        if not exposure.empty:
             fig = create_safe_chart(
                 "bar",
-                data_frame=platform_exposure.reset_index().rename(columns={'index': 'Exposition', 0: 'Pourcentage'}),
+                data_frame=exposure.reset_index().rename(columns={'index': 'Exposition', 0: 'Pourcentage'}),
                 x='Exposition',
                 y='Pourcentage',
                 color='Exposition',
@@ -430,34 +398,30 @@ with tab3:
 with tab4:
     st.title("🛡️ Impact & Protection")
     
-    impact_tab1, impact_tab2 = st.tabs(["Impact perçu", "Stratégies de protection"])
+    st.subheader("Confiance dans les médias")
     
-    with impact_tab1:
-        st.subheader("Impact global sur la société")
-        
-        impact_dist = safe_get_distribution(
-            df_filtered,
-            "impact",
-            ["Très négatif", "Négatif", "Neutre", "Positif", "Très positif"]
+    trust = safe_get_distribution(
+        df_filtered,
+        "Trust",
+        ["Oui", "Non", "Cela dépend des sources"]
+    )
+    
+    if not trust.empty:
+        fig = create_safe_chart(
+            "pie",
+            data_frame=trust.reset_index().rename(columns={'index': 'Confiance', 0: 'Pourcentage'}),
+            values='Pourcentage',
+            names='Confiance',
+            title="Niveau de confiance dans les médias"
         )
-        
-        if not impact_dist.empty:
-            fig = create_safe_chart(
-                "pie",
-                data_frame=impact_dist.reset_index().rename(columns={'index': 'Impact', 0: 'Pourcentage'}),
-                values='Pourcentage',
-                names='Impact',
-                hole=0.4,
-                title="Perception de l'impact global"
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.warning("Aucune donnée disponible")
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning("Aucune donnée disponible")
 
 with tab5:
     st.title("🤖 Analyse avancée")
     
-    adv_tab1, adv_tab2, adv_tab3 = st.tabs(["Analyse par clusters", "Prédiction d'impact", "Données brutes"])
+    adv_tab1, adv_tab2 = st.tabs(["Analyse par clusters", "Données brutes"])
     
     with adv_tab1:
         if cluster_analysis:
@@ -467,8 +431,8 @@ with tab5:
             cluster_features = pd.DataFrame()
             
             # Encodage des caractéristiques avec vérification
-            if 'age' in df_filtered.columns:
-                cluster_features['Age_encoded'] = df_filtered['age'].map({
+            if 'Age' in df_filtered.columns:
+                cluster_features['Age_encoded'] = df_filtered['Age'].map({
                     "Moins de 18 ans": 0,
                     "18-25 ans": 1,
                     "26-40 ans": 2,
@@ -476,8 +440,8 @@ with tab5:
                     "Plus de 60 ans": 4
                 }).fillna(-1)
             
-            if 'education' in df_filtered.columns:
-                cluster_features['Education_encoded'] = df_filtered['education'].map({
+            if 'Education' in df_filtered.columns:
+                cluster_features['Education_encoded'] = df_filtered['Education'].map({
                     "Collège ou moins": 0,
                     "Lycée": 1,
                     "Bac +2": 2,
@@ -485,18 +449,11 @@ with tab5:
                     "Bac +5 et plus": 4
                 }).fillna(-1)
             
-            if 'exposition' in df_filtered.columns:
-                cluster_features['Exposure'] = df_filtered['exposition'].map({
+            if 'Exposure' in df_filtered.columns:
+                cluster_features['Exposure'] = df_filtered['Exposure'].map({
                     "Oui": 1,
                     "Non": 0,
                     "Je ne suis pas sûr(e)": 0.5
-                }).fillna(0)
-            
-            if 'confiance' in df_filtered.columns:
-                cluster_features['Trust'] = df_filtered['confiance'].map({
-                    "Oui": 1,
-                    "Non": 0,
-                    "Cela dépend des sources": 0.5
                 }).fillna(0)
             
             if not cluster_features.empty:
@@ -521,35 +478,15 @@ with tab5:
                     data_frame=cluster_dist.reset_index().rename(columns={'index': 'Cluster', 'proportion': 'Pourcentage'}),
                     values='Pourcentage',
                     names='Cluster',
-                    hole=0.3,
                     title=f"Répartition des clusters"
                 )
                 st.plotly_chart(fig, use_container_width=True)
-                
-                # Caractéristiques des clusters
-                st.write("**Caractéristiques moyennes par cluster**")
-                
-                cluster_means = df_clustered.groupby('Cluster').agg({
-                    'age': lambda x: x.mode()[0] if not x.empty else None,
-                    'education': lambda x: x.mode()[0] if not x.empty else None,
-                    'reseau_social': lambda x: x.mode()[0] if not x.empty else None,
-                    'exposition': lambda x: (x == 'Oui').mean() * 100 if not x.empty else 0,
-                    'confiance': lambda x: (x == 'Oui').mean() * 100 if not x.empty else 0
-                }).rename(columns={
-                    'exposition': '% Exposition',
-                    'confiance': '% Confiance'
-                })
-                
-                st.dataframe(
-                    cluster_means.style.background_gradient(cmap='Blues'),
-                    use_container_width=True
-                )
             else:
                 st.warning("Données insuffisantes pour le clustering")
         else:
             st.info("Activez l'analyse par clusters dans les options avancées")
 
-    with adv_tab3:
+    with adv_tab2:
         if show_raw_data:
             st.subheader("Données brutes filtrées")
             st.dataframe(df_filtered, use_container_width=True)
