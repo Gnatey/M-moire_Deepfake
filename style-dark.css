@@ -1,0 +1,32 @@
+/* Dark Theme */
+html, body, [class*="css"] {
+    background-color: #121212;
+    color: #e0e0e0;
+}
+
+.stApp header {
+    background-color: #1a1a1a;
+}
+
+[data-testid="stSidebar"] {
+    background-color: #1a1a1a;
+}
+
+[data-testid="metric-container"] {
+    background-color: #1e1e1e;
+    border-color: #333;
+}
+
+[data-testid="metric-container"] .st-emotion-cache-1xarl3l {
+    color: #e0e0e0;
+}
+
+[role="tablist"] button {
+    background-color: #333;
+    color: #b0b0b0;
+}
+
+[role="tablist"] button[aria-selected="true"] {
+    background-color: #3498db;
+    color: white;
+}
