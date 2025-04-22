@@ -1,9 +1,3 @@
-import pandas as pd
-import numpy as np
-import streamlit as st
-import altair as alt
-import plotly.express as px
-import plotly.graph_objects as go
 from streamlit_extras.metric_cards import style_metric_cards
 from streamlit_extras.dataframe_explorer import dataframe_explorer
 from streamlit_extras.stylable_container import stylable_container
@@ -12,11 +6,7 @@ from streamlit_extras.switch_page_button import switch_page
 from streamlit_extras.colored_header import colored_header
 from streamlit_extras.altex import line_chart, bar_chart
 from streamlit_extras.app_logo import add_logo
-from streamlit_extras.customize_layout import hide_sidebar
-from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler
-import warnings
-warnings.filterwarnings('ignore')
+
 
 # --- Configuration de la page ---
 st.set_page_config(
