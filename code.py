@@ -8,31 +8,29 @@ data = pd.read_csv(url, delimiter=';')  # Vérifie si ; est bon sinon mets ','
 
 st.title("Tableau de Bord DeepFakes")
 
-# Aperçu des données
-st.header("Aperçu des données")
-st.dataframe(data)
 
-# Statistiques de base
-st.header("Statistiques générales")
-st.write(data.describe(include='all'))
+# Exemple : Simulation de la colonne "Plateformes"
+data = pd.DataFrame({
+    'Plateformes': [
+        'YouTube, TikTok',
+        'Facebook, YouTube',
+        'Instagram, TikTok',
+        'YouTube, Facebook',
+        'TikTok',
+        'YouTube, Instagram',
+    ]
+})
 
-# Visualisation : répartition des labels
-st.header("Répartition des vidéos : Réelles vs Fakes")
-if 'Label' in data.columns:
-    fig, ax = plt.subplots()
-    data['Label'].value_counts().plot(kind='bar', ax=ax)
-    ax.set_xlabel("Type")
-    ax.set_ylabel("Nombre de vidéos")
-    st.pyplot(fig)
+# Séparer les réponses multiples
+all_platforms = data['Plateformes'].dropna().str.split(', ')
+flattened = [item for sublist in all_platforms for item in sublist]
 
-# Distribution d'une colonne numérique
-st.header("Distribution d'une variable numérique")
-num_cols = data.select_dtypes(include='number').columns.tolist()
-if num_cols:
-    selected_col = st.selectbox("Choisir une colonne numérique", num_cols)
-    st.bar_chart(data[selected_col])
-else:
-    st.write("Pas de colonne numérique détectée.")
+# Compter les occurrences
+platform_counts = pd.Series(flattened).value_counts()
 
+# Afficher les résultats
+st.header("Répartition des plateformes vues")
+st.bar_chart(platform_counts)
 
-# Test
+# Affichage brut si besoin
+st.write(platform_counts)
