@@ -13,7 +13,6 @@ from streamlit_extras.switch_page_button import switch_page
 from streamlit_extras.colored_header import colored_header
 from streamlit_extras.altex import line_chart, bar_chart
 from streamlit_extras.app_logo import add_logo
-from streamlit_extras.customize_layout import hide_sidebar
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 import warnings
