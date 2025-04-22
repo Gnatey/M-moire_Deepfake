@@ -190,8 +190,22 @@ with tab1:
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        awareness = get_percentage_distribution(COL_AWARENESS, ["Oui"]).get("Oui", 0)
-        st.metric("Conscience des DeepFakes", f"{awareness}%", "92% globale")
+    st.subheader("Connaissance des DeepFakes")
+    knowledge = get_percentage_distribution(
+        COL_KNOWLEDGE,
+        ["Pas du tout informé(e)", "Peu informé(e)", "Moyennement informé(e)", "Bien informé(e)", "Très bien informé(e)"]
+    )
+    # Correction : créer un DataFrame propre pour Plotly
+    knowledge_df = knowledge.reset_index().rename(columns={'index': 'Niveau', 0: 'Pourcentage'})
+    fig = px.bar(
+        knowledge_df,
+        x='Niveau',
+        y='Pourcentage',
+        labels={'Niveau': 'Niveau de connaissance', 'Pourcentage': 'Pourcentage'},
+        color='Niveau',
+        color_discrete_sequence=px.colors.sequential.Blues_r
+    )
+    st.plotly_chart(fig, use_container_width=True)
     
     with col2:
         exposure = get_percentage_distribution(COL_EXPOSURE, ["Oui"]).get("Oui", 0)
