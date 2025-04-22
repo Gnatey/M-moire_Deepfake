@@ -89,7 +89,6 @@ with tabs[0]:
         )
         st.altair_chart(bar_chart, use_container_width=True)
         st.caption("Auto-évaluation du niveau de connaissance des Deep Fakes.")
-        
 # Section: Plateformes
 elif section == "Plateformes":
     # Q3. Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?
