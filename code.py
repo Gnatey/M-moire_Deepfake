@@ -52,6 +52,7 @@ def load_data():
         "X anciennement Twitter": "Twitter",
         "Aucun": "Pas de réseau"
     })
+    df.columns = df.columns.str.replace("’", "'", regex=False)
     
     return df
 
