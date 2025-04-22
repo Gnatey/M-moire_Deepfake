@@ -2,7 +2,14 @@ import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
 import altair as alt
-#
+
+#import des données
+uploaded_file = st.file_uploader("Choisissez un fichier CSV", type="csv")
+if uploaded_file is not None:
+    data = pd.read_csv(uploaded_file)
+else:
+    st.stop()
+
 # Sidebar Navigation
 st.sidebar.title("Navigation")
 page = st.sidebar.radio("", ["Tableau de bord", "Analyse démographique", "Impact des DeepFakes", "Détection & Prévention", "Prédictions & IA"])
@@ -14,22 +21,6 @@ col2.metric("Exposition", "78%", "+12% YoY")
 col3.metric("Impact négatif", "65%", "5% > moyenne")
 
 # Carte thermique des plateformes
-import matplotlib.pyplot as plt
-
-# Fonction pour générer la heatmap ou un bar chart simple
-def create_platform_heatmap(data):
-    # Exemple de transformation basique (à adapter selon ton DataFrame)
-    platform_data = data.groupby('Plateforme')['Présence'].sum().reset_index()
-
-    fig, ax = plt.subplots(figsize=(8, 6))
-    ax.bar(platform_data['Plateforme'], platform_data['Présence'])
-    ax.set_xlabel('Plateforme')
-    ax.set_ylabel('Présence des DeepFakes')
-    ax.set_title('Présence des DeepFakes par plateforme')
-    plt.xticks(rotation=45)
-
-    return fig
-
 st.subheader("Présence des DeepFakes par plateforme")
 platform_heatmap = create_platform_heatmap(data)
 st.plotly_chart(platform_heatmap, use_container_width=True)
