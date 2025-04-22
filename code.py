@@ -315,20 +315,34 @@ with tab2:
         else:
             st.warning("Aucune donnée disponible pour ce filtre")
     
-    with tab2_col1:
-    st.subheader("Répartition démographique")
-    
-    try:
-        # Sunburst chart
-        df_demo = df_filtered.groupby(['Age', 'Genre', 'Education']).size().reset_index(name='counts')
-        if not df_demo.empty:
-            fig = px.sunburst(
-                df_demo,
-                path=['Age', 'Genre', 'Education'],
-                values='counts',
-                color='counts',
-                title="Répartition par Âge, Genre et Éducation",
-                height=600
+    with tab2_col2:
+        st.subheader("Analyse croisée")
+        
+        cross_var1 = st.selectbox(
+            "Variable 1 pour l'analyse croisée",
+            ["Age", "Genre", "Education", "Reseau_Social"],
+            index=0
+        )
+        
+        cross_var2 = st.selectbox(
+            "Variable 2 pour l'analyse croisée",
+            [COL_AWARENESS, COL_KNOWLEDGE, COL_IMPACT],
+            index=1
+        )
+        
+        if not df_filtered.empty:
+            cross_tab = pd.crosstab(
+                df_filtered[cross_var1],
+                df_filtered[cross_var2],
+                normalize='index'
+            ).round(2) * 100
+            
+            fig = px.imshow(
+                cross_tab,
+                labels=dict(x=cross_var2, y=cross_var1, color="Pourcentage"),
+                color_continuous_scale='Blues',
+                aspect="auto",
+                text_auto=True
             )
             st.plotly_chart(fig, use_container_width=True)
         else:
