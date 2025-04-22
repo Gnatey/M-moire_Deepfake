@@ -18,6 +18,20 @@ st.subheader("Présence des DeepFakes par plateforme")
 platform_heatmap = create_platform_heatmap(data)
 st.plotly_chart(platform_heatmap, use_container_width=True)
 
+# Fonction pour générer la heatmap ou un bar chart simple
+def create_platform_heatmap(data):
+    # Exemple de transformation basique (à adapter selon ton DataFrame)
+    platform_data = data.groupby('Plateforme')['Présence'].sum().reset_index()
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.bar(platform_data['Plateforme'], platform_data['Présence'])
+    ax.set_xlabel('Plateforme')
+    ax.set_ylabel('Présence des DeepFakes')
+    ax.set_title('Présence des DeepFakes par plateforme')
+    plt.xticks(rotation=45)
+
+    return fig
+    
 st.header("Analyse démographique")
 demographic_filters = st.expander("Filtres démographiques")
 
