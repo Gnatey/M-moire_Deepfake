@@ -66,12 +66,12 @@ if page == "Accueil":
         st.metric("Nombre de répondants", len(df))
     
     with col2:
-        aware_perc = round(len(df[df['Avez-vous déjà entendu parler des Deep Fakes ?'] == 'Oui']) / len(df) * 100
-        st.metric("Ont entendu parler des DeepFakes", f"{aware_perc}%")
+        aware_perc = round(len(df[df['Avez-vous déjà entendu parler des Deep Fakes ?'] == 'Oui']) / len(df) * 100)
+    st.metric("Ont entendu parler des DeepFakes", f"{aware_perc}%")
     
     with col3:
-        seen_perc = round(len(df[df['Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?'] == 'Oui']) / len(df) * 100
-        st.metric("Ont déjà vu un DeepFake", f"{seen_perc}%")
+        seen_perc = round(len(df[df['Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?'] == 'Oui']) / len(df) * 100)
+    st.metric("Ont déjà vu un DeepFake", f"{seen_perc}%")
     
     # Graphique d'impact perçu
     st.header("Impact perçu des DeepFakes sur la société")
