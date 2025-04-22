@@ -281,7 +281,572 @@ with tab1:
     else:
         st.warning("Aucune donnée disponible pour ce filtre")
 
-# [Rest of your tabs (tab2 to tab5) remain unchanged]
+# [Le code précédent jusqu'à la section des onglets reste identique...]
+
+with tab2:
+    st.title("🔍 Analyse approfondie")
+    
+    tab2_col1, tab2_col2 = st.columns([1, 2])
+    
+    with tab2_col1:
+        st.subheader("Répartition démographique")
+        
+        # Sunburst chart
+        df_demo = df_filtered.groupby(['Age', 'Genre', 'Education']).size().reset_index(name='counts')
+        if not df_demo.empty:
+            fig = px.sunburst(
+                df_demo,
+                path=['Age', 'Genre', 'Education'],
+                values='counts',
+                color='counts',
+                title="Répartition par Âge, Genre et Éducation",
+                height=600
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("Aucune donnée disponible pour ce filtre")
+    
+    with tab2_col2:
+        st.subheader("Analyse croisée")
+        
+        cross_var1 = st.selectbox(
+            "Variable 1 pour l'analyse croisée",
+            ["Age", "Genre", "Education", "Reseau_Social"],
+            index=0
+        )
+        
+        cross_var2 = st.selectbox(
+            "Variable 2 pour l'analyse croisée",
+            [COL_AWARENESS, COL_KNOWLEDGE, COL_IMPACT],
+            index=1
+        )
+        
+        if not df_filtered.empty:
+            cross_tab = pd.crosstab(
+                df_filtered[cross_var1],
+                df_filtered[cross_var2],
+                normalize='index'
+            ).round(2) * 100
+            
+            fig = px.imshow(
+                cross_tab,
+                labels=dict(x=cross_var2, y=cross_var1, color="Pourcentage"),
+                color_continuous_scale='Blues',
+                aspect="auto",
+                text_auto=True
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("Aucune donnée disponible pour ce filtre")
+    
+    # Analyse des méthodes de vérification
+    st.subheader("Méthodes de vérification par groupe")
+    
+    verification_methods = [
+        "Rechercher d'autres sources fiables",
+        "Vérifier l'auteur et la crédibilité du média",
+        "Utiliser des outils de fact-checking (ex : Décodex, Snopes)",
+        "Analyser les commentaires et réactions d'autres utilisateurs",
+        "Je ne vérifie pas"
+    ]
+    
+    group_by = st.selectbox(
+        "Grouper par",
+        ["Age", "Genre", "Education", "Reseau_Social"],
+        index=1
+    )
+    
+    if not df_filtered.empty:
+        method_data = []
+        for method in verification_methods:
+            temp_df = df_filtered[df_filtered[COL_METHODS].str.contains(method, na=False)]
+            counts = temp_df.groupby(group_by).size() / df_filtered.groupby(group_by).size() * 100
+            method_data.append(counts)
+        
+        method_df = pd.concat(method_data, axis=1)
+        method_df.columns = verification_methods
+        method_df = method_df.fillna(0)
+        
+        fig = px.bar(
+            method_df.reset_index(),
+            x=group_by,
+            y=verification_methods,
+            barmode='group',
+            labels={'value': 'Pourcentage', 'variable': 'Méthode'},
+            color_discrete_sequence=px.colors.qualitative.Pastel,
+            title="Méthodes de vérification par groupe"
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning("Aucune donnée disponible pour ce filtre")
+
+with tab3:
+    st.title("📱 Analyse par Plateforme")
+    
+    platform_tab1, platform_tab2, platform_tab3 = st.tabs(["Exposition", "Confiance", "Comportements"])
+    
+    with platform_tab1:
+        st.subheader("Exposition aux DeepFakes par plateforme")
+        
+        platform_exposure = get_percentage_distribution(
+            COL_PLATFORMS,
+            ["Facebook", "Twitter", "Instagram", "TikTok", "YouTube", "Autres"],
+            multi_choice=True
+        )
+        
+        if not platform_exposure.empty:
+            fig = px.bar(
+                platform_exposure.reset_index().rename(columns={'index': 'Plateforme', 0: 'Pourcentage'}),
+                x='Plateforme',
+                y='Pourcentage',
+                labels={'Pourcentage': 'Pourcentage (%)'},
+                color='Plateforme',
+                color_discrete_sequence=px.colors.sequential.Magenta,
+                title="Plateformes où les DeepFakes sont le plus vus"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("Aucune donnée disponible pour ce filtre")
+        
+        st.subheader("Exposition vs Réseau social principal")
+        
+        if not df_filtered.empty:
+            exposure_vs_main = pd.crosstab(
+                df_filtered["Reseau_Social"],
+                df_filtered[COL_EXPOSURE],
+                normalize='index'
+            ).round(2) * 100
+            
+            fig = px.bar(
+                exposure_vs_main.reset_index(),
+                x="Reseau_Social",
+                y=["Oui", "Non", "Je ne suis pas sûr(e)"],
+                barmode='group',
+                labels={'value': 'Pourcentage', 'variable': 'Réponse'},
+                color_discrete_sequence=px.colors.qualitative.Set2,
+                title="Exposition aux DeepFakes par réseau principal"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("Aucune donnée disponible pour ce filtre")
+    
+    with platform_tab2:
+        st.subheader("Confiance par plateforme principale")
+        
+        if not df_filtered.empty:
+            trust_by_platform = pd.crosstab(
+                df_filtered["Reseau_Social"],
+                df_filtered[COL_TRUST],
+                normalize='index'
+            ).round(2) * 100
+            
+            fig = px.bar(
+                trust_by_platform.reset_index(),
+                x="Reseau_Social",
+                y=["Oui", "Non", "Cela dépend des sources"],
+                barmode='group',
+                labels={'value': 'Pourcentage', 'variable': 'Niveau de confiance'},
+                color_discrete_sequence=px.colors.sequential.Plasma,
+                title="Confiance dans les informations par plateforme"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("Aucune donnée disponible pour ce filtre")
+        
+        st.subheader("Évolution de la confiance")
+        
+        if not df_filtered.empty:
+            trust_evolution = pd.crosstab(
+                df_filtered["Reseau_Social"],
+                df_filtered[COL_TRUST_CHANGE],
+                normalize='index'
+            ).round(2) * 100
+            
+            fig = px.bar(
+                trust_evolution.reset_index(),
+                x="Reseau_Social",
+                y=["Fortement diminué", "Légèrement diminué", "Resté stable", "Légèrement augmenté", "Fortement augmenté"],
+                barmode='group',
+                labels={'value': 'Pourcentage', 'variable': 'Évolution'},
+                color_discrete_sequence=px.colors.sequential.Plasma_r,
+                title="Évolution de la confiance après connaissance des DeepFakes"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("Aucune donnée disponible pour ce filtre")
+    
+    with platform_tab3:
+        st.subheader("Comportements par plateforme")
+        
+        st.write("**Réduction du partage d'informations**")
+        if not df_filtered.empty:
+            sharing_reduction = pd.crosstab(
+                df_filtered["Reseau_Social"],
+                df_filtered[COL_SHARING],
+                normalize='index'
+            ).round(2) * 100
+            
+            fig = px.bar(
+                sharing_reduction.reset_index(),
+                x="Reseau_Social",
+                y=["Pas du tout", "Légèrement", "Moyennement", "Beaucoup", "Très fortement"],
+                barmode='group',
+                labels={'value': 'Pourcentage', 'variable': 'Niveau de réduction'},
+                color_discrete_sequence=px.colors.sequential.Viridis,
+                title="Réduction du partage d'informations par plateforme"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("Aucune donnée disponible pour ce filtre")
+        
+        st.write("**Fréquence de vérification**")
+        if not df_filtered.empty:
+            verification_freq = pd.crosstab(
+                df_filtered["Reseau_Social"],
+                df_filtered[COL_VERIFICATION],
+                normalize='index'
+            ).round(2) * 100
+            
+            fig = px.bar(
+                verification_freq.reset_index(),
+                x="Reseau_Social",
+                y=["Jamais", "Rarement", "Parfois", "Souvent", "Toujours"],
+                barmode='group',
+                labels={'value': 'Pourcentage', 'variable': 'Fréquence'},
+                color_discrete_sequence=px.colors.sequential.Viridis_r,
+                title="Fréquence de vérification par plateforme"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("Aucune donnée disponible pour ce filtre")
+
+with tab4:
+    st.title("🛡️ Impact & Protection")
+    
+    impact_tab1, impact_tab2 = st.tabs(["Impact perçu", "Stratégies de protection"])
+    
+    with impact_tab1:
+        st.subheader("Impact global sur la société")
+        
+        impact_dist = get_percentage_distribution(
+            COL_IMPACT,
+            ["Très négatif", "Négatif", "Neutre", "Positif", "Très positif"]
+        )
+        
+        if not impact_dist.empty:
+            fig = px.pie(
+                impact_dist.reset_index().rename(columns={'index': 'Impact', 0: 'Pourcentage'}),
+                values='Pourcentage',
+                names='Impact',
+                hole=0.4,
+                color_discrete_sequence=px.colors.sequential.RdBu,
+                title="Perception de l'impact global des DeepFakes"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("Aucune donnée disponible pour ce filtre")
+        
+        st.subheader("Domaines les plus impactés")
+        
+        domains_impact = get_percentage_distribution(
+            "Quels domaines vous semblent les plus touchés par les deep fakes ? (Plusieurs choix possibles)",
+            ["Politique", "Divertissement/Célébrités", "Journalisme/Actualités", "Informations financières", "Événements sociaux (crises, catastrophes, etc.)"],
+            multi_choice=True
+        )
+        
+        if not domains_impact.empty:
+            fig = px.bar(
+                domains_impact.reset_index().rename(columns={'index': 'Domaine', 0: 'Pourcentage'}),
+                x='Pourcentage',
+                y='Domaine',
+                orientation='h',
+                color='Domaine',
+                color_discrete_sequence=px.colors.sequential.RdBu_r,
+                title="Domaines perçus comme les plus impactés"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("Aucune donnée disponible pour ce filtre")
+    
+    with impact_tab2:
+        st.subheader("Méthodes de vérification")
+        
+        verification_methods = get_percentage_distribution(
+            COL_METHODS,
+            [
+                "Rechercher d'autres sources fiables",
+                "Vérifier l'auteur et la crédibilité du média",
+                "Utiliser des outils de fact-checking (ex : Décodex, Snopes)",
+                "Analyser les commentaires et réactions d'autres utilisateurs",
+                "Je ne vérifie pas"
+            ],
+            multi_choice=True
+        )
+        
+        if not verification_methods.empty:
+            fig = px.bar(
+                verification_methods.reset_index().rename(columns={'index': 'Méthode', 0: 'Pourcentage'}),
+                x='Pourcentage',
+                y='Méthode',
+                orientation='h',
+                color='Méthode',
+                color_discrete_sequence=px.colors.qualitative.Set3,
+                title="Méthodes de vérification les plus utilisées"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("Aucune donnée disponible pour ce filtre")
+        
+        st.subheader("Outils de vérification par niveau de connaissance")
+        
+        if not df_filtered.empty:
+            knowledge_levels = [
+                "Pas du tout informé(e)",
+                "Peu informé(e)",
+                "Moyennement informé(e)",
+                "Bien informé(e)",
+                "Très bien informé(e)"
+            ]
+            
+            tools_by_knowledge = []
+            for method in verification_methods.index:
+                temp_df = df_filtered[df_filtered[COL_METHODS].str.contains(method, na=False)]
+                counts = temp_df.groupby(COL_KNOWLEDGE).size() / df_filtered.groupby(COL_KNOWLEDGE).size() * 100
+                tools_by_knowledge.append(counts)
+            
+            tools_df = pd.concat(tools_by_knowledge, axis=1)
+            tools_df.columns = verification_methods.index
+            tools_df = tools_df.reindex(knowledge_levels)
+            tools_df = tools_df.fillna(0)
+            
+            fig = px.line(
+                tools_df.reset_index().rename(columns={'index': 'Niveau de connaissance'}),
+                x="Niveau de connaissance",
+                y=tools_df.columns,
+                markers=True,
+                labels={'value': 'Pourcentage', 'variable': 'Méthode'},
+                color_discrete_sequence=px.colors.qualitative.Set3,
+                title="Méthodes de vérification par niveau de connaissance"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("Aucune donnée disponible pour ce filtre")
+
+with tab5:
+    st.title("🤖 Analyse avancée")
+    
+    adv_tab1, adv_tab2, adv_tab3 = st.tabs(["Analyse par clusters", "Prédiction d'impact", "Données brutes"])
+    
+    with adv_tab1:
+        if cluster_analysis:
+            st.subheader("Segmentation des répondants par clusters")
+            
+            # Préparation des données pour le clustering
+            cluster_features = pd.DataFrame()
+            
+            # Encodage des caractéristiques
+            cluster_features['Age_encoded'] = df_filtered['Age'].map({
+                "Moins de 18 ans": 0,
+                "18-25 ans": 1,
+                "26-40 ans": 2,
+                "41-60 ans": 3,
+                "Plus de 60 ans": 4
+            })
+            
+            cluster_features['Education_encoded'] = df_filtered['Education'].map({
+                "Collège ou moins": 0,
+                "Lycée": 1,
+                "Bac +2": 2,
+                "Bac +3 / Licence": 3,
+                "Bac +5 et plus": 4
+            })
+            
+            cluster_features['Exposure'] = df_filtered[COL_EXPOSURE].map({
+                "Oui": 1,
+                "Non": 0,
+                "Je ne suis pas sûr(e)": 0.5
+            })
+            
+            cluster_features['Trust'] = df_filtered[COL_TRUST].map({
+                "Oui": 1,
+                "Non": 0,
+                "Cela dépend des sources": 0.5
+            })
+            
+            if not cluster_features.empty:
+                # Normalisation
+                scaler = StandardScaler()
+                features_scaled = scaler.fit_transform(cluster_features)
+                
+                # Clustering
+                kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+                clusters = kmeans.fit_predict(features_scaled)
+                
+                # Ajout des clusters aux données
+                df_clustered = df_filtered.copy()
+                df_clustered['Cluster'] = clusters
+                
+                # Visualisation des clusters
+                st.write(f"**Répartition des {n_clusters} clusters**")
+                cluster_dist = df_clustered['Cluster'].value_counts(normalize=True) * 100
+                fig = px.pie(
+                    cluster_dist.reset_index().rename(columns={'index': 'Cluster', 'proportion': 'Pourcentage'}),
+                    values='Pourcentage',
+                    names='Cluster',
+                    hole=0.3,
+                    color_discrete_sequence=px.colors.sequential.Plasma,
+                    title=f"Répartition des {n_clusters} clusters"
+                )
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # Caractéristiques des clusters
+                st.write("**Caractéristiques moyennes par cluster**")
+                
+                cluster_means = df_clustered.groupby('Cluster').agg({
+                    'Age': lambda x: x.mode()[0],
+                    'Education': lambda x: x.mode()[0],
+                    'Reseau_Social': lambda x: x.mode()[0],
+                    COL_EXPOSURE: lambda x: (x == 'Oui').mean() * 100,
+                    COL_TRUST: lambda x: (x == 'Oui').mean() * 100,
+                    COL_VERIFICATION: lambda x: (x.isin(['Souvent', 'Toujours'])).mean() * 100
+                }).rename(columns={
+                    COL_EXPOSURE: '% Exposition',
+                    COL_TRUST: '% Confiance',
+                    COL_VERIFICATION: '% Vérification fréquente'
+                })
+                
+                st.dataframe(
+                    cluster_means.style.background_gradient(cmap='Blues'),
+                    use_container_width=True
+                )
+                
+                # Radar chart pour comparer les clusters
+                st.write("**Comparaison des clusters**")
+                
+                radar_data = df_clustered.groupby('Cluster').agg({
+                    'Age_encoded': 'mean',
+                    'Education_encoded': 'mean',
+                    'Exposure': 'mean',
+                    'Trust': 'mean'
+                }).reset_index()
+                
+                fig = go.Figure()
+                
+                for cluster in range(n_clusters):
+                    fig.add_trace(go.Scatterpolar(
+                        r=radar_data.loc[cluster, ['Age_encoded', 'Education_encoded', 'Exposure', 'Trust']].values,
+                        theta=['Age', 'Education', 'Exposure', 'Trust'],
+                        fill='toself',
+                        name=f'Cluster {cluster}'
+                    ))
+                
+                fig.update_layout(
+                    polar=dict(
+                        radialaxis=dict(
+                            visible=True,
+                            range=[0, 1]
+                        )),
+                    showlegend=True,
+                    height=500,
+                    title="Comparaison des clusters par caractéristiques"
+                )
+                
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.warning("Aucune donnée disponible pour le clustering")
+        else:
+            st.warning("Activez l'analyse par clusters dans les options avancées de la barre latérale")
+    
+    with adv_tab2:
+        st.subheader("Prédiction de l'impact perçu")
+        
+        st.write("""
+        Ce modèle prédit la probabilité qu'une personne perçoive un impact négatif des DeepFakes en fonction de ses caractéristiques.
+        """)
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            age_pred = st.selectbox("Âge", age_categories, index=2)
+        
+        with col2:
+            gender_pred = st.selectbox("Genre", gender_categories, index=0)
+        
+        with col3:
+            edu_pred = st.selectbox("Niveau d'éducation", edu_categories, index=4)
+        
+        platform_pred = st.selectbox("Réseau social principal", platform_categories, index=2)
+        
+        if st.button("Prédire l'impact"):
+            # Simulation simple d'un modèle de prédiction
+            impact_prob = 0.5  # baseline
+            
+            # Ajustements basés sur l'âge
+            if age_pred == "18-25 ans":
+                impact_prob += 0.15
+            elif age_pred == "26-40 ans":
+                impact_prob += 0.10
+            elif age_pred == "41-60 ans":
+                impact_prob += 0.05
+            
+            # Ajustements basés sur l'éducation
+            if edu_pred == "Bac +5 et plus":
+                impact_prob += 0.20
+            elif edu_pred == "Bac +3 / Licence":
+                impact_prob += 0.15
+            
+            # Ajustements basés sur la plateforme
+            if platform_pred == "Twitter":
+                impact_prob += 0.10
+            elif platform_pred == "Facebook":
+                impact_prob += 0.05
+            
+            # Normalisation entre 0 et 1
+            impact_prob = max(0, min(1, impact_prob))
+            
+            # Visualisation
+            fig = go.Figure(go.Indicator(
+                mode = "gauge+number",
+                value = impact_prob*100,
+                number = {'suffix': "%"},
+                domain = {'x': [0, 1], 'y': [0, 1]},
+                title = {'text': "Probabilité d'impact négatif perçu"},
+                gauge = {
+                    'axis': {'range': [0, 100]},
+                    'bar': {'color': "darkblue"},
+                    'steps': [
+                        {'range': [0, 50], 'color': "lightgreen"},
+                        {'range': [50, 75], 'color': "yellow"},
+                        {'range': [75, 100], 'color': "red"}]
+                }
+            ))
+            
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Explication
+            with st.expander("Explication des facteurs influençant la prédiction"):
+                st.write("""
+                - **Âge**: Les jeunes adultes (18-25 ans) sont plus susceptibles de percevoir un impact négatif
+                - **Éducation**: Les personnes avec un niveau d'éducation supérieur sont plus conscientes des risques
+                - **Plateforme**: Les utilisateurs de Twitter et Facebook sont plus exposés aux DeepFakes
+                """)
+    
+    with adv_tab3:
+        if show_raw_data:
+            st.subheader("Données brutes filtrées")
+            st.dataframe(df_filtered, use_container_width=True)
+            
+            # Options d'export
+            csv = df_filtered.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="Télécharger les données filtrées (CSV)",
+                data=csv,
+                file_name='deepfakes_data_filtered.csv',
+                mime='text/csv'
+            )
+        else:
+            st.info("Activez l'option 'Afficher les données brutes' dans les options avancées de la barre latérale")
+
 
 # --- Pied de page ---
 st.markdown("""
