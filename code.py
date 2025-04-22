@@ -39,6 +39,16 @@ def load_data():
     url = "https://raw.githubusercontent.com/Gnatey/M-moire_Deepfake/main/DeepFakes.csv"
     df = pd.read_csv(url, delimiter=";", encoding="utf-8")
     
+uploaded_file = st.file_uploader("Télécharge ton fichier CSV ici :", type="csv")
+
+if uploaded_file is not None:
+    df = pd.read_csv(uploaded_file, delimiter=";", encoding="utf-8")
+    st.success("Fichier chargé avec succès.")
+    st.write("Aperçu des colonnes :", df.columns.tolist())
+else:
+    st.stop()  # Stoppe l'app tant que rien n'est uploadé
+
+
     # Nettoyage et préparation des données
     df = df.rename(columns={
         "Quel est votre tranche d'âge ?": "Age",
