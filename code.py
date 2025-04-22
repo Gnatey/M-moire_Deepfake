@@ -37,7 +37,7 @@ local_css("style.css")
 @st.cache_data
 def load_data():
     url = "https://raw.githubusercontent.com/Gnatey/M-moire_Deepfake/main/DeepFakes.csv"
-    df = pd.read_csv(url, delimiter=";")
+    df = pd.read_csv(url, delimiter=";", encoding='utf-8')
     
     # Nettoyage et préparation des données
     df = df.rename(columns={
@@ -183,10 +183,10 @@ with tab1:
         st.metric("Exposition aux DeepFakes", f"{exposure}%", "78% globale")
     
     with col3:
-        neg_impact = get_percentage_distribution("Selon vous, quel est l'impact global des Deep Fakes sur la société ?", ["Très négatif", "Négatif"])
-        total_neg = neg_impact.get("Très négatif", 0) + neg_impact.get("Négatif", 0)
-        st.metric("Impact négatif perçu", f"{total_neg}%", "65% globale")
-    
+        neg_impact = get_percentage_distribution(
+    "Selon vous, quel est l'impact global des Deep Fakes sur la société ?", 
+    ["Très négatif", "Négatif"]
+)
     with col4:
         verification = get_percentage_distribution("À quelle fréquence vérifiez-vous l'authenticité d'une information avant de la partager ?", ["Souvent", "Toujours"])
         total_verify = verification.get("Souvent", 0) + verification.get("Toujours", 0)
