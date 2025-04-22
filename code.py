@@ -22,8 +22,8 @@ def local_css(file_name):
     try:
         with open(file_name) as f:
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-    except FileNotFoundError:
-        pass  # Ignore si le fichier CSS n'existe pas
+    except:
+        pass
 
 local_css("style.css")
 
@@ -145,6 +145,30 @@ def create_sunburst_chart(df, path, values, color, title):
     fig.update_layout(margin=dict(t=50, l=0, r=0, b=0))
     return fig
 
+def create_radar_chart(categories, values, title):
+    fig = go.Figure()
+    
+    fig.add_trace(go.Scatterpolar(
+        r=values,
+        theta=categories,
+        fill='toself',
+        name=title
+    ))
+    
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[0, max(values)*1.1 if len(values) > 0 else 100]
+            )),
+        showlegend=False,
+        title=title,
+        height=400,
+        margin=dict(l=50, r=50, t=50, b=50)
+    )
+    
+    return fig
+
 # --- Navigation par onglets ---
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📊 Tableau de bord", 
@@ -202,11 +226,8 @@ with tab1:
                 y='Pourcentage',
                 labels={'Niveau': 'Niveau de connaissance', 'Pourcentage': 'Pourcentage (%)'},
                 color='Niveau',
-                color_discrete_sequence=px.colors.sequential.Blues_r,
-                text='Pourcentage'
+                color_discrete_sequence=px.colors.sequential.Blues_r
             )
-            fig.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
-            fig.update_layout(uniformtext_minsize=8, uniformtext_mode='hide')
             st.plotly_chart(fig, use_container_width=True)
         else:
             st.warning("Aucune donnée disponible pour ce filtre")
@@ -225,19 +246,10 @@ with tab1:
                 'Pourcentage': domains.values
             })
             
-            fig = go.Figure()
-            fig.add_trace(go.Scatterpolar(
-                r=domains_df['Pourcentage'],
-                theta=domains_df['Domaine'],
-                fill='toself',
-                name='Impact'
-            ))
-            
-            fig.update_layout(
-                polar=dict(radialaxis=dict(visible=True, range=[0, max(domains_df['Pourcentage'])*1.1]),
-                showlegend=False,
-                height=400,
-                margin=dict(l=50, r=50, t=50, b=50))
+            fig = create_radar_chart(
+                domains_df['Domaine'],
+                domains_df['Pourcentage'],
+                "Domaines les plus impactés"
             )
             st.plotly_chart(fig, use_container_width=True)
         else:
@@ -255,7 +267,7 @@ with tab1:
         platforms_df = pd.DataFrame({
             'Plateforme': platforms_data.index,
             'Pourcentage': platforms_data.values
-        }).sort_values('Pourcentage', ascending=False)
+        })
         
         fig = px.bar(
             platforms_df,
@@ -269,7 +281,7 @@ with tab1:
     else:
         st.warning("Aucune donnée disponible pour ce filtre")
 
-# [Les autres onglets (tab2 à tab5) restent identiques à votre version précédente]
+# [Rest of your tabs (tab2 to tab5) remain unchanged]
 
 # --- Pied de page ---
 st.markdown("""
