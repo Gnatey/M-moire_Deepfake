@@ -25,11 +25,31 @@ def load_data():
         df.columns = df.columns.str.normalize('NFKD').str.encode('ascii', errors='ignore').str.decode('utf-8')
         df.columns = df.columns.str.strip().str.replace(' ', '_').str.lower()
         
+        # Liste des colonnes à conserver (ajustez selon vos besoins)
+        cols_to_keep = [
+            'avez-vous_deja_entendu_parler_des_deep_fakes_',
+            'comment_evalueriez_vous_votre_niveau_de_connaissance_des_deep_fakes_',
+            'avez-vous_deja_vu_un_deep_fake_sur_les_reseaux_sociaux_',
+            '_sur_quelles_plateformes_avez-vous_principalement_vu_des_deep_fakes_',
+            'selon_vous_a_quelle_fin_les_deep_fakes_sont-ils_le_plus_souvent_utilises_',
+            'selon_vous_quel_est_limpact_global_des_deep_fakes_sur_la_societe_',
+            'quels_domaines_vous_semblent_les_plus_touches_par_les_deep_fakes_',
+            'faites-vous_confiance_aux_informations_que_vous_trouvez_sur_les_reseaux_sociaux_',
+            'depuis_que_vous_avez_entendu_parler_des_deep_fakes_votre_confiance_dans_les_medias_sociaux_a-t-elle_change_',
+            'a_quelle_frequence_verifiez-vous_lauthenticite_dune_information_avant_de_la_partager_',
+            'quelles_sont_vos_methodes_de_verification_des_informations_en_ligne_',
+            'avez-vous_reduit_la_frequence_de_partage_dinformations_sur_les_reseaux_sociaux_a_cause_de_la_mefiance_liee_aux_deep_fakes',
+            'quel_est_votre_tranche_dage_',
+            'vous_etes_...',
+            'quel_est_votre_niveau_deducation_actuel_',
+            'quel_est_votre_principal_reseau_social_utilise_au_quotidien_'
+        ]
+        
         # Filtrer les colonnes et supprimer les lignes avec valeurs manquantes
         df = df[cols_to_keep].dropna()
         
         # Simplifier certaines valeurs
-        df["Avez-vous déjà entendu parler des Deep Fakes ?"] = df["Avez-vous déjà entendu parler des Deep Fakes ?"].replace({
+        df["avez-vous_deja_entendu_parler_des_deep_fakes_"] = df["avez-vous_deja_entendu_parler_des_deep_fakes_"].replace({
             'Oui': 'Oui',
             'Non': 'Non'
         })
@@ -69,7 +89,7 @@ with col1:
     """.format(len(df)), unsafe_allow_html=True)
 
 with col2:
-    aware_perc = round(df["Avez-vous déjà entendu parler des Deep Fakes ?"].value_counts(normalize=True).get("Oui", 0) * 100, 1)
+    aware_perc = round(df["avez-vous_deja_entendu_parler_des_deep_fakes_"].value_counts(normalize=True).get("Oui", 0) * 100, 1)
     st.markdown("""
     <div class="metric-card">
         <h3>Ont entendu parler des DeepFakes</h3>
@@ -78,7 +98,7 @@ with col2:
     """.format(aware_perc), unsafe_allow_html=True)
 
 with col3:
-    seen_perc = round(df["Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?"].value_counts(normalize=True).get("Oui", 0) * 100, 1)
+    seen_perc = round(df["avez-vous_deja_vu_un_deep_fake_sur_les_reseaux_sociaux_"].value_counts(normalize=True).get("Oui", 0) * 100, 1)
     st.markdown("""
     <div class="metric-card">
         <h3>Ont déjà vu un DeepFake</h3>
@@ -87,7 +107,7 @@ with col3:
     """.format(seen_perc), unsafe_allow_html=True)
 
 with col4:
-    trust_perc = round(df["Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?"].value_counts(normalize=True).get("Oui", 0) * 100, 1)
+    trust_perc = round(df["faites-vous_confiance_aux_informations_que_vous_trouvez_sur_les_reseaux_sociaux_"].value_counts(normalize=True).get("Oui", 0) * 100, 1)
     st.markdown("""
     <div class="metric-card">
         <h3>Confiance dans les réseaux sociaux</h3>
@@ -250,20 +270,20 @@ st.subheader("Filtres Interactifs")
 
 age_filter = st.multiselect(
     "Filtrer par tranche d'âge:",
-    options=df["Quel est votre tranche d'âge ?"].unique()
+    options=df["quel_est_votre_tranche_dage_"].unique()
 )
 
 gender_filter = st.multiselect(
     "Filtrer par genre:",
-    options=df["Vous êtes ...?"].unique()
+    options=df["vous_etes_..."].unique()
 )
 
 # Application des filtres
 filtered_df = df.copy()
 if age_filter:
-    filtered_df = filtered_df[filtered_df["Quel est votre tranche d'âge ?"].isin(age_filter)]
+    filtered_df = filtered_df[filtered_df["quel_est_votre_tranche_dage_"].isin(age_filter)]
 if gender_filter:
-    filtered_df = filtered_df[filtered_df["Vous êtes ...?"].isin(gender_filter)]
+    filtered_df = filtered_df[filtered_df["vous_etes_..."].isin(gender_filter)]
 
 # Affichage des données filtrées
 st.subheader("Données Filtrées")
