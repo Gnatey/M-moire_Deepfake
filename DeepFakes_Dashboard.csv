@@ -1,0 +1,281 @@
+﻿Avez-vous déjà entendu parler des Deep Fakes ?
+
+;%;
+  Oui;71,28205128205128;
+  Non;28,717948717948715;
+  TOTAL;100;
+
+
+Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?
+
+;%;
+  Pas du tout informé(e);23,589743589743588;
+  Peu informé(e);20;
+  Moyennement informé(e);34,87179487179487;
+  Bien informé(e);16,41025641025641;
+  Très bien informé(e);5,128205128205128;
+  TOTAL;100;
+
+
+Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?
+
+;%;
+  Oui;65,64102564102564;
+  Non;11,282051282051283;
+  Je ne suis pas sûr(e);23,076923076923077;
+  TOTAL;100;
+
+
+"
+Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"
+
+;%;
+  Facebook;28,717948717948715;
+  X anciennement Twitter;18,461538461538463;
+  Instagram;27,692307692307693;
+  TikTok;35,8974358974359;
+  YouTube;11,794871794871794;
+  Autres;41,53846153846154;
+  TOTAL;"";
+
+
+Selon vous, à quelle fin les Deep Fakes sont-ils le plus souvent utilisés ?
+
+;%;
+  Divertissement (humour, création artistique);32,82051282051282;
+  Désinformation (propagande, manipulation politique);30,256410256410255;
+  Arnaque ou fraude en ligne;24,102564102564102;
+  Autres;12,82051282051282;
+  TOTAL;100;
+
+
+Selon vous, quel est l’impact global des Deep Fakes sur la société ?
+
+;%;
+  Très négatif;21,53846153846154;
+  Négatif;34,35897435897436;
+  Neutre;34,35897435897436;
+  Positif;7,179487179487179;
+  Très positif;2,564102564102564;
+  TOTAL;100;
+
+
+Quels domaines vous semblent les plus touchés par les deep fakes ? (Plusieurs choix possibles)
+
+;%;
+  Politique;42,56410256410256;
+  Divertissement/Célébrités;59,48717948717949;
+  Journalisme/Actualités;38,46153846153847;
+  Informations financières;21,53846153846154;
+  Événements sociaux (crises, catastrophes, etc.);42,05128205128205;
+  TOTAL;"";
+
+
+Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?
+
+;%;
+  Oui;13,333333333333334;
+  Non;13,333333333333334;
+  Cela dépend des sources;73,33333333333333;
+  TOTAL;100;
+
+
+
+
+Depuis que vous avez entendu parler des Deep Fakes, votre confiance dans les médias sociaux a-t-elle changé ?
+
+;%;
+  Fortement diminué;14,358974358974358;
+  Légèrement diminué;44,61538461538462;
+  Resté stable;35,38461538461539;
+  Légèrement augmenté;4,102564102564102;
+  Fortement augmenté;1,5384615384615385;
+  TOTAL;100;
+
+
+À quelle fréquence vérifiez-vous l’authenticité d’une information avant de la partager ?
+
+;%;
+  Jamais;5,641025641025641;
+  Rarement;19,48717948717949;
+  Parfois;34,87179487179487;
+  Souvent;27,692307692307693;
+  Toujours;12,307692307692308;
+  TOTAL;100;
+
+
+Quelles sont vos méthodes de vérification des informations en ligne ? (Plusieurs choix possibles)
+
+;%;
+  Rechercher d’autres sources fiables;56,41025641025641;
+  Vérifier l’auteur et la crédibilité du média;61,02564102564103;
+  Utiliser des outils de fact-checking (ex : Décodex, Snopes);12,82051282051282;
+  Analyser les commentaires et réactions d’autres utilisateurs;42,05128205128205;
+  Je ne vérifie pas;7,6923076923076925;
+  TOTAL;"";
+
+
+Avez-vous réduit la fréquence de partage d’informations sur les réseaux sociaux à cause de la méfiance liée aux Deep Fakes
+
+;%;
+  Pas du tout;23,589743589743588;
+  Légèrement;34,35897435897436;
+  Moyennement;29,230769230769234;
+  Beaucoup;7,6923076923076925;
+  Très fortement;5,128205128205128;
+  TOTAL;100;
+
+
+Parmi les 4 photos, laquelle vous semble être une vraie photo ?
+
+;%;
+  1;96,41025641025641;
+  2;1,0256410256410255;
+  3;2,051282051282051;
+  4;0,5128205128205128;
+  TOTAL;100;
+
+
+"
+Selon vous, laquelle vous semble être une vraie photo ?"
+
+;%;
+  1;11,794871794871794;
+  2;8,205128205128204;
+  3;74,35897435897436;
+  4;5,641025641025641;
+  TOTAL;100;
+
+
+Selon vous, quelle image est authentique ?
+
+;%;
+  1;10,256410256410255;
+  2;16,923076923076923;
+  3;64,1025641025641;
+  4;8,717948717948717;
+  TOTAL;100;
+
+
+Parmi les 4 photos, laquelle est un Deepfakes ?
+
+;%;
+  1;16,923076923076923;
+  2;21,53846153846154;
+  3;12,82051282051282;
+  4;48,717948717948715;
+  TOTAL;100;
+
+
+
+
+D’après vous, la personne dans cette vidéo est-elle réelle ou générée artificiellement ?
+
+;%;
+  Oui, elle est réelle;57,948717948717956;
+  Non, elle n'est pas réelle;42,05128205128205;
+  TOTAL;100;
+
+
+Selon vous, qui est le principal responsable de la lutte contre les deep fakes ?
+
+;%;
+  Les gouvernements;28,717948717948715;
+  Les plateformes de réseaux sociaux;27,692307692307693;
+  Les utilisateurs eux-mêmes;22,05128205128205;
+  Les médias et journalistes;8,205128205128204;
+  Autres;3,076923076923077;
+  Je ne sais pas;10,256410256410255;
+  TOTAL;100;
+
+
+Pensez-vous que les plateformes sociales devraient mettre en place des outils d’identification automatique des deep fakes ?
+
+;%;
+  Oui;81,53846153846153;
+  Non;4,615384615384616;
+  Sans opinion;8,717948717948717;
+  Je ne sais pas;5,128205128205128;
+  TOTAL;100;
+
+
+Seriez-vous favorable à des formations ou des campagnes de sensibilisation sur les deep fakes ?
+
+;%;
+  Oui;69,23076923076923;
+  Non;13,333333333333334;
+  Sans opinion;17,435897435897434;
+  TOTAL;100;
+
+
+Seriez-vous prêt(e) à suivre régulièrement des formations sur la détection des deep fakes ?
+
+;%;
+  Pas du tout prêt(e);14,358974358974358;
+  Peu prêt(e);24,102564102564102;
+  Indifférent(e);25,128205128205128;
+  Assez prêt(e);31,28205128205128;
+  Très prêt(e);5,128205128205128;
+  TOTAL;100;
+
+
+Quel est votre tranche d'âge ?
+
+;%;
+  Moins de 18 ans;11,282051282051283;
+  18-25 ans;25,64102564102564;
+  26-40 ans;33,84615384615385;
+  41-60 ans;24,615384615384617;
+  Plus de 60 ans;4,615384615384616;
+  TOTAL;100;
+
+
+Vous êtes ...?
+
+;%;
+  Homme;38,46153846153847;
+  Femme;54,35897435897436;
+  Autre / Préfère ne pas répondre;7,179487179487179;
+  TOTAL;100;
+
+
+Quel est votre niveau d’éducation actuel ?
+
+;%;
+  Collège ou moins;13,846153846153847;
+  Lycée;15,384615384615385;
+  Bac +2;9,230769230769232;
+  Bac +3 / Licence;33,33333333333333;
+  Bac +5 et plus;28,205128205128204;
+  TOTAL;100;
+
+
+
+
+Quel est votre principal réseau social utilisé au quotidien ?
+
+;%;
+  Facebook;13,333333333333334;
+  X anciennement Twitter;4,615384615384616;
+  Instagram;22,05128205128205;
+  TikTok;31,28205128205128;
+  YouTube;5,128205128205128;
+  LinkedIn;1,0256410256410255;
+  Aucun;22,564102564102566;
+  TOTAL;100;
+
+
+LANG_SAISIE
+
+;%;
+  CN;48,205128205128204;
+  FR;91,7948717948718;
+  CHT;95,38461538461539;
+  EN;98,46153846153847;
+  IT;99,48717948717949;
+  DE;100;
+  TOTAL;100;
+
+
+
+
