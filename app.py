@@ -41,6 +41,15 @@ def load_data():
 
 df = load_data()
 
+# --- Style CSS personnalisé ---
+def local_css(file_name):
+    try:
+        with open(file_name) as f:
+            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+    except:
+        pass
+
+local_css("style.css")
 
 # Sidebar - Navigation et filtres
 st.sidebar.title("Navigation")
