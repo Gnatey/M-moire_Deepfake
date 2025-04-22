@@ -9,11 +9,14 @@ seaborn==0.13.2
 plotly==5.20.0
 altair==5.3.0
 
-# Machine Learning / Clustering (si tu fais des prédictions ou du clustering)
+# Machine Learning / Clustering
 scikit-learn==1.4.2
 
-# PDF Report (si tu utilises la génération de PDF)
+# PDF Report (optionnel)
 reportlab==4.1.0
 
-# Optional - pour traitement avancé ou interactive widgets
+# Interactive DataTables (optionnel)
 streamlit-aggrid==0.3.4.post3
+
+# Composants supplémentaires
+streamlit-extras>=0.2.7
