@@ -1,39 +1,51 @@
 import pandas as pd
 import streamlit as st
 
-# Chargement des résultats Sphinx (déjà analysés)
-sphinx_data = pd.read_csv("DeepFakes_Dashboard.csv", delimiter=';')  # Vérifie si ; est bon
+# Chargement des données traitées
+df = pd.read_csv("DeepFakes_Dashboard.csv", delimiter=';')
 
-st.title("Analyse DeepFakes - Résultats Sphinx")
+st.title("Tableau de Bord Deep Fakes")
 
-# Aperçu du fichier traité
-st.header("Résultats Sphinx")
-st.dataframe(sphinx_data)
+# KPI - Taille échantillon
+sample_size = 195  # Fixe pour ton cas
+st.metric("Taille de l'échantillon", f"{sample_size} réponses")
 
-# Si tu veux un tableau triable :
-st.header("Explorer les données")
-# Utilise st.dataframe plutôt que st.data_editor
-st.dataframe(sphinx_data, use_container_width=True)
+# Section Connaissance des Deep Fakes
+st.header("Connaissance des Deep Fakes")
+col1, col2 = st.columns(2)
+col1.metric("Ont entendu parler", "71%")
+col2.metric("N'ont pas entendu", "29%")
 
-# Option : filtrer une colonne
-selected_col = st.selectbox("Choisir une colonne pour filtrer", sphinx_data.columns)
-unique_vals = sphinx_data[selected_col].dropna().unique()
-selected_val = st.selectbox(f"Valeurs de {selected_col}", unique_vals)
+# Niveau de connaissance - Bar Chart
+st.subheader("Niveau de connaissance")
+knowledge_levels = {
+    "Pas du tout informé(e)": 24,
+    "Peu informé(e)": 20,
+    "Moyennement informé(e)": 35,
+    "Bien informé(e)": 16,
+    "Très bien informé(e)": 5
+}
+st.bar_chart(pd.Series(knowledge_levels))
 
-filtered_data = sphinx_data[sphinx_data[selected_col] == selected_val]
-st.write(filtered_data)
+# Plateformes où vus - Multi-choice
+st.subheader("Plateformes principales")
+platforms = {
+    "Facebook": 29,
+    "X (Twitter)": 18,
+    "Instagram": 28,
+    "TikTok": 36,
+    "YouTube": 12,
+    "Autres": 42
+}
+st.bar_chart(pd.Series(platforms))
 
-# Graphique dynamique
-num_cols = sphinx_data.select_dtypes(include='number').columns.tolist()
-
-if num_cols:
-    graph_col = st.selectbox("Choisir une colonne numérique à visualiser", num_cols)
-
-    # Vérifie que la colonne n'est pas vide
-    if sphinx_data[graph_col].notnull().sum() > 0:
-        st.bar_chart(sphinx_data[graph_col])
-    else:
-        st.warning("La colonne sélectionnée est vide.")
-else:
-    st.warning("Aucune colonne numérique disponible pour le graphique.")
-
+# Impact global
+st.subheader("Impact des Deep Fakes sur la société")
+impact = {
+    "Très négatif": 22,
+    "Négatif": 34,
+    "Neutre": 34,
+    "Positif": 7,
+    "Très positif": 3
+}
+st.bar_chart(pd.Series(impact))
