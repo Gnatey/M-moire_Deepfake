@@ -237,7 +237,7 @@ with tab1:
                 polar=dict(radialaxis=dict(visible=True, range=[0, max(domains_df['Pourcentage'])*1.1]),
                 showlegend=False,
                 height=400,
-                margin=dict(l=50, r=50, t=50, b=50)
+                margin=dict(l=50, r=50, t=50, b=50))
             )
             st.plotly_chart(fig, use_container_width=True)
         else:
