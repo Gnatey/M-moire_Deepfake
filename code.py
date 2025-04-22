@@ -315,7 +315,7 @@ with tab2:
         else:
             st.warning("Aucune donnée disponible pour ce filtre")
     
-with tab2_col1:
+    with tab2_col1:
     st.subheader("Répartition démographique")
     
     try:
@@ -333,9 +333,6 @@ with tab2_col1:
             st.plotly_chart(fig, use_container_width=True)
         else:
             st.warning("Aucune donnée disponible pour ce filtre")
-    except KeyError as e:
-        st.error(f"Erreur de colonne: {str(e)}")
-        st.write("Colonnes disponibles:", df_filtered.columns.tolist())
     
     # Analyse des méthodes de vérification
     st.subheader("Méthodes de vérification par groupe")
