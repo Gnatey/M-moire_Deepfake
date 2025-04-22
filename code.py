@@ -4,11 +4,8 @@ import matplotlib.pyplot as plt
 import altair as alt
 
 #import des données
-uploaded_file = st.file_uploader("Choisissez un fichier CSV", type="csv")
-if uploaded_file is not None:
-    data = pd.read_csv(uploaded_file)
-else:
-    st.stop()
+url = "https://raw.githubusercontent.com/Gnatey/M-moire_Deepfake/main/DeepFakes.csv"
+data = pd.read_csv(url, delimiter=";")
 
 # Sidebar Navigation
 st.sidebar.title("Navigation")
