@@ -93,7 +93,7 @@ if section == "Connaissance des Deep Fakes":
         color=alt.Color(field="Option", type="nominal", legend=alt.Legend(title=None)),
         tooltip=["Option", "Pourcentage"]
     )
-    st.altair_chart(pie_chart, use_container_width=True)
+    st.bar_chart(df_chart.set_index("Option"))
     st.caption("Pourcentage de répondants ayant entendu parler des deep fakes (Oui/Non).")
 
     # Q2. Niveau de connaissance des Deep Fakes
