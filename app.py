@@ -307,7 +307,7 @@ elif page == "Données":
 st.markdown("""
 <style>
     .main {
-        background-color: #f8f9fa;
+        background-color: noir;
     }
     .stButton>button {
         background-color: #4CAF50;
