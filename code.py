@@ -31,21 +31,7 @@ def create_platform_heatmap(data):
     plt.xticks(rotation=45)
 
     return fig
-    
-st.header("Analyse démographique")
-demographic_filters = st.expander("Filtres démographiques")
 
-with demographic_filters:
-    age_filter = st.multiselect("Tranche d'âge", data['Quel est votre tranche d\'âge ?'].unique())
-    education_filter = st.multiselect("Niveau d'éducation", data['Quel est votre niveau d\'éducation actuel ?'].unique())
-    
-# Graphique interactif
-fig = px.sunburst(
-    filtered_data,
-    path=['Quel est votre tranche d\'âge ?', 'Vous êtes ...?', 'Quel est votre niveau d\'éducation actuel ?'],
-    values='count',
-    color='Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?'
-)
 st.plotly_chart(fig)
 
 st.header("Impact perçu des DeepFakes")
