@@ -39,16 +39,6 @@ def load_data():
     url = "https://raw.githubusercontent.com/Gnatey/M-moire_Deepfake/main/DeepFakes.csv"
     df = pd.read_csv(url, delimiter=";", encoding="utf-8")
     
-uploaded_file = st.file_uploader("Télécharge ton fichier CSV ici :", type="csv")
-
-if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file, delimiter=";", encoding="utf-8")
-    st.success("Fichier chargé avec succès.")
-    st.write("Aperçu des colonnes :", df.columns.tolist())
-else:
-    st.stop()  # Stoppe l'app tant que rien n'est uploadé
-
-
     # Nettoyage et préparation des données
     df = df.rename(columns={
         "Quel est votre tranche d'âge ?": "Age",
@@ -194,9 +184,10 @@ with tab1:
     
     with col3:
         neg_impact = get_percentage_distribution(
-        "Selon vous, quel est l'impact global des Deep Fakes sur la société ?", 
-        ["Très négatif", "Négatif"]
+    "Selon vous, quel est l’impact global des Deep Fakes sur la société ?", 
+    ["Très négatif", "Négatif"]
     )
+
     total_neg_impact = neg_impact.get("Très négatif", 0) + neg_impact.get("Négatif", 0)
     st.metric("Impact négatif", f"{total_neg_impact}%", "65% globale")
 
