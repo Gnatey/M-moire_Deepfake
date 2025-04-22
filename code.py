@@ -25,8 +25,15 @@ st.write(filtered_data)
 
 # Graphique dynamique
 num_cols = sphinx_data.select_dtypes(include='number').columns.tolist()
+
 if num_cols:
     graph_col = st.selectbox("Choisir une colonne numérique à visualiser", num_cols)
-    st.bar_chart(sphinx_data[graph_col])
+
+    # Vérifie que la colonne n'est pas vide
+    if sphinx_data[graph_col].notnull().sum() > 0:
+        st.bar_chart(sphinx_data[graph_col])
+    else:
+        st.warning("La colonne sélectionnée est vide.")
 else:
-    st.write("Pas de colonnes numériques détectées.")
+    st.warning("Aucune colonne numérique disponible pour le graphique.")
+
