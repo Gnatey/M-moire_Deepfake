@@ -302,36 +302,3 @@ elif page == "Données":
             file_name='deepfakes_data_filtered.csv',
             mime='text/csv'
         )
-
-# Style CSS
-st.markdown("""
-<style>
-    .main {
-        background-color: noir;
-    }
-    .stButton>button {
-        background-color: #4CAF50;
-        color: white;
-        border-radius: 5px;
-        border: none;
-        padding: 10px 24px;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 16px;
-        margin: 4px 2px;
-        cursor: pointer;
-    }
-    .stButton>button:hover {
-        background-color: #45a049;
-    }
-    .css-1aumxhk {
-        background-color: #e9ecef;
-        border-radius: 10px;
-        padding: 20px;
-    }
-    .stAlert {
-        border-radius: 10px;
-    }
-</style>
-""", unsafe_allow_html=True)
