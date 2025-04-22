@@ -6,7 +6,7 @@ import altair as alt
 
 
 url = "https://raw.githubusercontent.com/Gnatey/M-moire_Deepfake/main/DeepFakes.csv"
-data = pd.read_csv(url, delimiter=";")
+df = pd.read_csv(url, delimiter=";")
 
 # --- Configuration des options de filtres (listes de catégories dans l'ordre voulu) ---
 age_categories = ["Moins de 18 ans", "18-25 ans", "26-40 ans", "41-60 ans", "Plus de 60 ans"]
