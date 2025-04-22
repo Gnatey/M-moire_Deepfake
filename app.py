@@ -43,12 +43,12 @@ df = load_data()
 
 
 # Sidebar - Navigation et filtres
-st.sidecol.title("Navigation")
-page = st.sidecol.radio("Pages", ["Accueil", "Analyse Démographique", "Perception des DeepFakes", 
+st.sidebar.title("Navigation")
+page = st.sidebar.radio("Pages", ["Accueil", "Analyse Démographique", "Perception des DeepFakes", 
                                 "Comportement en ligne", "Prédiction", "Données Brutes"])
 
 # Filtres globaux
-st.sidecol.header("Filtres")
+st.sidebar.header("Filtres")
 age_filter = st.sidebar.multiselect("Filtrer par âge", options=df['Quel est votre tranche d\'âge ?'].unique())
 gender_filter = st.sidebar.multiselect("Filtrer par genre", options=df['Vous êtes ...?'].unique())
 
