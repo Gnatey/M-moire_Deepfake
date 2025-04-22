@@ -14,9 +14,7 @@ col2.metric("Exposition", "78%", "+12% YoY")
 col3.metric("Impact négatif", "65%", "5% > moyenne")
 
 # Carte thermique des plateformes
-st.subheader("Présence des DeepFakes par plateforme")
-platform_heatmap = create_platform_heatmap(data)
-st.plotly_chart(platform_heatmap, use_container_width=True)
+import matplotlib.pyplot as plt
 
 # Fonction pour générer la heatmap ou un bar chart simple
 def create_platform_heatmap(data):
@@ -32,6 +30,24 @@ def create_platform_heatmap(data):
 
     return fig
 
+st.subheader("Présence des DeepFakes par plateforme")
+platform_heatmap = create_platform_heatmap(data)
+st.plotly_chart(platform_heatmap, use_container_width=True)
+
+st.header("Analyse démographique")
+demographic_filters = st.expander("Filtres démographiques")
+
+with demographic_filters:
+    age_filter = st.multiselect("Tranche d'âge", data['Quel est votre tranche d\'âge ?'].unique())
+    education_filter = st.multiselect("Niveau d'éducation", data['Quel est votre niveau d\'éducation actuel ?'].unique())
+    
+# Graphique interactif
+fig = px.sunburst(
+    filtered_data,
+    path=['Quel est votre tranche d\'âge ?', 'Vous êtes ...?', 'Quel est votre niveau d\'éducation actuel ?'],
+    values='count',
+    color='Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?'
+)
 st.plotly_chart(fig)
 
 st.header("Impact perçu des DeepFakes")
