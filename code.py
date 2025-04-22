@@ -1,51 +1,30 @@
 import pandas as pd
 import streamlit as st
 
-# Chargement des données traitées
-df = pd.read_csv("DeepFakes_Dashboard.csv", delimiter=';')
+# Chargement des résultats Sphinx
+df = pd.read_csv("DeepFakes_Dashboard.csv", delimiter=';')  # Vérifie si ; est correct
 
-st.title("Tableau de Bord Deep Fakes")
+st.title("Tableau de Bord Deep Fakes - Automatisé")
 
-# KPI - Taille échantillon
-sample_size = 195  # Fixe pour ton cas
-st.metric("Taille de l'échantillon", f"{sample_size} réponses")
+# Aperçu rapide des données
+st.header("Aperçu des Données")
+st.dataframe(df)
 
-# Section Connaissance des Deep Fakes
-st.header("Connaissance des Deep Fakes")
-col1, col2 = st.columns(2)
-col1.metric("Ont entendu parler", "71%")
-col2.metric("N'ont pas entendu", "29%")
+# Choisir une question à visualiser
+st.header("Analyse Interrogative")
+question = st.selectbox("Choisir une question", df['Question'].unique())
 
-# Niveau de connaissance - Bar Chart
-st.subheader("Niveau de connaissance")
-knowledge_levels = {
-    "Pas du tout informé(e)": 24,
-    "Peu informé(e)": 20,
-    "Moyennement informé(e)": 35,
-    "Bien informé(e)": 16,
-    "Très bien informé(e)": 5
-}
-st.bar_chart(pd.Series(knowledge_levels))
+# Filtrer les réponses de la question choisie
+filtered_df = df[df['Question'] == question]
 
-# Plateformes où vus - Multi-choice
-st.subheader("Plateformes principales")
-platforms = {
-    "Facebook": 29,
-    "X (Twitter)": 18,
-    "Instagram": 28,
-    "TikTok": 36,
-    "YouTube": 12,
-    "Autres": 42
-}
-st.bar_chart(pd.Series(platforms))
+# Affichage des réponses et pourcentages
+st.write(filtered_df[['Réponse', 'Pourcentage']])
 
-# Impact global
-st.subheader("Impact des Deep Fakes sur la société")
-impact = {
-    "Très négatif": 22,
-    "Négatif": 34,
-    "Neutre": 34,
-    "Positif": 7,
-    "Très positif": 3
-}
-st.bar_chart(pd.Series(impact))
+# Graphique dynamique
+chart_data = filtered_df.set_index('Réponse')['Pourcentage']
+st.bar_chart(chart_data)
+
+# KPI Exemple basé sur les données
+if 'Taille de l\'échantillon' in df.columns:
+    taille = df['Taille de l\'échantillon'].dropna().unique()[0]
+    st.metric("Taille de l'échantillon", f"{int(taille)} réponses")
