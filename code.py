@@ -185,9 +185,9 @@ with tab1:
     
     with col3:
         neg_impact = get_percentage_distribution(
-    "Selon vous, quel est l’impact global des Deep Fakes sur la société ?", 
+    "Selon vous, quel est l'impact global des Deep Fakes sur la société ?", 
     ["Très négatif", "Négatif"]
-    )
+)
 
     total_neg_impact = neg_impact.get("Très négatif", 0) + neg_impact.get("Négatif", 0)
     st.metric("Impact négatif", f"{total_neg_impact}%", "65% globale")
