@@ -15,35 +15,46 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Chargement des données
+# Chargement des données corrigé
 @st.cache_data
 def load_data():
+    cols_to_keep = [  # Déplacer ici pour être toujours défini
+        'avez-vous_deja_entendu_parler_des_deep_fakes_',
+        'comment_evalueriez_vous_votre_niveau_de_connaissance_des_deep_fakes_',
+        'avez-vous_deja_vu_un_deep_fake_sur_les_reseaux_sociaux_',
+        '_sur_quelles_plateformes_avez-vous_principalement_vu_des_deep_fakes_',
+        'selon_vous_a_quelle_fin_les_deep_fakes_sont-ils_le_plus_souvent_utilises_',
+        'selon_vous_quel_est_limpact_global_des_deep_fakes_sur_la_societe_',
+        'quels_domaines_vous_semblent_les_plus_touches_par_les_deep_fakes_',
+        'faites-vous_confiance_aux_informations_que_vous_trouvez_sur_les_reseaux_sociaux_',
+        'depuis_que_vous_avez_entendu_parler_des_deep_fakes_votre_confiance_dans_les_medias_sociaux_a-t-elle_change_',
+        'a_quelle_frequence_verifiez-vous_lauthenticite_dune_information_avant_de_la_partager_',
+        'quelles_sont_vos_methodes_de_verification_des_informations_en_ligne_',
+        'avez-vous_reduit_la_frequence_de_partage_dinformations_sur_les_reseaux_sociaux_a_cause_de_la_mefiance_liee_aux_deep_fakes',
+        'quel_est_votre_tranche_dage_',
+        'vous_etes_...',
+        'quel_est_votre_niveau_deducation_actuel_',
+        'quel_est_votre_principal_reseau_social_utilise_au_quotidien_'
+    ]
     try:
         df = pd.read_csv('DeepFakes.csv', sep=';', encoding='utf-8')
-        
-        # Nettoyage des noms de colonnes (supprimer accents et caractères spéciaux)
+
+        # Nettoyage des noms de colonnes
         df.columns = df.columns.str.normalize('NFKD').str.encode('ascii', errors='ignore').str.decode('utf-8')
         df.columns = df.columns.str.strip().str.replace(' ', '_').str.lower()
-        
-        # Liste des colonnes à conserver (ajustez selon vos besoins)
-        cols_to_keep = [
-            'avez-vous_deja_entendu_parler_des_deep_fakes_',
-            'comment_evalueriez_vous_votre_niveau_de_connaissance_des_deep_fakes_',
-            'avez-vous_deja_vu_un_deep_fake_sur_les_reseaux_sociaux_',
-            '_sur_quelles_plateformes_avez-vous_principalement_vu_des_deep_fakes_',
-            'selon_vous_a_quelle_fin_les_deep_fakes_sont-ils_le_plus_souvent_utilises_',
-            'selon_vous_quel_est_limpact_global_des_deep_fakes_sur_la_societe_',
-            'quels_domaines_vous_semblent_les_plus_touches_par_les_deep_fakes_',
-            'faites-vous_confiance_aux_informations_que_vous_trouvez_sur_les_reseaux_sociaux_',
-            'depuis_que_vous_avez_entendu_parler_des_deep_fakes_votre_confiance_dans_les_medias_sociaux_a-t-elle_change_',
-            'a_quelle_frequence_verifiez-vous_lauthenticite_dune_information_avant_de_la_partager_',
-            'quelles_sont_vos_methodes_de_verification_des_informations_en_ligne_',
-            'avez-vous_reduit_la_frequence_de_partage_dinformations_sur_les_reseaux_sociaux_a_cause_de_la_mefiance_liee_aux_deep_fakes',
-            'quel_est_votre_tranche_dage_',
-            'vous_etes_...',
-            'quel_est_votre_niveau_deducation_actuel_',
-            'quel_est_votre_principal_reseau_social_utilise_au_quotidien_'
-        ]
+
+        df = df[cols_to_keep].dropna()
+
+        df["avez-vous_deja_entendu_parler_des_deep_fakes_"] = df["avez-vous_deja_entendu_parler_des_deep_fakes_"].replace({
+            'Oui': 'Oui',
+            'Non': 'Non'
+        })
+        return df
+
+    except Exception as e:
+        st.error(f'Erreur de chargement : {str(e)}')
+        return pd.DataFrame()
+
         
         # Filtrer les colonnes et supprimer les lignes avec valeurs manquantes
         df = df[cols_to_keep].dropna()
