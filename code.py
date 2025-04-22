@@ -190,22 +190,8 @@ with tab1:
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-    st.subheader("Connaissance des DeepFakes")
-    knowledge = get_percentage_distribution(
-        COL_KNOWLEDGE,
-        ["Pas du tout informé(e)", "Peu informé(e)", "Moyennement informé(e)", "Bien informé(e)", "Très bien informé(e)"]
-    )
-    # Correction : créer un DataFrame propre pour Plotly
-    knowledge_df = knowledge.reset_index().rename(columns={'index': 'Niveau', 0: 'Pourcentage'})
-    fig = px.bar(
-        knowledge_df,
-        x='Niveau',
-        y='Pourcentage',
-        labels={'Niveau': 'Niveau de connaissance', 'Pourcentage': 'Pourcentage'},
-        color='Niveau',
-        color_discrete_sequence=px.colors.sequential.Blues_r
-    )
-    st.plotly_chart(fig, use_container_width=True)
+        awareness = get_percentage_distribution(COL_AWARENESS, ["Oui"]).get("Oui", 0)
+        st.metric("Conscience des DeepFakes", f"{awareness}%", "92% globale")
     
     with col2:
         exposure = get_percentage_distribution(COL_EXPOSURE, ["Oui"]).get("Oui", 0)
@@ -235,12 +221,14 @@ with tab1:
             COL_KNOWLEDGE,
             ["Pas du tout informé(e)", "Peu informé(e)", "Moyennement informé(e)", "Bien informé(e)", "Très bien informé(e)"]
         )
+        # Correction : créer un DataFrame propre pour Plotly
+        knowledge_df = knowledge.reset_index().rename(columns={'index': 'Niveau', 0: 'Pourcentage'})
         fig = px.bar(
-            knowledge.reset_index(),
-            x='index',
-            y=0,
-            labels={'index': 'Niveau de connaissance', 0: 'Pourcentage'},
-            color='index',
+            knowledge_df,
+            x='Niveau',
+            y='Pourcentage',
+            labels={'Niveau': 'Niveau de connaissance', 'Pourcentage': 'Pourcentage'},
+            color='Niveau',
             color_discrete_sequence=px.colors.sequential.Blues_r
         )
         st.plotly_chart(fig, use_container_width=True)
@@ -252,9 +240,14 @@ with tab1:
             ["Politique", "Divertissement/Célébrités", "Journalisme/Actualités", "Informations financières", "Événements sociaux (crises, catastrophes, etc.)"],
             multi_choice=True
         )
+        # Création d'un DataFrame propre pour le radar chart
+        domains_df = pd.DataFrame({
+            'Domaine': domains.index,
+            'Pourcentage': domains.values
+        })
         fig = create_radar_chart(
-            domains.index,
-            domains.values,
+            domains_df['Domaine'],
+            domains_df['Pourcentage'],
             "Domaines les plus impactés"
         )
         st.plotly_chart(fig, use_container_width=True)
@@ -266,10 +259,15 @@ with tab1:
         ["Facebook", "Twitter", "Instagram", "TikTok", "YouTube", "Autres"],
         multi_choice=True
     )
+    # Création d'un DataFrame propre pour la heatmap
+    platforms_df = pd.DataFrame({
+        'Plateforme': platforms_data.index,
+        'Pourcentage': platforms_data.values
+    })
     fig = px.imshow(
-        [platforms_data.values],
+        [platforms_df['Pourcentage']],
         labels=dict(x="Plateformes", y="", color="Pourcentage"),
-        x=platforms_data.index,
+        x=platforms_df['Plateforme'],
         y=["Exposition"],
         color_continuous_scale='Blues',
         aspect="auto"
