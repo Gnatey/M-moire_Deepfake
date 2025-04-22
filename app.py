@@ -1,15 +1,16 @@
 import streamlit as st
 import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score
-from sklearn.preprocessing import LabelEncoder
+import numpy as np
 import plotly.express as px
+import plotly.figure_factory as ff
+import seaborn as sns
+import matplotlib.pyplot as plt
+from PIL import Image
 
-# Configuration
+# Configuration de la page
 st.set_page_config(
-    page_title="DeepFakes Dashboard", 
-    page_icon=":camera:", 
+    page_title="Dashboard DeepFakes - Accueil",
+    page_icon=":bar_chart:",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -21,12 +22,28 @@ def load_data():
         df = pd.read_csv('DeepFakes.csv', sep=';', encoding='utf-8')
         # Nettoyage des noms de colonnes
         df.columns = df.columns.str.strip()
-        # Suppression des colonnes inutiles
-        cols_to_drop = ['Clé', 'Date de saisie', 'Date de dernière modification', 
-                       'Date de dernier enregistrement', 'Temps de saisie', 'Langue', 
-                       'Progression', 'Dernière question saisie', 'Origine', 
-                       'Appareil utilisé pour la saisie', 'Campagne de diffusion']
-        df = df.drop(columns=[col for col in cols_to_drop if col in df.columns])
+        
+        # Colonnes importantes pour l'analyse
+        cols_to_keep = [
+            "Avez-vous déjà entendu parler des Deep Fakes ?",
+            "Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?",
+            "Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?",
+            "Selon vous, quel est l'impact global des Deep Fakes sur la société ?",
+            "Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?",
+            "Quel est votre tranche d'âge ?",
+            "Vous êtes ...?",
+            "Quel est votre niveau d'éducation actuel ?"
+        ]
+        
+        # Filtrer les colonnes et supprimer les lignes avec valeurs manquantes
+        df = df[cols_to_keep].dropna()
+        
+        # Simplifier certaines valeurs
+        df["Avez-vous déjà entendu parler des Deep Fakes ?"] = df["Avez-vous déjà entendu parler des Deep Fakes ?"].replace({
+            'Oui': 'Oui',
+            'Non': 'Non'
+        })
+        
         return df
     except Exception as e:
         st.error(f"Erreur lors du chargement des données: {str(e)}")
@@ -39,266 +56,234 @@ if df.empty:
     st.error("Les données n'ont pas pu être chargées. Veuillez vérifier le fichier.")
     st.stop()
 
-# Dictionnaire des colonnes avec vérification
-COLUMNS = {
-    'age': "Quel est votre tranche d'âge ?",
-    'gender': "Vous êtes ...?",
-    'education': "Quel est votre niveau d'éducation actuel ?",
-    'knowledge': "Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?",
-    'seen': "Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?",
-    'impact': "Selon vous, quel est l'impact global des Deep Fakes sur la société ?",
-    'trust': "Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?",
-    'aware': "Avez-vous déjà entendu parler des Deep Fakes ?"
-}
+# Titre de la page
+st.title("📊 Dashboard d'Analyse des DeepFakes")
+st.markdown("""
+Cette application permet d'analyser les perceptions et comportements liés aux DeepFakes à partir d'une enquête menée auprès de différents utilisateurs.
+""")
 
-# Vérification que les colonnes existent dans le DataFrame
-missing_cols = [key for key, col in COLUMNS.items() if col not in df.columns]
-if missing_cols:
-    st.warning(f"Certaines colonnes attendues sont manquantes: {', '.join(missing_cols)}")
+# =============================================
+# SECTION 1: KPI PRINCIPAUX
+# =============================================
+st.header("🔍 Indicateurs Clés de Performance")
 
-# Sidebar Navigation
-st.sidebar.title("Navigation")
-page_options = ["Accueil", "Analyse Démographique", "Perception", "Comportement", "Prédiction", "Données"]
-page = st.sidebar.radio("Pages", page_options)
+# Création de 4 colonnes pour les KPI
+col1, col2, col3, col4 = st.columns(4)
 
-# Filtres globaux
-st.sidebar.header("Filtres")
+with col1:
+    st.markdown("""
+    <div class="metric-card">
+        <h3>Nombre de répondants</h3>
+        <h1 style="color: #4CAF50;">{}</h1>
+    </div>
+    """.format(len(df)), unsafe_allow_html=True)
+
+with col2:
+    aware_perc = round(df["Avez-vous déjà entendu parler des Deep Fakes ?"].value_counts(normalize=True).get("Oui", 0) * 100, 1)
+    st.markdown("""
+    <div class="metric-card">
+        <h3>Ont entendu parler des DeepFakes</h3>
+        <h1 style="color: #2196F3;">{}%</h1>
+    </div>
+    """.format(aware_perc), unsafe_allow_html=True)
+
+with col3:
+    seen_perc = round(df["Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?"].value_counts(normalize=True).get("Oui", 0) * 100, 1)
+    st.markdown("""
+    <div class="metric-card">
+        <h3>Ont déjà vu un DeepFake</h3>
+        <h1 style="color: #FF9800;">{}%</h1>
+    </div>
+    """.format(seen_perc), unsafe_allow_html=True)
+
+with col4:
+    trust_perc = round(df["Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?"].value_counts(normalize=True).get("Oui", 0) * 100, 1)
+    st.markdown("""
+    <div class="metric-card">
+        <h3>Confiance dans les réseaux sociaux</h3>
+        <h1 style="color: #9C27B0;">{}%</h1>
+    </div>
+    """.format(trust_perc), unsafe_allow_html=True)
+
+# =============================================
+# SECTION 2: MATRICE DE CORRELATION
+# =============================================
+st.header("📈 Analyse des Corrélations")
+
+# Préparation des données pour la matrice de corrélation
+st.markdown("""
+<div class="plot-container">
+    <h3>Matrice de Corrélation</h3>
+""", unsafe_allow_html=True)
+
+# Encodage des variables catégorielles pour la corrélation
+df_corr = df.copy()
+for col in df_corr.select_dtypes(include=['object']).columns:
+    df_corr[col] = df_corr[col].astype('category').cat.codes
+
+# Calcul de la matrice de corrélation
+corr_matrix = df_corr.corr()
+
+# Visualisation avec Plotly
+fig = px.imshow(
+    corr_matrix,
+    labels=dict(x="Variables", y="Variables", color="Corrélation"),
+    x=corr_matrix.columns,
+    y=corr_matrix.columns,
+    color_continuous_scale='RdBu',
+    zmin=-1,
+    zmax=1
+)
+fig.update_layout(width=800, height=600)
+st.plotly_chart(fig, use_container_width=True)
+st.markdown("</div>", unsafe_allow_html=True)
+
+# =============================================
+# SECTION 3: HEATMAP DE DISTRIBUTION
+# =============================================
+st.header("🌡️ Heatmap de Distribution")
+
+# Sélection des variables pour le heatmap
+var1 = st.selectbox(
+    "Première variable:",
+    options=df.select_dtypes(include=['object']).columns,
+    index=0
+)
+
+var2 = st.selectbox(
+    "Deuxième variable:",
+    options=df.select_dtypes(include=['object']).columns,
+    index=1
+)
+
+# Création du heatmap croisé
+st.markdown("""
+<div class="plot-container">
+    <h3>Distribution entre {} et {}</h3>
+""".format(var1, var2), unsafe_allow_html=True)
+
+cross_tab = pd.crosstab(df[var1], df[var2])
+fig = px.imshow(
+    cross_tab,
+    labels=dict(x=var2, y=var1, color="Nombre"),
+    x=cross_tab.columns,
+    y=cross_tab.index,
+    text_auto=True,
+    aspect="auto"
+)
+fig.update_layout(width=800, height=600)
+st.plotly_chart(fig, use_container_width=True)
+st.markdown("</div>", unsafe_allow_html=True)
+
+# =============================================
+# SECTION 4: DISTRIBUTION DES VARIABLES CLES
+# =============================================
+st.header("📊 Distribution des Variables Clés")
+
+# Sélection de la variable à analyser
+selected_var = st.selectbox(
+    "Sélectionnez une variable à analyser:",
+    options=df.select_dtypes(include=['object']).columns
+)
+
+# Affichage de la distribution
+st.markdown("""
+<div class="plot-container">
+    <h3>Distribution de {}</h3>
+""".format(selected_var), unsafe_allow_html=True)
+
+value_counts = df[selected_var].value_counts().reset_index()
+value_counts.columns = ['Valeur', 'Nombre']
+
+fig = px.bar(
+    value_counts,
+    x='Valeur',
+    y='Nombre',
+    color='Valeur',
+    text='Nombre',
+    labels={'Valeur': selected_var, 'Nombre': 'Count'}
+)
+fig.update_traces(textposition='outside')
+fig.update_layout(showlegend=False)
+st.plotly_chart(fig, use_container_width=True)
+st.markdown("</div>", unsafe_allow_html=True)
+
+# =============================================
+# SECTION 5: ANALYSE MULTIVARIEE
+# =============================================
+st.header("🧩 Analyse Multivariée")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    x_axis = st.selectbox(
+        "Axe X:",
+        options=df.select_dtypes(include=['object']).columns,
+        index=0
+    )
+
+with col2:
+    y_axis = st.selectbox(
+        "Axe Y:",
+        options=df.select_dtypes(include=['object']).columns,
+        index=1
+    )
+
+color_by = st.selectbox(
+    "Couleur par:",
+    options=df.select_dtypes(include=['object']).columns,
+    index=2
+)
+
+st.markdown("""
+<div class="plot-container">
+    <h3>Relation entre {} et {} (coloré par {})</h3>
+""".format(x_axis, y_axis, color_by), unsafe_allow_html=True)
+
+fig = px.sunburst(
+    df,
+    path=[x_axis, y_axis, color_by],
+    maxdepth=2,
+    width=800,
+    height=600
+)
+st.plotly_chart(fig, use_container_width=True)
+st.markdown("</div>", unsafe_allow_html=True)
+
+# =============================================
+# SECTION 6: FILTRES ET DONNEES BRUTES
+# =============================================
+st.header("🔍 Exploration des Données")
+
+# Filtres interactifs
+st.subheader("Filtres Interactifs")
+
+age_filter = st.multiselect(
+    "Filtrer par tranche d'âge:",
+    options=df["Quel est votre tranche d'âge ?"].unique()
+)
+
+gender_filter = st.multiselect(
+    "Filtrer par genre:",
+    options=df["Vous êtes ...?"].unique()
+)
+
+# Application des filtres
 filtered_df = df.copy()
+if age_filter:
+    filtered_df = filtered_df[filtered_df["Quel est votre tranche d'âge ?"].isin(age_filter)]
+if gender_filter:
+    filtered_df = filtered_df[filtered_df["Vous êtes ...?"].isin(gender_filter)]
 
-if COLUMNS['age'] in df.columns:
-    age_options = df[COLUMNS['age']].unique()
-    selected_ages = st.sidebar.multiselect("Filtrer par âge", options=age_options)
-    if selected_ages:
-        filtered_df = filtered_df[filtered_df[COLUMNS['age']].isin(selected_ages)]
+# Affichage des données filtrées
+st.subheader("Données Filtrées")
+st.dataframe(filtered_df, height=300)
 
-if COLUMNS['gender'] in df.columns:
-    gender_options = df[COLUMNS['gender']].unique()
-    selected_genders = st.sidebar.multiselect("Filtrer par genre", options=gender_options)
-    if selected_genders:
-        filtered_df = filtered_df[filtered_df[COLUMNS['gender']].isin(selected_genders)]
-
-# Accueil avec KPIs
-if page == "Accueil":
-    st.title("Dashboard DeepFakes")
-    
-    # KPIs
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.metric("Nombre de répondants", len(filtered_df))
-    
-    with col2:
-        if COLUMNS['aware'] in filtered_df.columns:
-            aware_perc = round(filtered_df[COLUMNS['aware']].value_counts(normalize=True).get('Oui', 0) * 100, 1)
-            st.metric("Connaissance des DeepFakes", f"{aware_perc}%")
-    
-    with col3:
-        if COLUMNS['seen'] in filtered_df.columns:
-            seen_perc = round(filtered_df[COLUMNS['seen']].value_counts(normalize=True).get('Oui', 0) * 100, 1)
-            st.metric("Ont vu un DeepFake", f"{seen_perc}%")
-    
-    with col4:
-        if COLUMNS['trust'] in filtered_df.columns:
-            trust_perc = round(filtered_df[COLUMNS['trust']].value_counts(normalize=True).get('Oui', 0) * 100, 1)
-            st.metric("Confiance en ligne", f"{trust_perc}%")
-    
-    # Graphique d'impact
-    if COLUMNS['impact'] in filtered_df.columns:
-        st.header("Impact perçu")
-        impact_counts = filtered_df[COLUMNS['impact']].value_counts()
-        fig = px.pie(impact_counts, 
-                     values=impact_counts.values, 
-                     names=impact_counts.index, 
-                     title="Impact global perçu des DeepFakes")
-        st.plotly_chart(fig, use_container_width=True)
-
-# Analyse Démographique
-elif page == "Analyse Démographique":
-    st.title("Analyse Démographique")
-    
-    # Répartition par âge
-    if COLUMNS['age'] in filtered_df.columns:
-        st.subheader("Répartition par âge")
-        age_dist = filtered_df[COLUMNS['age']].value_counts().sort_index()
-        fig = px.bar(age_dist, 
-                     x=age_dist.index, 
-                     y=age_dist.values,
-                     labels={'x': 'Tranche d\'âge', 'y': 'Nombre de répondants'})
-        st.plotly_chart(fig, use_container_width=True)
-    
-    # Répartition par genre
-    if COLUMNS['gender'] in filtered_df.columns:
-        st.subheader("Répartition par genre")
-        gender_dist = filtered_df[COLUMNS['gender']].value_counts()
-        fig = px.pie(gender_dist, 
-                     values=gender_dist.values, 
-                     names=gender_dist.index,
-                     hole=0.3)
-        st.plotly_chart(fig, use_container_width=True)
-    
-    # Niveau d'éducation
-    if COLUMNS['education'] in filtered_df.columns:
-        st.subheader("Niveau d'éducation")
-        edu_dist = filtered_df[COLUMNS['education']].value_counts()
-        fig = px.bar(edu_dist, 
-                     x=edu_dist.index, 
-                     y=edu_dist.values,
-                     labels={'x': 'Niveau d\'éducation', 'y': 'Nombre de répondants'})
-        st.plotly_chart(fig, use_container_width=True)
-
-# Perception des DeepFakes
-elif page == "Perception":
-    st.title("Perception des DeepFakes")
-    
-    # Niveau de connaissance
-    if COLUMNS['knowledge'] in filtered_df.columns:
-        st.subheader("Niveau de connaissance des DeepFakes")
-        knowledge = filtered_df[COLUMNS['knowledge']].value_counts()
-        fig = px.bar(knowledge, 
-                     x=knowledge.index, 
-                     y=knowledge.values,
-                     labels={'x': 'Niveau de connaissance', 'y': 'Nombre de répondants'})
-        st.plotly_chart(fig, use_container_width=True)
-    
-    # Impact perçu
-    if COLUMNS['impact'] in filtered_df.columns:
-        st.subheader("Impact perçu des DeepFakes")
-        impact = filtered_df[COLUMNS['impact']].value_counts()
-        fig = px.pie(impact, 
-                     values=impact.values, 
-                     names=impact.index,
-                     hole=0.3)
-        st.plotly_chart(fig, use_container_width=True)
-
-# Comportement en ligne
-elif page == "Comportement":
-    st.title("Comportement en ligne")
-    
-    # Confiance dans les réseaux sociaux
-    if COLUMNS['trust'] in filtered_df.columns:
-        st.subheader("Confiance dans les réseaux sociaux")
-        trust = filtered_df[COLUMNS['trust']].value_counts()
-        fig = px.pie(trust, 
-                     values=trust.values, 
-                     names=trust.index,
-                     hole=0.3)
-        st.plotly_chart(fig, use_container_width=True)
-
-# Prédiction
-elif page == "Prédiction":
-    st.title("Modèle de Prédiction")
-    
-    if len(filtered_df) < 20:
-        st.warning("Le nombre de données est trop faible pour entraîner un modèle fiable.")
-    else:
-        # Sélection de la variable cible
-        target_options = []
-        if COLUMNS['trust'] in filtered_df.columns:
-            target_options.append(("Confiance dans les réseaux sociaux", COLUMNS['trust']))
-        if COLUMNS['impact'] in filtered_df.columns:
-            target_options.append(("Impact perçu des DeepFakes", COLUMNS['impact']))
-        
-        if not target_options:
-            st.error("Aucune variable cible disponible pour la prédiction.")
-        else:
-            target_name, target_var = st.selectbox(
-                "Choisissez la variable à prédire:",
-                target_options,
-                format_func=lambda x: x[0]
-            )
-            
-            # Préparation des features
-            features = []
-            feature_names = []
-            
-            if COLUMNS['age'] in filtered_df.columns:
-                features.append(COLUMNS['age'])
-                feature_names.append("Âge")
-            
-            if COLUMNS['gender'] in filtered_df.columns:
-                features.append(COLUMNS['gender'])
-                feature_names.append("Genre")
-            
-            if COLUMNS['education'] in filtered_df.columns:
-                features.append(COLUMNS['education'])
-                feature_names.append("Éducation")
-            
-            if COLUMNS['knowledge'] in filtered_df.columns:
-                features.append(COLUMNS['knowledge'])
-                feature_names.append("Connaissance DF")
-            
-            if COLUMNS['seen'] in filtered_df.columns:
-                features.append(COLUMNS['seen'])
-                feature_names.append("Vu un DF")
-            
-            if not features:
-                st.error("Aucune variable explicative disponible pour la prédiction.")
-            else:
-                # Encodage
-                X = filtered_df[features]
-                y = filtered_df[target_var]
-                
-                le_dict = {}
-                X_encoded = pd.DataFrame()
-                
-                for col in features:
-                    le = LabelEncoder()
-                    X_encoded[col] = le.fit_transform(X[col].astype(str))
-                    le_dict[col] = le
-                
-                le_target = LabelEncoder()
-                y_encoded = le_target.fit_transform(y.astype(str))
-                
-                # Entraînement du modèle
-                X_train, X_test, y_train, y_test = train_test_split(
-                    X_encoded, y_encoded, test_size=0.2, random_state=42
-                )
-                
-                model = RandomForestClassifier(n_estimators=100, random_state=42)
-                model.fit(X_train, y_train)
-                
-                # Évaluation
-                y_pred = model.predict(X_test)
-                acc = accuracy_score(y_test, y_pred)
-                
-                st.metric("Précision du modèle", f"{acc*100:.1f}%")
-                
-                # Interface de prédiction
-                st.subheader("Faire une prédiction")
-                input_data = {}
-                
-                for col, name in zip(features, feature_names):
-                    options = filtered_df[col].unique()
-                    default = options[0] if len(options) > 0 else ""
-                    selected = st.selectbox(name, options, key=f"pred_{col}")
-                    input_data[col] = selected
-                
-                if st.button("Prédire"):
-                    try:
-                        # Encodage des inputs
-                        input_encoded = []
-                        for col in features:
-                            le = le_dict[col]
-                            input_encoded.append(le.transform([input_data[col]])[0])
-                        
-                        # Prédiction
-                        prediction = model.predict([input_encoded])[0]
-                        pred_label = le_target.inverse_transform([prediction])[0]
-                        
-                        st.success(f"Résultat prédit : {pred_label}")
-                    except Exception as e:
-                        st.error(f"Erreur lors de la prédiction: {str(e)}")
-
-# Données Brutes
-elif page == "Données":
-    st.title("Données Brutes")
-    st.dataframe(filtered_df)
-    
-    if st.button("Télécharger les données filtrées"):
-        csv = filtered_df.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            label="Cliquez pour télécharger",
-            data=csv,
-            file_name='deepfakes_data_filtered.csv',
-            mime='text/csv'
-        )
+# Téléchargement des données filtrées
+csv = filtered_df.to_csv(index=False).encode('utf-8')
+st.download_button(
+    label="📥 Télécharger les données filtrées",
+    data=csv,
+    file_name='deepfakes_data_filtered.csv',
+    mime='text/csv'
+)
