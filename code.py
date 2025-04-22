@@ -31,7 +31,7 @@ local_css("style.css")
 @st.cache_data
 def load_data():
     # Chargement du fichier CSV
-    df = pd.read_csv("DeepFakes_Dashboard.csv", delimiter=";", encoding="utf-8", skiprows=[1], header=None)
+    df = pd.read_csv("DeepFakes.csv", delimiter=";", encoding="utf-8", skiprows=[1], header=None)
     
     # Nettoyage et préparation des données
     df = df.dropna(how='all')
