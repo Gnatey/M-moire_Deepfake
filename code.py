@@ -1,4 +1,9 @@
-df = pd.read_csv("DeepFakes.csv", sep=";")
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+url = "https://raw.githubusercontent.com/Gnatey/M-moire_Deepfake/main/DeepFakes.csv"
+data = pd.read_csv(url, delimiter=";")
 
 # --- Configuration des options de filtres (listes de catégories dans l'ordre voulu) ---
 age_categories = ["Moins de 18 ans", "18-25 ans", "26-40 ans", "41-60 ans", "Plus de 60 ans"]
