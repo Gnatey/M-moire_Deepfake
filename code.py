@@ -33,3 +33,6 @@ if num_cols:
     st.bar_chart(data[selected_col])
 else:
     st.write("Pas de colonne numérique détectée.")
+
+
+# Test
