@@ -35,6 +35,10 @@ def load_data():
 
 df = load_data()
 
+# Corriger les apostrophes typographiques
+df.columns = df.columns.str.strip()
+df.columns = df.columns.str.replace('’', "'", regex=False)  
+
 # Sidebar - Navigation et filtres
 st.sidebar.title("Navigation")
 page = st.sidebar.radio("Pages", ["Accueil", "Analyse Démographique", "Perception des DeepFakes", 
