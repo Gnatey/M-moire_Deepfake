@@ -1,36 +1,31 @@
 import pandas as pd
 import streamlit as st
-import matplotlib.pyplot as plt
 
-# Chargement de la BDD
-url = 'https://raw.githubusercontent.com/Gnatey/M-moire_Deepfake/refs/heads/main/DeepFakes.csv'
-data = pd.read_csv(url, delimiter=';')  # Vérifie si ; est bon sinon mets ','
+# Chargement des résultats Sphinx (déjà analysés)
+sphinx_data = pd.read_csv("DeepFakes_Dashboard.csv", delimiter=';')  # Vérifie si ; est bon
 
-st.title("Tableau de Bord DeepFakes")
+st.title("Analyse DeepFakes - Résultats Sphinx")
 
+# Aperçu du fichier traité
+st.header("Résultats Sphinx")
+st.dataframe(sphinx_data)
 
-# Exemple : Simulation de la colonne "Plateformes"
-data = pd.DataFrame({
-    'Plateformes': [
-        'YouTube, TikTok',
-        'Facebook, YouTube',
-        'Instagram, TikTok',
-        'YouTube, Facebook',
-        'TikTok',
-        'YouTube, Instagram',
-    ]
-})
+# Si tu veux un tableau triable :
+st.header("Explorer les données")
+st.data_editor(sphinx_data, use_container_width=True)
 
-# Séparer les réponses multiples
-all_platforms = data['Plateformes'].dropna().str.split(', ')
-flattened = [item for sublist in all_platforms for item in sublist]
+# Option : filtrer une colonne
+selected_col = st.selectbox("Choisir une colonne pour filtrer", sphinx_data.columns)
+unique_vals = sphinx_data[selected_col].dropna().unique()
+selected_val = st.selectbox(f"Valeurs de {selected_col}", unique_vals)
 
-# Compter les occurrences
-platform_counts = pd.Series(flattened).value_counts()
+filtered_data = sphinx_data[sphinx_data[selected_col] == selected_val]
+st.write(filtered_data)
 
-# Afficher les résultats
-st.header("Répartition des plateformes vues")
-st.bar_chart(platform_counts)
-
-# Affichage brut si besoin
-st.write(platform_counts)
+# Graphique dynamique
+num_cols = sphinx_data.select_dtypes(include='number').columns.tolist()
+if num_cols:
+    graph_col = st.selectbox("Choisir une colonne numérique à visualiser", num_cols)
+    st.bar_chart(sphinx_data[graph_col])
+else:
+    st.write("Pas de colonnes numériques détectées.")
