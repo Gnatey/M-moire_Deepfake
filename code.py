@@ -185,7 +185,7 @@ with tab1:
     
     with col3:
         neg_impact = get_percentage_distribution(
-    "Selon vous, quel est l'impact global des Deep Fakes sur la société ?", 
+    "Selon vous, quel est l’impact global des Deep Fakes sur la société ?", 
     ["Très négatif", "Négatif"]
 )
 
