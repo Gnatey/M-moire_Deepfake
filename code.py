@@ -4,7 +4,6 @@ import streamlit as st
 import altair as alt
 import plotly.express as px
 import plotly.graph_objects as go
-import streamlit as st
 from streamlit_extras.metric_cards import style_metric_cards
 from streamlit_extras.dataframe_explorer import dataframe_explorer
 from streamlit_extras.stylable_container import stylable_container
@@ -33,6 +32,18 @@ def local_css(file_name):
 
 local_css("style.css")
 
+# --- Constantes pour les noms de colonnes ---
+COL_IMPACT = "Selon vous, quel est l'impact global des Deep Fakes sur la société ?"
+COL_KNOWLEDGE = "Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?"
+COL_EXPOSURE = "Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?"
+COL_AWARENESS = "Avez-vous déjà entendu parler des Deep Fakes ?"
+COL_VERIFICATION = "À quelle fréquence vérifiez-vous l'authenticité d'une information avant de la partager ?"
+COL_METHODS = "Quelles sont vos méthodes de vérification des informations en ligne ? (Plusieurs choix possibles)"
+COL_PLATFORMS = "_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"
+COL_TRUST = "Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?"
+COL_TRUST_CHANGE = "Depuis que vous avez entendu parler des Deep Fakes, votre confiance dans les médias sociaux a-t-elle changé ?"
+COL_SHARING = "Avez-vous réduit la fréquence de partage d'informations sur les réseaux sociaux à cause de la méfiance liée aux Deep Fakes"
+
 # --- Chargement des données ---
 @st.cache_data
 def load_data():
@@ -43,7 +54,7 @@ def load_data():
     df = df.rename(columns={
         "Quel est votre tranche d'âge ?": "Age",
         "Vous êtes ...?": "Genre",
-        "Quel est votre niveau d’éducation actuel ?": "Education",
+        "Quel est votre niveau d'éducation actuel ?": "Education",
         "Quel est votre principal réseau social utilisé au quotidien ?": "Reseau_Social"
     })
     
@@ -52,7 +63,10 @@ def load_data():
         "X anciennement Twitter": "Twitter",
         "Aucun": "Pas de réseau"
     })
-    df.columns = df.columns.str.replace("’", "'", regex=False)
+    
+    # Standardisation des noms de colonnes
+    df.columns = df.columns.str.replace("[’'‘]", "'", regex=True)  # Uniformise les apostrophes
+    df.columns = df.columns.str.strip()  # Enlève les espaces superflus
     
     return df
 
@@ -176,24 +190,23 @@ with tab1:
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        awareness = get_percentage_distribution("Avez-vous déjà entendu parler des Deep Fakes ?", ["Oui"]).get("Oui", 0)
+        awareness = get_percentage_distribution(COL_AWARENESS, ["Oui"]).get("Oui", 0)
         st.metric("Conscience des DeepFakes", f"{awareness}%", "92% globale")
     
     with col2:
-        exposure = get_percentage_distribution("Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?", ["Oui"]).get("Oui", 0)
+        exposure = get_percentage_distribution(COL_EXPOSURE, ["Oui"]).get("Oui", 0)
         st.metric("Exposition aux DeepFakes", f"{exposure}%", "78% globale")
     
     with col3:
         neg_impact = get_percentage_distribution(
-    "Selon vous, quel est l’impact global des Deep Fakes sur la société ?", 
-    ["Très négatif", "Négatif"]
-)
-
-    total_neg_impact = neg_impact.get("Très négatif", 0) + neg_impact.get("Négatif", 0)
-    st.metric("Impact négatif", f"{total_neg_impact}%", "65% globale")
+            COL_IMPACT, 
+            ["Très négatif", "Négatif"]
+        )
+        total_neg_impact = neg_impact.get("Très négatif", 0) + neg_impact.get("Négatif", 0)
+        st.metric("Impact négatif", f"{total_neg_impact}%", "65% globale")
 
     with col4:
-        verification = get_percentage_distribution("À quelle fréquence vérifiez-vous l'authenticité d'une information avant de la partager ?", ["Souvent", "Toujours"])
+        verification = get_percentage_distribution(COL_VERIFICATION, ["Souvent", "Toujours"])
         total_verify = verification.get("Souvent", 0) + verification.get("Toujours", 0)
         st.metric("Vérification active", f"{total_verify}%", "72% globale")
     
@@ -205,7 +218,7 @@ with tab1:
     with col1:
         st.subheader("Connaissance des DeepFakes")
         knowledge = get_percentage_distribution(
-            "Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?",
+            COL_KNOWLEDGE,
             ["Pas du tout informé(e)", "Peu informé(e)", "Moyennement informé(e)", "Bien informé(e)", "Très bien informé(e)"]
         )
         fig = px.bar(
@@ -235,7 +248,7 @@ with tab1:
     # Heatmap des plateformes
     st.subheader("Présence des DeepFakes par plateforme")
     platforms_data = get_percentage_distribution(
-        "_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)",
+        COL_PLATFORMS,
         ["Facebook", "Twitter", "Instagram", "TikTok", "YouTube", "Autres"],
         multi_choice=True
     )
@@ -279,9 +292,9 @@ with tab2:
         
         cross_var2 = st.selectbox(
             "Variable 2 pour l'analyse croisée",
-            ["Avez-vous déjà entendu parler des Deep Fakes ?", 
-             "Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?",
-             "Selon vous, quel est l'impact global des Deep Fakes sur la société ?"],
+            [COL_AWARENESS, 
+             COL_KNOWLEDGE,
+             COL_IMPACT],
             index=1
         )
         
@@ -318,7 +331,7 @@ with tab2:
     
     method_data = []
     for method in verification_methods:
-        temp_df = df_filtered[df_filtered["Quelles sont vos méthodes de vérification des informations en ligne ? (Plusieurs choix possibles)"].str.contains(method, na=False)]
+        temp_df = df_filtered[df_filtered[COL_METHODS].str.contains(method, na=False)]
         counts = temp_df.groupby(group_by).size() / df_filtered.groupby(group_by).size() * 100
         method_data.append(counts)
     
@@ -345,7 +358,7 @@ with tab3:
         st.subheader("Exposition aux DeepFakes par plateforme")
         
         platform_exposure = get_percentage_distribution(
-            "_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)",
+            COL_PLATFORMS,
             ["Facebook", "Twitter", "Instagram", "TikTok", "YouTube", "Autres"],
             multi_choice=True
         )
@@ -364,7 +377,7 @@ with tab3:
         
         exposure_vs_main = pd.crosstab(
             df_filtered["Reseau_Social"],
-            df_filtered["Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?"],
+            df_filtered[COL_EXPOSURE],
             normalize='index'
         ).round(2) * 100
         
@@ -383,7 +396,7 @@ with tab3:
         
         trust_by_platform = pd.crosstab(
             df_filtered["Reseau_Social"],
-            df_filtered["Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?"],
+            df_filtered[COL_TRUST],
             normalize='index'
         ).round(2) * 100
         
@@ -401,7 +414,7 @@ with tab3:
         
         trust_evolution = pd.crosstab(
             df_filtered["Reseau_Social"],
-            df_filtered["Depuis que vous avez entendu parler des Deep Fakes, votre confiance dans les médias sociaux a-t-elle changé ?"],
+            df_filtered[COL_TRUST_CHANGE],
             normalize='index'
         ).round(2) * 100
         
@@ -421,7 +434,7 @@ with tab3:
         st.write("**Réduction du partage d'informations**")
         sharing_reduction = pd.crosstab(
             df_filtered["Reseau_Social"],
-            df_filtered["Avez-vous réduit la fréquence de partage d'informations sur les réseaux sociaux à cause de la méfiance liée aux Deep Fakes"],
+            df_filtered[COL_SHARING],
             normalize='index'
         ).round(2) * 100
         
@@ -438,7 +451,7 @@ with tab3:
         st.write("**Fréquence de vérification**")
         verification_freq = pd.crosstab(
             df_filtered["Reseau_Social"],
-            df_filtered["À quelle fréquence vérifiez-vous l'authenticité d'une information avant de la partager ?"],
+            df_filtered[COL_VERIFICATION],
             normalize='index'
         ).round(2) * 100
         
@@ -461,7 +474,7 @@ with tab4:
         st.subheader("Impact global sur la société")
         
         impact_dist = get_percentage_distribution(
-            "Selon vous, quel est l'impact global des Deep Fakes sur la société ?",
+            COL_IMPACT,
             ["Très négatif", "Négatif", "Neutre", "Positif", "Très positif"]
         )
         
@@ -497,7 +510,7 @@ with tab4:
         st.subheader("Méthodes de vérification")
         
         verification_methods = get_percentage_distribution(
-            "Quelles sont vos méthodes de vérification des informations en ligne ? (Plusieurs choix possibles)",
+            COL_METHODS,
             [
                 "Rechercher d'autres sources fiables",
                 "Vérifier l'auteur et la crédibilité du média",
@@ -530,8 +543,8 @@ with tab4:
         
         tools_by_knowledge = []
         for method in verification_methods.index:
-            temp_df = df_filtered[df_filtered["Quelles sont vos méthodes de vérification des informations en ligne ? (Plusieurs choix possibles)"].str.contains(method, na=False)]
-            counts = temp_df.groupby("Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?").size() / df_filtered.groupby("Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?").size() * 100
+            temp_df = df_filtered[df_filtered[COL_METHODS].str.contains(method, na=False)]
+            counts = temp_df.groupby(COL_KNOWLEDGE).size() / df_filtered.groupby(COL_KNOWLEDGE).size() * 100
             tools_by_knowledge.append(counts)
         
         tools_df = pd.concat(tools_by_knowledge, axis=1)
@@ -541,7 +554,7 @@ with tab4:
         
         fig = px.line(
             tools_df.reset_index(),
-            x="Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?",
+            x=COL_KNOWLEDGE,
             y=tools_df.columns,
             markers=True,
             labels={'value': 'Pourcentage', 'variable': 'Méthode'},
@@ -578,13 +591,13 @@ with tab5:
                 "Bac +5 et plus": 4
             })
             
-            cluster_features['Exposure'] = df_filtered["Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?"].map({
+            cluster_features['Exposure'] = df_filtered[COL_EXPOSURE].map({
                 "Oui": 1,
                 "Non": 0,
                 "Je ne suis pas sûr(e)": 0.5
             })
             
-            cluster_features['Trust'] = df_filtered["Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?"].map({
+            cluster_features['Trust'] = df_filtered[COL_TRUST].map({
                 "Oui": 1,
                 "Non": 0,
                 "Cela dépend des sources": 0.5
@@ -621,13 +634,13 @@ with tab5:
                 'Age': lambda x: x.mode()[0],
                 'Education': lambda x: x.mode()[0],
                 'Reseau_Social': lambda x: x.mode()[0],
-                'Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?': lambda x: (x == 'Oui').mean() * 100,
-                'Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?': lambda x: (x == 'Oui').mean() * 100,
-                'À quelle fréquence vérifiez-vous l\'authenticité d\'une information avant de la partager ?': lambda x: (x.isin(['Souvent', 'Toujours'])).mean() * 100
+                COL_EXPOSURE: lambda x: (x == 'Oui').mean() * 100,
+                COL_TRUST: lambda x: (x == 'Oui').mean() * 100,
+                COL_VERIFICATION: lambda x: (x.isin(['Souvent', 'Toujours'])).mean() * 100
             }).rename(columns={
-                'Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?': '% Exposition',
-                'Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?': '% Confiance',
-                'À quelle fréquence vérifiez-vous l\'authenticité d\'une information avant de la partager ?': '% Vérification fréquente'
+                COL_EXPOSURE: '% Exposition',
+                COL_TRUST: '% Confiance',
+                COL_VERIFICATION: '% Vérification fréquente'
             })
             
             st.dataframe(cluster_means.style.background_gradient(cmap='Blues'))
