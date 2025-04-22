@@ -23,6 +23,12 @@ st.set_page_config(
 @st.cache_data
 def load_data():
     df = pd.read_csv('DeepFakes.csv', sep=';', encoding='utf-8')
+
+df.columns = df.columns.str.strip()
+df.columns = df.columns.str.replace('’', "'", regex=False)
+df.columns = df.columns.str.replace('‘', "'", regex=False)
+df.columns = df.columns.str.replace('“|”', '"', regex=True)
+
     
     # Nettoyage des données
     df.columns = df.columns.str.strip()
