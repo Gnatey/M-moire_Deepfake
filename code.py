@@ -3,7 +3,6 @@ import numpy as np
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
-from streamlit_extras.metric_cards import style_metric_cards
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 import warnings
@@ -23,7 +22,26 @@ def local_css(file_name):
         with open(file_name) as f:
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
     except:
-        pass
+        st.markdown("""
+        <style>
+            /* Style personnalisé pour les cartes métriques */
+            div[data-testid="metric-container"] {
+                border: 1px solid #ccc;
+                padding: 10px;
+                border-radius: 5px;
+                background-color: #f9f9f9;
+            }
+            div[data-testid="metric-container"] > label {
+                font-size: 0.9em;
+                color: #555;
+            }
+            div[data-testid="metric-container"] > div {
+                font-size: 1.5em;
+                font-weight: bold;
+                color: #0068c9;
+            }
+        </style>
+        """, unsafe_allow_html=True)
 
 local_css("style.css")
 
@@ -42,11 +60,8 @@ COL_SHARING = "Avez-vous réduit la fréquence de partage d'informations sur les
 # --- Chargement des données ---
 @st.cache_data
 def load_data():
-    url = "https://raw.githubusercontent.com/Gnatey/M-moire_Deepfake/main/DeepFakes.csv"
-    df = pd.read_csv(url, delimiter=";", encoding="utf-8")
-    
-    # Print original columns for debugging
-    print("Original columns:", df.columns.tolist())
+    # Chargement depuis le fichier local (adaptez le chemin si nécessaire)
+    df = pd.read_csv("DeepFakes.csv", delimiter=";", encoding="utf-8")
     
     # Nettoyage et préparation des données
     df = df.rename(columns={
@@ -62,19 +77,9 @@ def load_data():
         "Aucun": "Pas de réseau"
     })
     
-    # Standardisation des noms de colonnes
-    df.columns = df.columns.str.replace("[’'‘]", "'", regex=True)
-    df.columns = df.columns.str.strip()
-    
-    # Print final columns for verification
-    print("Final columns:", df.columns.tolist())
-    
     return df
 
 df = load_data()
-
-# Verify columns in the app
-st.write("Columns in DataFrame:", df.columns.tolist())
 
 # --- Catégories pour les filtres ---
 age_categories = ["Moins de 18 ans", "18-25 ans", "26-40 ans", "41-60 ans", "Plus de 60 ans"]
@@ -211,8 +216,6 @@ with tab1:
         total_verify = verification.get("Souvent", 0) + verification.get("Toujours", 0)
         st.metric("Vérification active", f"{total_verify}%", "72% globale")
     
-    style_metric_cards(border_left_color="#DBF227", box_shadow=True)
-    
     # Visualisations principales
     col1, col2 = st.columns(2)
     
@@ -289,8 +292,6 @@ with tab1:
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.warning("Aucune donnée disponible pour ce filtre")
-
-# [Le code précédent jusqu'à la section des onglets reste identique...]
 
 with tab2:
     st.title("🔍 Analyse approfondie")
