@@ -1,6 +1,9 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import streamlit as st
+import altair as alt
+
 
 url = "https://raw.githubusercontent.com/Gnatey/M-moire_Deepfake/main/DeepFakes.csv"
 data = pd.read_csv(url, delimiter=";")
