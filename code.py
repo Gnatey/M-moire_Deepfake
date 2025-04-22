@@ -67,6 +67,9 @@ def load_data():
 
 df = load_data()
 
+# Verify columns
+print("Columns in DataFrame:", df.columns.tolist())
+
 # --- Catégories pour les filtres ---
 age_categories = ["Moins de 18 ans", "18-25 ans", "26-40 ans", "41-60 ans", "Plus de 60 ans"]
 gender_categories = ["Homme", "Femme", "Autre / Préfère ne pas répondre"]
