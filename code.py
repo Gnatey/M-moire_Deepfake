@@ -1,72 +1,43 @@
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 import streamlit as st
 import altair as alt
 
-
+# --- Chargement des données ---
 url = "https://raw.githubusercontent.com/Gnatey/M-moire_Deepfake/main/DeepFakes.csv"
 df = pd.read_csv(url, delimiter=";")
 
-# --- Configuration des options de filtres (listes de catégories dans l'ordre voulu) ---
+# --- Filtres dans la sidebar ---
+st.sidebar.title("Filtres sociodémographiques")
+
 age_categories = ["Moins de 18 ans", "18-25 ans", "26-40 ans", "41-60 ans", "Plus de 60 ans"]
 gender_categories = ["Homme", "Femme", "Autre / Préfère ne pas répondre"]
 edu_categories = ["Collège ou moins", "Lycée", "Bac +2", "Bac +3 / Licence", "Bac +5 et plus"]
 
-# --- Barre latérale ---
-st.sidebar.title("Navigation")
-# Sélection du thème (section) à afficher
-section = st.sidebar.radio("Sections", 
-    ["Connaissance des Deep Fakes", "Plateformes", "Perception", "Impact", 
-     "Méfiance", "Comportements", "Méthodes de vérification", "Données sociodémographiques"]
-)
-
-# Filtres interactifs par variables sociodémographiques
-st.sidebar.subheader("Filtres")
-# Multi-sélections pour Âge, Genre, Éducation (par défaut toutes les catégories sélectionnées = pas de filtre)
 selected_ages = st.sidebar.multiselect("Tranche d'âge", age_categories, default=age_categories)
 selected_genders = st.sidebar.multiselect("Genre", gender_categories, default=gender_categories)
 selected_edu = st.sidebar.multiselect("Niveau d'éducation", edu_categories, default=edu_categories)
 
-# Application des filtres aux données
+# --- Application des filtres ---
 df_filtered = df.copy()
-# Filtrer par âge (si toutes les catégories ne sont pas sélectionnées)
-if selected_ages and len(selected_ages) != len(age_categories):
+if len(selected_ages) < len(age_categories):
     df_filtered = df_filtered[df_filtered["Quel est votre tranche d'âge ?"].isin(selected_ages)]
-# Filtrer par genre
-if selected_genders and len(selected_genders) != len(gender_categories):
+if len(selected_genders) < len(gender_categories):
     df_filtered = df_filtered[df_filtered["Vous êtes ...?"].isin(selected_genders)]
-# Filtrer par niveau d'éducation
-if selected_edu and len(selected_edu) != len(edu_categories):
+if len(selected_edu) < len(edu_categories):
     df_filtered = df_filtered[df_filtered["Quel est votre niveau d’éducation actuel ?"].isin(selected_edu)]
 
-# Nombre total de répondants dans l'échantillon filtré (pour calculs de pourcentages)
 total_respondents = len(df_filtered)
-
-# --- Titre principal ---
-st.title("Enquête Deep Fakes – Tableau de bord interactif")
-# Sous-titre avec taille de l'échantillon (global ou filtré)
-st.markdown(f"*Population étudiée : {len(df)} répondants (échantillon total).*")
 
 # --- Fonctions utilitaires ---
 def get_percentage_distribution(column_name, categories_order=None, multi_choice=False):
-    """
-    Calcule la distribution en pourcentage des réponses pour une question donnée.
-    - column_name : nom de la colonne (question)
-    - categories_order : liste ordonnée des catégories à afficher (pour trier ou inclure catégories sans réponses)
-    - multi_choice : bool, True si question à choix multiples (plusieurs réponses possibles par personne)
-    Retourne un pandas Series indexé par catégorie avec pourcentages.
-    """
     if total_respondents == 0:
-        return pd.Series(dtype=float)  # aucun répondant après filtrage
+        return pd.Series(dtype=float)
     if multi_choice:
-        # Pour question à choix multiples, chaque entrée peut contenir plusieurs réponses séparées par ';'
         answers_series = df_filtered[column_name].dropna().str.split(';').explode().str.strip()
         counts = answers_series.value_counts()
     else:
         counts = df_filtered[column_name].dropna().value_counts()
     perc = (counts * 100 / total_respondents).round(1)
-    # S'il y a un ordre de catégories défini, on le suit (et on inclut les catégories manquantes avec 0%)
     if categories_order:
         for cat in categories_order:
             if cat not in perc.index:
@@ -74,43 +45,51 @@ def get_percentage_distribution(column_name, categories_order=None, multi_choice
         perc = perc[categories_order]
     return perc
 
-# --- Affichage de la section sélectionnée ---
-st.header(section)
+# --- Titre principal ---
+st.title("Enquête Deep Fakes – Tableau de bord interactif")
+st.markdown(f"*Population étudiée : {len(df)} répondants (échantillon total).*")
 
-# Section: Connaissance des Deep Fakes
-if section == "Connaissance des Deep Fakes":
-    # Q1. Avez-vous déjà entendu parler des Deep Fakes ?
+# --- Navigation par onglets ---
+tabs = st.tabs(["Connaissance", "Plateformes", "Perception", "Impact", 
+                "Méfiance", "Comportements", "Méthodes de vérification", "Sociodémographie"])
+
+# --- Exemple d'un onglet : Connaissance ---
+with tabs[0]:
+    st.header("Connaissance des Deep Fakes")
+
     col_name = "Avez-vous déjà entendu parler des Deep Fakes ?"
     order = ["Oui", "Non"]
     perc = get_percentage_distribution(col_name, categories_order=order)
-    # Indicateur KPI : pourcentage de personnes ayant entendu parler des deep fakes (réponse "Oui")
+
     if "Oui" in perc:
         st.metric("Ont entendu parler des Deep Fakes", f"{perc['Oui']:.1f} %")
-    # Graphique en secteur (pie chart) pour la répartition Oui/Non
-    df_chart = pd.DataFrame({"Option": perc.index, "Pourcentage": perc.values})
-    pie_chart = alt.Chart(df_chart).mark_arc(innerRadius=70).encode(
-        theta=alt.Theta(field="Pourcentage", type="quantitative"),
-        color=alt.Color(field="Option", type="nominal", legend=alt.Legend(title=None)),
-        tooltip=["Option", "Pourcentage"]
-    )
-    st.bar_chart(df_chart.set_index("Option"))
-    st.caption("Pourcentage de répondants ayant entendu parler des deep fakes (Oui/Non).")
 
-    # Q2. Niveau de connaissance des Deep Fakes
+    df_chart = pd.DataFrame({"Option": perc.index, "Pourcentage": perc.values})
+    if not df_chart.empty:
+        pie_chart = alt.Chart(df_chart).mark_arc(innerRadius=70).encode(
+            theta=alt.Theta(field="Pourcentage", type="quantitative"),
+            color=alt.Color(field="Option", type="nominal", legend=alt.Legend(title=None)),
+            tooltip=["Option", "Pourcentage"]
+        )
+        st.altair_chart(pie_chart, use_container_width=True)
+        st.caption("Répartition des répondants selon leur connaissance des Deep Fakes.")
+
+    # Niveau de connaissance
     col_name = "Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?"
     order = ["Pas du tout informé(e)", "Peu informé(e)", "Moyennement informé(e)", "Bien informé(e)", "Très bien informé(e)"]
     perc2 = get_percentage_distribution(col_name, categories_order=order)
-    st.subheader("Niveau de connaissance des Deep Fakes")
-    # Graphique en barres horizontales
-    df_chart2 = pd.DataFrame({"Niveau de connaissance": perc2.index, "Pourcentage": perc2.values})
-    bar_chart = alt.Chart(df_chart2).mark_bar().encode(
-        x=alt.X("Pourcentage:Q", title="Pourcentage"),
-        y=alt.Y("Niveau de connaissance:N", sort=order, title=""),
-        tooltip=["Niveau de connaissance", "Pourcentage"]
-    )
-    st.altair_chart(bar_chart, use_container_width=True)
-    st.caption("Auto-évaluation du niveau de connaissance des deep fakes parmi les répondants.")
 
+    st.subheader("Niveau de connaissance")
+    df_chart2 = pd.DataFrame({"Niveau": perc2.index, "Pourcentage": perc2.values})
+    if not df_chart2.empty:
+        bar_chart = alt.Chart(df_chart2).mark_bar().encode(
+            x=alt.X("Pourcentage:Q", title="Pourcentage"),
+            y=alt.Y("Niveau:N", sort=order, title=""),
+            tooltip=["Niveau", "Pourcentage"]
+        )
+        st.altair_chart(bar_chart, use_container_width=True)
+        st.caption("Auto-évaluation du niveau de connaissance des Deep Fakes.")
+        
 # Section: Plateformes
 elif section == "Plateformes":
     # Q3. Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?
