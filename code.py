@@ -1,3 +1,9 @@
+import streamlit as st
+import plotly.express as px
+import altair as alt
+
+
+# Sidebar Navigation
 st.sidebar.title("Navigation")
 page = st.sidebar.radio("", ["Tableau de bord", "Analyse démographique", "Impact des DeepFakes", "Détection & Prévention", "Prédictions & IA"])
 
