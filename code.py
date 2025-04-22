@@ -2,6 +2,7 @@ import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
 import altair as alt
+import plotly.express as px
 
 # Sidebar Navigation
 st.sidebar.title("Navigation")
