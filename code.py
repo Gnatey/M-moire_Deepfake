@@ -12,7 +12,8 @@ st.dataframe(sphinx_data)
 
 # Si tu veux un tableau triable :
 st.header("Explorer les données")
-st.data_editor(sphinx_data, use_container_width=True)
+# Utilise st.dataframe plutôt que st.data_editor
+st.dataframe(sphinx_data, use_container_width=True)
 
 # Option : filtrer une colonne
 selected_col = st.selectbox("Choisir une colonne pour filtrer", sphinx_data.columns)
