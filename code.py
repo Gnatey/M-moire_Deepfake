@@ -45,6 +45,9 @@ def load_data():
     url = "https://raw.githubusercontent.com/Gnatey/M-moire_Deepfake/main/DeepFakes.csv"
     df = pd.read_csv(url, delimiter=";", encoding="utf-8")
     
+    # Print original columns for debugging
+    print("Original columns:", df.columns.tolist())
+    
     # Nettoyage et préparation des données
     df = df.rename(columns={
         "Quel est votre tranche d'âge ?": "Age",
@@ -63,12 +66,15 @@ def load_data():
     df.columns = df.columns.str.replace("[’'‘]", "'", regex=True)
     df.columns = df.columns.str.strip()
     
+    # Print final columns for verification
+    print("Final columns:", df.columns.tolist())
+    
     return df
 
 df = load_data()
 
-# Verify columns
-print("Columns in DataFrame:", df.columns.tolist())
+# Verify columns in the app
+st.write("Columns in DataFrame:", df.columns.tolist())
 
 # --- Catégories pour les filtres ---
 age_categories = ["Moins de 18 ans", "18-25 ans", "26-40 ans", "41-60 ans", "Plus de 60 ans"]
@@ -309,38 +315,27 @@ with tab2:
         else:
             st.warning("Aucune donnée disponible pour ce filtre")
     
-    with tab2_col2:
-        st.subheader("Analyse croisée")
-        
-        cross_var1 = st.selectbox(
-            "Variable 1 pour l'analyse croisée",
-            ["Age", "Genre", "Education", "Reseau_Social"],
-            index=0
-        )
-        
-        cross_var2 = st.selectbox(
-            "Variable 2 pour l'analyse croisée",
-            [COL_AWARENESS, COL_KNOWLEDGE, COL_IMPACT],
-            index=1
-        )
-        
-        if not df_filtered.empty:
-            cross_tab = pd.crosstab(
-                df_filtered[cross_var1],
-                df_filtered[cross_var2],
-                normalize='index'
-            ).round(2) * 100
-            
-            fig = px.imshow(
-                cross_tab,
-                labels=dict(x=cross_var2, y=cross_var1, color="Pourcentage"),
-                color_continuous_scale='Blues',
-                aspect="auto",
-                text_auto=True
+with tab2_col1:
+    st.subheader("Répartition démographique")
+    
+    try:
+        # Sunburst chart
+        df_demo = df_filtered.groupby(['Age', 'Genre', 'Education']).size().reset_index(name='counts')
+        if not df_demo.empty:
+            fig = px.sunburst(
+                df_demo,
+                path=['Age', 'Genre', 'Education'],
+                values='counts',
+                color='counts',
+                title="Répartition par Âge, Genre et Éducation",
+                height=600
             )
             st.plotly_chart(fig, use_container_width=True)
         else:
             st.warning("Aucune donnée disponible pour ce filtre")
+    except KeyError as e:
+        st.error(f"Erreur de colonne: {str(e)}")
+        st.write("Colonnes disponibles:", df_filtered.columns.tolist())
     
     # Analyse des méthodes de vérification
     st.subheader("Méthodes de vérification par groupe")
