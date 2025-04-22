@@ -45,9 +45,6 @@ def load_data():
     url = "https://raw.githubusercontent.com/Gnatey/M-moire_Deepfake/main/DeepFakes.csv"
     df = pd.read_csv(url, delimiter=";", encoding="utf-8")
     
-    # Print original columns for debugging
-    print("Original columns:", df.columns.tolist())
-    
     # Nettoyage et préparation des données
     df = df.rename(columns={
         "Quel est votre tranche d'âge ?": "Age",
@@ -66,15 +63,12 @@ def load_data():
     df.columns = df.columns.str.replace("[’'‘]", "'", regex=True)
     df.columns = df.columns.str.strip()
     
-    # Print final columns for verification
-    print("Final columns:", df.columns.tolist())
-    
     return df
 
 df = load_data()
 
-# Verify columns in the app
-st.write("Columns in DataFrame:", df.columns.tolist())
+# Verify columns
+print("Columns in DataFrame:", df.columns.tolist())
 
 # --- Catégories pour les filtres ---
 age_categories = ["Moins de 18 ans", "18-25 ans", "26-40 ans", "41-60 ans", "Plus de 60 ans"]
@@ -289,6 +283,8 @@ with tab1:
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.warning("Aucune donnée disponible pour ce filtre")
+
+# [Le code précédent jusqu'à la section des onglets reste identique...]
 
 with tab2:
     st.title("🔍 Analyse approfondie")
