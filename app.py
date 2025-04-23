@@ -129,7 +129,7 @@ with tab1:
 
     st.plotly_chart(fig_trust_age, use_container_width=False)
     # FIN COURBE CONFIANCE VS AGE
-    
+
 
     # DEBUT HEATMAP GENRE VS PLATEFORMES
     st.header("🌐 Genre vs Plateformes DeepFakes")
@@ -199,13 +199,21 @@ with tab1:
 
     import os
 
+import os
+import pandas as pd
+import streamlit as st
+
 # ================================
 # DEBUT COMMENTAIRES ONGLET GENERAL
 # ================================
+
 st.header("💬 Vos Remarques - Général")
 
 # Fichier spécifique pour cet onglet
 COMMENTS_FILE_GENERAL = "remarques_general.csv"
+
+# Définir ton pseudo admin
+ADMIN_USER = "dendey"
 
 # Charger les remarques existantes
 if os.path.exists(COMMENTS_FILE_GENERAL):
@@ -231,11 +239,13 @@ if st.button("Envoyer", key="submit_general"):
 st.write("### Vos Remarques Soumises :")
 for idx, row in comments_df.iterrows():
     st.info(f"💬 **{row['user']}** : {row['comment']}")
-    if user_name == row['user'] or user_name.lower() == "admin":
+    # Vérifie si l'utilisateur est admin OU l'auteur
+    if user_name.strip().lower() == row['user'].strip().lower() or user_name.strip().lower() == ADMIN_USER.lower():
         if st.button(f"Supprimer", key=f"delete_general_{idx}"):
             comments_df = comments_df.drop(index=idx).reset_index(drop=True)
             comments_df.to_csv(COMMENTS_FILE_GENERAL, index=False)
             st.experimental_rerun()
+
 # ================================
 # FIN COMMENTAIRES ONGLET GENERAL
 # ================================
