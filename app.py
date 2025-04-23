@@ -111,7 +111,6 @@ with st.sidebar:
     else:
         selected_ages = []
         selected_genres = []
-        selected_connaissance = []
 
 # Application des filtres
 if not df.empty:
