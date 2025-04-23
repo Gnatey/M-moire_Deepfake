@@ -14,7 +14,6 @@ from PIL import Image
 def load_data():
     url = 'https://raw.githubusercontent.com/Gnatey/M-moire_Deepfake/refs/heads/main/DeepFakes.csv'
     df = pd.read_csv(url, sep=';', encoding='utf-8')
-
     return df
 
 df = load_data()
