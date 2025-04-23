@@ -222,7 +222,7 @@ with tab1:
             )
             st.plotly_chart(fig_trust_age, use_container_width=True)
         
-        with col2:
+    with col2:
             st.markdown("**Genre vs Plateformes**")
             if "Plateformes" in filtered_df.columns:
                 platform_exploded = filtered_df[["Plateformes", "Genre"]].dropna()
