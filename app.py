@@ -181,7 +181,7 @@ with tab1:
     import os
 
 # ================================
-# DEBUT COMMENTAIRES UTILISATEUR PERSISTANTS
+# DEBUT COMMENTAIRES UTILISATEUR PERSISTANTS + ADMIN
 # ================================
 st.header("💬 Vos Remarques")
 
@@ -191,34 +191,51 @@ COMMENTS_FILE = "remarques.csv"
 # Charger les remarques existantes
 if os.path.exists(COMMENTS_FILE):
     comments_df = pd.read_csv(COMMENTS_FILE)
-    comments = comments_df['comment'].tolist()
 else:
-    comments = []
+    comments_df = pd.DataFrame(columns=["user", "comment"])
+
+# Saisir l'utilisateur (ou dev)
+user_name = st.text_input("Votre nom ou pseudo :", max_chars=20)
 
 # Formulaire pour ajouter une remarque
 user_feedback = st.text_area("Laissez vos impressions sur cette analyse :", placeholder="Écrivez ici...")
 
-col_feedback1, col_feedback2 = st.columns([1, 5])
-if col_feedback1.button("Envoyer"):
-    if user_feedback.strip() != "":
-        comments.append(user_feedback.strip())
-        # Sauvegarder
-        pd.DataFrame({'comment': comments}).to_csv(COMMENTS_FILE, index=False)
+if st.button("Envoyer"):
+    if user_feedback.strip() != "" and user_name.strip() != "":
+        comments_df = comments_df.append({"user": user_name.strip(), "comment": user_feedback.strip()}, ignore_index=True)
+        comments_df.to_csv(COMMENTS_FILE, index=False)
         st.success("Merci pour votre retour !")
         st.experimental_rerun()
 
 # Affichage des remarques existantes
 st.write("### Vos Remarques Soumises :")
-for idx, comment in enumerate(comments):
-    st.info(f"💬 {comment}")
-    if st.button(f"Supprimer", key=f"delete_{idx}"):
-        comments.pop(idx)
-        pd.DataFrame({'comment': comments}).to_csv(COMMENTS_FILE, index=False)
-        st.experimental_rerun()
+for idx, row in comments_df.iterrows():
+    st.info(f"💬 **{row['user']}** : {row['comment']}")
+    if user_name == row['user'] or user_name.lower() == "admin":
+        if st.button(f"Supprimer", key=f"delete_{idx}"):
+            comments_df = comments_df.drop(index=idx).reset_index(drop=True)
+            comments_df.to_csv(COMMENTS_FILE, index=False)
+            st.experimental_rerun()
 # ================================
-# FIN COMMENTAIRES UTILISATEUR PERSISTANTS
+# FIN COMMENTAIRES UTILISATEUR PERSISTANTS + ADMIN
 # ================================
 
+
+# ================================
+# DEBUT MESSAGE DEVELOPPEUSE
+# ================================
+st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSE")
+
+col_img, col_msg = st.columns([1, 4])
+
+with col_img:
+    st.image("images.jpeg", width=100)  # Ton image panda
+
+with col_msg:
+    st.info("Cet onglet est en cours de rédaction. Vous verrez des visualisations sous peu.")
+# ================================
+# FIN MESSAGE DEVELOPPEUSE
+# ================================
 
 
 # FIN ONGLET GENERAL
