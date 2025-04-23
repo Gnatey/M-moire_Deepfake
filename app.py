@@ -224,25 +224,18 @@ with tab1:
         # VISUALISATION 5 - Genre vs Plateformes (pleine largeur)
         # ======================
         st.header("👥 Genre vs Plateformes")
-        if "Plateformes" in filtered_df.columns:
-            platform_exploded = filtered_df[["Plateformes", "Genre"]].dropna()
-            platform_exploded = platform_exploded.explode("Plateformes")
-            platform_exploded["Plateformes"] = platform_exploded["Plateformes"].str.strip()
-            cross_tab = pd.crosstab(platform_exploded["Genre"], platform_exploded["Plateformes"])
-            fig_heatmap = px.imshow(
-                cross_tab,
-                text_auto=True,
-                aspect="auto",
-                color_continuous_scale='Blues',
-                height=500
-            )
-            st.plotly_chart(fig_heatmap, use_container_width=True)
+        platform_series = filtered_df[["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)", "Vous êtes ...?"]].dropna()
+        platform_series["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"] = platform_series["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"].str.split(';')
+        platform_exploded = platform_series.explode("_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)").dropna()
+        cross_tab = pd.crosstab(platform_exploded["Vous êtes ...?"], platform_exploded["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"])
+        fig_heatmap = px.imshow(cross_tab, text_auto=True, aspect="auto", title="Genre vs Plateformes DeepFakes")
+    st.plotly_chart(fig_heatmap, use_container_width=True)
         
         # ======================
         # VISUALISATION 6 - Matrice de corrélation (réintégrée)
         # ======================
-        st.header("🔗 Matrice de Corrélation")
-        selected_cols = [
+    st.header("🔗 Matrice de Corrélation")
+    selected_cols = [
             "Connaissance DeepFakes",
             "Niveau connaissance",
             "Confiance réseaux sociaux",
@@ -251,14 +244,14 @@ with tab1:
             "Genre"
         ]
         # Conversion des catégories en codes numériques
-        df_corr = filtered_df[selected_cols].copy()
-        for col in df_corr.columns:
+    df_corr = filtered_df[selected_cols].copy()
+    for col in df_corr.columns:
             df_corr[col] = df_corr[col].astype('category').cat.codes
         
-        corr_matrix = df_corr.corr()
+    corr_matrix = df_corr.corr()
         
         # Noms courts pour les labels
-        short_labels = {
+    short_labels = {
             "Connaissance DeepFakes": "Connaissance DF",
             "Niveau connaissance": "Niveau Connaissance",
             "Confiance réseaux sociaux": "Confiance RS",
@@ -267,7 +260,7 @@ with tab1:
             "Genre": "Genre"
         }
         
-        fig_corr = px.imshow(
+    fig_corr = px.imshow(
             corr_matrix,
             text_auto=True,
             color_continuous_scale='RdBu',
@@ -278,12 +271,12 @@ with tab1:
             y=[short_labels.get(col, col) for col in corr_matrix.index],
             aspect="auto"
         )
-        fig_corr.update_layout(
+    fig_corr.update_layout(
             width=800,
             height=600,
             xaxis_tickangle=-45
         )
-        st.plotly_chart(fig_corr, use_container_width=True)
+    st.plotly_chart(fig_corr, use_container_width=True)
 # ================================
 # FIN ONGLET 2 - EXPLORATION AVANCEE
 # ================================
