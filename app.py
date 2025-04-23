@@ -206,47 +206,34 @@ with tab2:
         )
 
     elif chart_type == "Bar":
-    # Raccourcir les noms trop longs pour lisibilité
-    cross_data[x_axis] = cross_data[x_axis].apply(lambda x: str(x)[:30] + '...' if len(str(x)) > 33 else str(x))
-    cross_data[y_axis] = cross_data[y_axis].apply(lambda x: str(x)[:30] + '...' if len(str(x)) > 33 else str(x))
-    cross_data[color_by] = cross_data[color_by].apply(lambda x: str(x)[:30] + '...' if len(str(x)) > 33 else str(x))
+        # Raccourcir les noms trop longs pour lisibilité
+        cross_data[x_axis] = cross_data[x_axis].apply(lambda x: str(x)[:30] + '...' if len(str(x)) > 33 else str(x))
+        cross_data[y_axis] = cross_data[y_axis].apply(lambda x: str(x)[:30] + '...' if len(str(x)) > 33 else str(x))
+        cross_data[color_by] = cross_data[color_by].apply(lambda x: str(x)[:30] + '...' if len(str(x)) > 33 else str(x))
 
-    fig_dynamic = px.bar(
-        cross_data,
-        x=x_axis,
-        y='Count',
-        color=color_by,
-        barmode='group',
-        text='Count',
-        title=f"📊 Bar Chart : {x_axis} vs Count coloré par {color_by}",
-        facet_col=y_axis
-    )
-
-    fig_dynamic.update_layout(
-        height=750,
-        width=1200,
-        xaxis_tickangle=-40,
-        bargap=0.05,         # Barres plus larges
-        bargroupgap=0.05,    # Moins d'espace entre groupes
-        xaxis_title=x_axis,
-        yaxis_title="Nombre d'observations",
-        font=dict(size=12)
-    )
-
-    fig_dynamic.update_traces(textposition='outside', textfont_size=10)
-
-
-    fig_dynamic.update_layout(
-            height=800,
-            width=1200,
-            xaxis_tickangle=-30,  # Incliner les labels
-            xaxis_title=x_axis,
-            yaxis_title="Count",
-            bargap=0.2,  # Espace entre les barres
-            bargroupgap=0.1  # Espace entre les groupes
+        fig_dynamic = px.bar(
+            cross_data,
+            x=x_axis,
+            y='Count',
+            color=color_by,
+            barmode='group',
+            text='Count',
+            title=f"📊 Bar Chart : {x_axis} vs Count coloré par {color_by}",
+            facet_col=y_axis
         )
 
-        fig_dynamic.update_traces(textposition='outside')  # Position du texte hors des barres
+        fig_dynamic.update_layout(
+            height=750,
+            width=1200,
+            xaxis_tickangle=-40,
+            bargap=0.05,         # Barres plus larges
+            bargroupgap=0.05,    # Moins d'espace entre groupes
+            xaxis_title=x_axis,
+            yaxis_title="Nombre d'observations",
+            font=dict(size=12)
+        )
+
+        fig_dynamic.update_traces(textposition='outside', textfont_size=10)
 
     elif chart_type == "Treemap":
         fig_dynamic = px.treemap(
