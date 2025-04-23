@@ -86,18 +86,19 @@ fig_impact.update_traces(textposition='outside')
 st.plotly_chart(fig_impact, use_container_width=True)
 
 # ================================
-# Matrice de Corrélation Agrandie
+# Matrice de Corrélation Lisible
 # ================================
-df_corr = filtered_df.select_dtypes(include=['object']).copy()
 
 # Encodage des variables catégorielles
+df_corr = filtered_df.select_dtypes(include=['object']).copy()
 for col in df_corr.columns:
     df_corr[col] = df_corr[col].astype('category').cat.codes
 
-# Calcul de la matrice de corrélation
 corr_matrix = df_corr.corr()
 
-# Création de la figure Plotly
+# Raccourcir et ajouter des sauts de ligne aux noms de colonnes
+wrapped_labels = [ "<br>".join(label[i:i+30] for i in range(0, len(label), 30)) for label in corr_matrix.columns]
+
 fig_corr = px.imshow(
     corr_matrix,
     text_auto=True,
@@ -108,18 +109,15 @@ fig_corr = px.imshow(
     title='Matrice de Corrélation'
 )
 
-# Agrandir la figure et améliorer lisibilité des axes
 fig_corr.update_layout(
-    width=1000,  # Largeur personnalisée
-    height=900,  # Hauteur personnalisée
-    margin=dict(l=50, r=50, t=80, b=50)
+    width=1000,
+    height=900,
+    xaxis=dict(ticktext=wrapped_labels, tickvals=list(range(len(wrapped_labels))), tickangle=0),
+    yaxis=dict(ticktext=wrapped_labels, tickvals=list(range(len(wrapped_labels))))
 )
 
-fig_corr.update_xaxes(tickangle=45)  # Rotation des labels de l'axe X
-fig_corr.update_yaxes(tickangle=0)
-
-# Affichage dans Streamlit
 st.plotly_chart(fig_corr, use_container_width=False)
+
 
 # FIN ONGLET 1
 #-------------------------------------------------------------------------------------------#
