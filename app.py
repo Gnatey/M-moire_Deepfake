@@ -248,6 +248,70 @@ with tab1:
         else:
             st.warning("La colonne 'Plateformes' n'est pas disponible")
 
+# ================================
+# 🔗 Matrice de Corrélation
+# ================================
+st.header("🔗 Matrice de Corrélation")
+
+# 1. Sélection des colonnes pertinentes (catégorielles)
+selected_cols = [
+    "Connaissance DeepFakes",
+    "Niveau connaissance",
+    "Confiance réseaux sociaux",
+    "Impact société",
+    "Tranche d'âge",
+    "Genre"
+]
+
+# 2. Vérifie que toutes les colonnes existent
+if all(col in filtered_df.columns for col in selected_cols):
+    df_corr = filtered_df[selected_cols].copy()
+
+    # 3. Conversion des catégories en codes numériques
+    for col in df_corr.columns:
+        df_corr[col] = df_corr[col].astype('category').cat.codes
+
+    # 4. Calcul de la matrice de corrélation
+    corr_matrix = df_corr.corr()
+
+    # 5. Labels courts pour les axes
+    short_labels = {
+        "Connaissance DeepFakes": "Connaissance DF",
+        "Niveau connaissance": "Niveau Connaissance",
+        "Confiance réseaux sociaux": "Confiance RS",
+        "Impact société": "Impact Société",
+        "Tranche d'âge": "Âge",
+        "Genre": "Genre"
+    }
+
+    # 6. Visualisation avec Plotly
+    fig_corr = px.imshow(
+        corr_matrix,
+        text_auto=True,
+        color_continuous_scale='RdBu',
+        zmin=-1,
+        zmax=1,
+        labels=dict(color="Corrélation"),
+        x=[short_labels.get(col, col) for col in corr_matrix.columns],
+        y=[short_labels.get(col, col) for col in corr_matrix.index],
+        aspect="auto",
+        title="Matrice de Corrélation (Variables Pertinentes)"
+    )
+
+    fig_corr.update_layout(
+        width=800,
+        height=600,
+        xaxis_tickangle=-45,
+        font=dict(size=12),
+        margin=dict(t=50, b=100)
+    )
+
+    st.plotly_chart(fig_corr, use_container_width=True)
+
+else:
+    st.warning("Certaines colonnes nécessaires pour la matrice de corrélation sont manquantes.")
+
+
 # =============================================
 # ONGLET 2 - EXPLORATION AVANCÉE
 # =============================================
