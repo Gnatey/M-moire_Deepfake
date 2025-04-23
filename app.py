@@ -110,6 +110,15 @@ with tab1:
 
     fig_trust_age = px.bar(trust_age, x="Quel est votre tranche d'âge ?", y="Pourcentage", color="Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?", barmode="group", title="Confiance selon la Tranche d'âge")
     st.plotly_chart(fig_trust_age, use_container_width=True)
+
+    fig_trust_age.update_layout(
+    width=1000,  # Largeur en pixels
+    height=700,  # Hauteur en pixels
+    legend_title="Confiance",
+    xaxis_title="Tranche d'âge",
+    yaxis_title="Pourcentage"
+)
+
     # FIN COURBE CONFIANCE VS AGE
 
     # DEBUT HEATMAP GENRE VS PLATEFORMES
