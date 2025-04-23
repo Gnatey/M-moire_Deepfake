@@ -102,34 +102,34 @@ with tab1:
     st.plotly_chart(fig_impact, use_container_width=True)
     # FIN VISUALISATIONS
 
+    
     # DEBUT COURBE CONFIANCE VS AGE
-st.header("📊 Confiance par Tranche d'âge")
+    st.header("📊 Confiance par Tranche d'âge")
 
-trust_age = filtered_df.groupby("Quel est votre tranche d'âge ?")["Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?"].value_counts(normalize=True).rename('Pourcentage').reset_index()
-trust_age["Pourcentage"] *= 100
+    trust_age = filtered_df.groupby("Quel est votre tranche d'âge ?")["Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?"].value_counts(normalize=True).rename('Pourcentage').reset_index()
+    trust_age["Pourcentage"] *= 100
 
-fig_trust_age = px.bar(
-    trust_age,
-    x="Quel est votre tranche d'âge ?",
-    y="Pourcentage",
-    color="Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?",
-    barmode="group",
-    title="Confiance selon la Tranche d'âge"
-)
+    fig_trust_age = px.bar(
+        trust_age,
+        x="Quel est votre tranche d'âge ?",
+        y="Pourcentage",
+        color="Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?",
+        barmode="group",
+        title="Confiance selon la Tranche d'âge"
+    )
 
-# Mettre à jour la taille et autres réglages avant affichage
-fig_trust_age.update_layout(
-    width=1000,
-    height=700,
-    legend_title="Confiance",
-    xaxis_title="Tranche d'âge",
-    yaxis_title="Pourcentage",
-    xaxis_tickangle=-30
-)
+    fig_trust_age.update_layout(
+        width=1000,
+        height=700,
+        legend_title="Confiance",
+        xaxis_title="Tranche d'âge",
+        yaxis_title="Pourcentage",
+        xaxis_tickangle=-30
+    )
 
     st.plotly_chart(fig_trust_age, use_container_width=False)
-# FIN COURBE CONFIANCE VS AGE
-
+    # FIN COURBE CONFIANCE VS AGE
+    
 
     # DEBUT HEATMAP GENRE VS PLATEFORMES
     st.header("🌐 Genre vs Plateformes DeepFakes")
