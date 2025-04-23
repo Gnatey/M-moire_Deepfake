@@ -59,3 +59,48 @@ import ace_tools as tools; tools.display_dataframe_to_user(name="Matrice de Corr
     }
 }
 
+import plotly.express as px
+
+# Histogramme - Niveau de Connaissance
+knowledge_counts = df['comment_evalueriez_vous_votre_niveau_de_connaissance_des_deep_fakes_?'].value_counts().reset_index()
+knowledge_counts.columns = ['Niveau', 'Nombre']
+fig_knowledge = px.bar(
+    knowledge_counts,
+    x='Niveau',
+    y='Nombre',
+    text='Nombre',
+    title='Niveau de Connaissance des DeepFakes',
+)
+fig_knowledge.update_traces(textposition='outside')
+fig_knowledge.update_layout(showlegend=False)
+
+# Pie Chart - Plateformes utilisées
+# Extraction des plateformes (colonnes à choix multiples)
+platform_series = df['_sur_quelles_plateformes_avez-vous_principalement_vu_des_deep_fakes_?_(plusieurs_choix_possibles)'].dropna().str.split(';')
+platform_flat = [item.strip() for sublist in platform_series for item in sublist]
+platform_counts = pd.Series(platform_flat).value_counts().reset_index()
+platform_counts.columns = ['Plateforme', 'Nombre']
+fig_platforms = px.pie(
+    platform_counts,
+    names='Plateforme',
+    values='Nombre',
+    title='Plateformes Principales où les DeepFakes sont vus',
+)
+
+# Bar Chart - Impact perçu
+impact_counts = df['selon_vous,_quel_est_limpact_global_des_deep_fakes_sur_la_societe_?'].value_counts().reset_index()
+impact_counts.columns = ['Impact', 'Nombre']
+fig_impact = px.bar(
+    impact_counts,
+    x='Impact',
+    y='Nombre',
+    text='Nombre',
+    title='Impact perçu des DeepFakes sur la Société',
+)
+fig_impact.update_traces(textposition='outside')
+fig_impact.update_layout(showlegend=False)
+
+fig_knowledge.show()
+fig_platforms.show()
+fig_impact.show()
+
