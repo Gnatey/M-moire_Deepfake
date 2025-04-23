@@ -330,8 +330,8 @@ else:
         # ======================
         # VISUALISATION 6 - Matrice de corrélation (réintégrée)
         # ======================
-        st.header("🔗 Matrice de Corrélation")
-        selected_cols = [
+    st.header("🔗 Matrice de Corrélation")
+    selected_cols = [
             "Connaissance DeepFakes",
             "Niveau connaissance",
             "Confiance réseaux sociaux",
@@ -340,14 +340,14 @@ else:
             "Genre"
         ]
         # Conversion des catégories en codes numériques
-        df_corr = filtered_df[selected_cols].copy()
-        for col in df_corr.columns:
+    df_corr = filtered_df[selected_cols].copy()
+    for col in df_corr.columns:
             df_corr[col] = df_corr[col].astype('category').cat.codes
         
-        corr_matrix = df_corr.corr()
+    corr_matrix = df_corr.corr()
         
         # Noms courts pour les labels
-        short_labels = {
+    short_labels = {
             "Connaissance DeepFakes": "Connaissance DF",
             "Niveau connaissance": "Niveau Connaissance",
             "Confiance réseaux sociaux": "Confiance RS",
@@ -356,7 +356,7 @@ else:
             "Genre": "Genre"
         }
         
-        fig_corr = px.imshow(
+    fig_corr = px.imshow(
             corr_matrix,
             text_auto=True,
             color_continuous_scale='RdBu',
@@ -367,12 +367,12 @@ else:
             y=[short_labels.get(col, col) for col in corr_matrix.index],
             aspect="auto"
         )
-        fig_corr.update_layout(
+    fig_corr.update_layout(
             width=800,
             height=600,
             xaxis_tickangle=-45
         )
-        st.plotly_chart(fig_corr, use_container_width=True)
+    st.plotly_chart(fig_corr, use_container_width=True)
 # ================================
 # FIN ONGLET 2 - EXPLORATION AVANCEE
 # ================================
