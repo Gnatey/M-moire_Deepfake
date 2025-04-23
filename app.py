@@ -200,59 +200,94 @@ with tab1:
         
         # 4. Analyse croisée
         st.subheader("Analyse Croisée")
+        col1, col2 = st.columns(2)
         
-        # Confiance par tranche d'âge
-        st.markdown("**Confiance par Tranche d'âge**")
-        trust_age = filtered_df.groupby("Tranche d'âge")["Confiance réseaux sociaux"].value_counts(normalize=True).unstack() * 100
-        fig_trust_age = px.bar(
-            trust_age,
-            barmode="group",
-            labels={'value': 'Pourcentage', 'variable': 'Confiance'},
-            height=500
-        )
-        st.plotly_chart(fig_trust_age, use_container_width=True)
+        with col1:
+            st.markdown("**Confiance par Tranche d'âge**")
+    trust_age = (
+        filtered_df.groupby("Tranche d'âge")["Confiance réseaux sociaux"]
+        .value_counts(normalize=True)
+        .unstack()
+        .fillna(0) * 100
+    )
+
+    fig_trust_age = px.bar(
+        trust_age.reset_index().melt(id_vars="Tranche d'âge"),
+        x="Tranche d'âge",
+        y="value",
+        color="Confiance réseaux sociaux",
+        barmode="group",
+        labels={'value': 'Pourcentage', 'Tranche d\'âge': 'Tranche d\'âge'},
+        text="value",
+        height=600,
+        width=700
+    )
+
+    fig_trust_age.update_layout(
+        xaxis_tickangle=-30,
+        yaxis_title="Pourcentage (%)",
+        font=dict(size=13),
+        legend_title="Confiance",
+        margin=dict(t=50, b=100)
+    )
+
+    fig_trust_age.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
+
+    st.plotly_chart(fig_trust_age, use_container_width=True)
+
         
-        # =============================================
-        # DEBUT VISUALISATION GENRE VS PLATEFORMES (ONGLET 1 SEULEMENT)
-        # =============================================
-        st.header("👥 Répartition par Genre et Plateformes")
-        
-        if "Plateformes" in filtered_df.columns:
-            # Préparation des données
-            platform_exploded = filtered_df[["Plateformes", "Genre"]].dropna()
-            platform_exploded = platform_exploded.explode("Plateformes")
-            platform_exploded["Plateformes"] = platform_exploded["Plateformes"].str.strip()
-            
-            # Table de contingence
-            cross_tab = pd.crosstab(
-                platform_exploded["Genre"], 
-                platform_exploded["Plateformes"]
-            )
-            
-            # Heatmap
-            fig = px.imshow(
-                cross_tab,
-                text_auto=True,
-                aspect="auto",
-                color_continuous_scale='Blues',
-                labels=dict(x="Plateforme", y="Genre", color="Nombre"),
-                height=600
-            )
-            fig.update_layout(
-                xaxis_title="Plateformes",
-                yaxis_title="Genre",
-                margin=dict(t=50, b=100)
-            )
-            
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.warning("La colonne 'Plateformes' n'est pas disponible")
-        # =============================================
-        # FIN VISUALISATION GENRE VS PLATEFORMES
-        # =============================================
+# ================================
+# DEBUT GENRE VS PLATEFORMES - VISUEL AMELIORE
+# ================================
+st.header("👥 Genre vs Plateformes (Amélioré)")
+
+if "Plateformes" in filtered_df.columns:
+    # Expansion des plateformes
+    platform_series = filtered_df[["Plateformes", "Genre"]].dropna()
+
+    # Séparer les choix multiples
+    platform_series["Plateformes"] = platform_series["Plateformes"].str.split(';')
+
+    # Explosion des lignes
+    platform_exploded = platform_series.explode("Plateformes").dropna()
+    platform_exploded["Plateformes"] = platform_exploded["Plateformes"].str.strip()
+
+    # Table de contingence
+    cross_tab = pd.crosstab(
+        platform_exploded["Genre"],
+        platform_exploded["Plateformes"]
+    )
+
+    # Création de la heatmap améliorée
+    fig_heatmap = px.imshow(
+        cross_tab,
+        text_auto=True,
+        aspect="auto",
+        color_continuous_scale='Blues',
+        title="Répartition Genre vs Plateformes",
+        height=600,
+        width=1000
+    )
+
+    # Amélioration de la lisibilité des labels
+    fig_heatmap.update_layout(
+        xaxis_tickangle=-30,
+        font=dict(size=12),
+        margin=dict(t=50, b=100)
+    )
+
+    st.plotly_chart(fig_heatmap, use_container_width=True)
+
+else:
+    st.warning("La colonne 'Plateformes' n'est pas disponible dans les données filtrées.")
+
+# ================================
+# FIN GENRE VS PLATEFORMES - VISUEL AMELIORE
+# ================================
+
 
 # =============================================
-# ONGLET 2 - EXPLORATION AVANCÉE
+# ONGLET 2 - EXPLORATION AVANCÉE (version complète)
 # =============================================
 with tab2:
     st.header("🔍 Exploration Avancée")
@@ -577,22 +612,20 @@ with tab2:
                     f"(couleur: {exploration['color_by']}) - {exploration['chart_type']} "
                     f"({exploration['timestamp']})"
                 )
+# ================================
+# FIN ONGLET 2 - EXPLORATION AVANCEE
+# ================================
 
-# =============================================
-# FIN ONGLET 2 - EXPLORATION AVANCÉE
-# =============================================
 
-
-# =============================================
-# MESSAGE DEVELOPPEUSE (dans l'onglet 2)
-# =============================================
-with tab2:
+# ================================
+# DEBUT MESSAGE ADMINISTRATRICE - DEVELOPPEUSE
+# ================================
     st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSE")
     col_img, col_msg = st.columns([1, 4])
     with col_img:
         st.image("images.jpeg", width=100)
     with col_msg:
         st.info("Cet onglet est en cours de rédaction. Vous verrez des visualisations sous peu.")
-# =============================================
-# FIN MESSAGE DEVELOPPEUSE
-# =============================================
+# ================================
+# MESSAGE ADMINISTRATRICE - DEVELOPPEUSE
+# ================================
