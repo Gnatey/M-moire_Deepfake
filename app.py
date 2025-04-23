@@ -237,332 +237,145 @@ with tab1:
                 )
                 st.plotly_chart(fig_heatmap, use_container_width=True)
 
-# =============================================
-# ONGLET 2 - EXPLORATION AVANCÉE (version complète)
-# =============================================
+# ================================
+# DEBUT ONGLET 2 - EXPLORATION AVANCEE
+# ================================
 with tab2:
     st.header("🔍 Exploration Avancée")
-    
-    # Section de configuration avancée
-    with st.expander("⚙️ Paramètres Avancés", expanded=True):
-        col_config1, col_config2, col_config3 = st.columns(3)
-        
-        # Colonnes catégorielles disponibles
-        categorical_columns = [col for col in df.select_dtypes(include='object').columns 
-                             if df[col].nunique() <= 15 and col in df.columns]
-        
-        with col_config1:
-            x_axis = st.selectbox(
-                "Axe X (Catégorie principale)", 
-                options=categorical_columns, 
-                index=categorical_columns.index("Connaissance DeepFakes") if "Connaissance DeepFakes" in categorical_columns else 0,
-                help="Variable pour l'axe horizontal"
-            )
-        
-        with col_config2:
-            y_axis = st.selectbox(
-                "Axe Y (Sous-catégorie)", 
-                options=categorical_columns, 
-                index=categorical_columns.index("Exposition DeepFakes") if "Exposition DeepFakes" in categorical_columns else 1,
-                help="Variable pour segmenter les données"
-            )
-        
-        with col_config3:
-            color_by = st.selectbox(
-                "Couleur (Détail)", 
-                options=categorical_columns, 
-                index=categorical_columns.index("Genre") if "Genre" in categorical_columns else 2,
-                help="Variable pour le codage couleur"
-            )
-        
-        # Options supplémentaires
-        st.markdown("---")
-        col_opt1, col_opt2, col_opt3 = st.columns(3)
-        
-        with col_opt1:
-            chart_type = st.selectbox(
-                "Type de visualisation :",
-                options=["Barres", "Sunburst", "Treemap", "Heatmap", "Réseau"],
-                index=0,
-                help="Choisissez le type de graphique"
-            )
-            
-        with col_opt2:
-            show_percentage = st.checkbox(
-                "Afficher les pourcentages", 
-                True,
-                help="Convertir les counts en pourcentages"
-            )
-            
-        with col_opt3:
-            min_count = st.slider(
-                "Filtre count minimum", 
-                min_value=1, 
-                max_value=50, 
-                value=5,
-                help="Exclure les catégories trop petites"
-            )
-    
-    # Préparation des données
+
+    # ================================
+    # DEBUT MESSAGE DEVELOPPEUSE
+    # ================================
+    with st.expander("👩‍💻 Message Développeuse"):
+        col_img, col_msg = st.columns([1, 4])
+        with col_img:
+            st.image("images.jpeg", width=100)
+        with col_msg:
+            st.info("Cet onglet est en cours de rédaction. Vous verrez des visualisations sous peu.")
+    # ================================
+    # FIN MESSAGE DEVELOPPEUSE
+    # ================================
+
+    st.markdown("### 🎛️ Visualisation Dynamique Multi-Graphiques")
+    st.markdown("Choisissez les variables et le type de graphique pour explorer vos données :")
+
+    # Colonnes catégorielles limitées (moins de 15 modalités)
+    categorical_columns = [col for col in df.select_dtypes(include='object').columns if df[col].nunique() <= 15]
+
+    # ================================
+    # DEBUT CONFIGURATION GRAPHIQUE
+    # ================================
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        x_axis = st.selectbox("📊 Axe X :", categorical_columns, index=0)
+    with col2:
+        y_axis = st.selectbox("📊 Axe Y :", categorical_columns, index=1)
+    with col3:
+        color_by = st.selectbox("🎨 Couleur par :", categorical_columns, index=2)
+
+    chart_type = st.radio("📈 Type de graphique :", ["Barres", "Sunburst", "Treemap", "Heatmap"], horizontal=True)
+    show_percentage = st.checkbox("Afficher en %", value=True)
+
+    # ================================
+    # DEBUT PREPARATION DONNEES
+    # ================================
     if not filtered_df.empty:
         filtered_data = filtered_df[[x_axis, y_axis, color_by]].dropna()
         cross_data = filtered_data.groupby([x_axis, y_axis, color_by]).size().reset_index(name='Count')
-        
-        # Application du filtre minimum
-        cross_data = cross_data[cross_data['Count'] >= min_count]
-        
-        # Conversion en pourcentages si demandé
+
         if show_percentage:
             total = cross_data['Count'].sum()
             cross_data['Count'] = (cross_data['Count'] / total * 100).round(1)
-    
-    # Section d'analyse statistique
-    with st.expander("📊 Analyse Statistique", expanded=False):
-        if not filtered_df.empty:
-            contingency_table = pd.crosstab(filtered_df[x_axis], filtered_df[y_axis])
-            
-            if contingency_table.size > 0:
-                chi2, p, dof, expected = chi2_contingency(contingency_table)
-                cramers_v = calculate_cramers_v(contingency_table)
-                
-                st.markdown(f"""
-                **Test du Chi2 d'indépendance**
-                - p-value = `{p:.4f}`  
-                - Degrés de liberté = `{dof}`  
-                - Significatif à 5%? `{"✅ Oui" if p < 0.05 else "❌ Non"}`  
-                - Coefficient Cramer's V = `{cramers_v:.3f}`
-                """)
-            else:
-                st.warning("Table de contingence trop petite pour l'analyse")
+
+        # Troncature labels
+        for col in [x_axis, y_axis, color_by]:
+            cross_data[col] = cross_data[col].apply(truncate_label)
+    else:
+        st.warning("Aucune donnée pour les filtres actuels.")
+        cross_data = pd.DataFrame()
+
+    # ================================
+    # DEBUT VISUALISATION DYNAMIQUE
+    # ================================
+    if not cross_data.empty:
+        st.toast("Génération du graphique en cours...")
+
+        if chart_type == "Barres":
+            fig_dynamic = px.bar(
+                cross_data, x=x_axis, y='Count', color=color_by, barmode='group', text='Count',
+                facet_col=y_axis, facet_col_wrap=2,
+                title=f"{x_axis} vs {y_axis} par {color_by}",
+                labels={'Count': 'Pourcentage' if show_percentage else 'Nombre'},
+                height=800, width=1200
+            )
+            fig_dynamic.update_layout(
+                xaxis_tickangle=-45, bargap=0.1, bargroupgap=0.05,
+                font=dict(size=12), margin=dict(t=80, b=120)
+            )
+            fig_dynamic.update_traces(textposition='outside', textfont_size=11)
+
+        elif chart_type == "Sunburst":
+            fig_dynamic = px.sunburst(
+                cross_data, path=[x_axis, y_axis, color_by], values='Count',
+                title=f"Sunburst : {x_axis} > {y_axis} > {color_by}",
+                color_discrete_sequence=px.colors.qualitative.Pastel
+            )
+
+        elif chart_type == "Treemap":
+            fig_dynamic = px.treemap(
+                cross_data, path=[x_axis, y_axis, color_by], values='Count',
+                title=f"Treemap : {x_axis} > {y_axis} > {color_by}",
+                color_discrete_sequence=px.colors.qualitative.Pastel
+            )
+
+        elif chart_type == "Heatmap":
+            pivot_data = cross_data.pivot(index=x_axis, columns=y_axis, values='Count').fillna(0)
+            fig_dynamic = px.imshow(
+                pivot_data, text_auto=True, aspect="auto", color_continuous_scale='Blues',
+                title=f"Heatmap : {x_axis} vs {y_axis}"
+            )
+
+        st.plotly_chart(fig_dynamic, use_container_width=True)
+
+    # ================================
+    # DEBUT EXPORT & SAUVEGARDE
+    # ================================
+    if not cross_data.empty:
+        col_exp1, col_exp2 = st.columns(2)
+        with col_exp1:
+            st.download_button("📄 Télécharger CSV", cross_data.to_csv(index=False), file_name="export.csv", mime="text/csv")
+        with col_exp2:
+            st.download_button("💾 Télécharger HTML", fig_dynamic.to_html(), file_name="graphique.html", mime="text/html")
+
+    # ================================
+    # DEBUT COMMENTAIRES ONGLET 2
+    # ================================
+    with st.expander("💬 Commentaires Exploration"):
+        COMMENTS_FILE = "comments_exploration.csv"
+
+        if os.path.exists(COMMENTS_FILE):
+            comments_df = pd.read_csv(COMMENTS_FILE)
         else:
-            st.warning("Aucune donnée disponible pour l'analyse")
-    
-    # Visualisation dynamique
-    if not filtered_df.empty:
-        with st.spinner("Génération de la visualisation..."):
-            try:
-                if chart_type == "Barres":
-                    # Préparation des libellés
-                    cross_data[x_axis] = cross_data[x_axis].apply(truncate_label)
-                    cross_data[y_axis] = cross_data[y_axis].apply(truncate_label)
-                    cross_data[color_by] = cross_data[color_by].apply(truncate_label)
-                    
-                    fig = px.bar(
-                        cross_data,
-                        x=x_axis,
-                        y='Count',
-                        color=color_by,
-                        barmode='group',
-                        text='Count',
-                        facet_col=y_axis,
-                        title=f"<b>{x_axis} vs {y_axis} par {color_by}</b>",
-                        labels={'Count': "Nombre" if not show_percentage else "Pourcentage"},
-                        color_discrete_sequence=px.colors.qualitative.Pastel
-                    )
-                    
-                    fig.update_layout(
-                        height=600,
-                        width=max(800, len(cross_data)*20),
-                        xaxis_tickangle=-45,
-                        yaxis_title="Nombre" if not show_percentage else "Pourcentage (%)",
-                        legend_title=color_by,
-                        margin=dict(t=100)
-                    )
-                    
-                    fig.update_traces(
-                        textposition='outside',
-                        texttemplate='%{text}' + ('%' if show_percentage else '')
-                    )
-                
-                elif chart_type == "Sunburst":
-                    fig = px.sunburst(
-                        cross_data,
-                        path=[x_axis, y_axis, color_by],
-                        values='Count',
-                        title=f"<b>Hiérarchie: {x_axis} > {y_axis} > {color_by}</b>",
-                        color_discrete_sequence=px.colors.qualitative.Pastel
-                    )
-                    
-                    fig.update_traces(
-                        textinfo="label+percent parent",
-                        hovertemplate="<b>%{label}</b><br>" + 
-                                     ("Count: %{value}<br>" if not show_percentage else "Pourcentage: %{value}%<br>") + 
-                                     "%{percentParent:.1%} of parent"
-                    )
-                
-                elif chart_type == "Treemap":
-                    fig = px.treemap(
-                        cross_data,
-                        path=[x_axis, y_axis, color_by],
-                        values='Count',
-                        title=f"<b>Répartition: {x_axis} > {y_axis} > {color_by}</b>",
-                        color_discrete_sequence=px.colors.qualitative.Pastel
-                    )
-                    
-                    fig.update_traces(
-                        textinfo="label+value+percent parent",
-                        texttemplate="<b>%{label}</b><br>" + 
-                                    ("%{value}" if not show_percentage else "%{value}%") + 
-                                    "<br>%{percentParent:.1%}"
-                    )
-                
-                elif chart_type == "Heatmap":
-                    pivot_data = cross_data.pivot_table(
-                        index=x_axis,
-                        columns=y_axis,
-                        values='Count',
-                        aggfunc='sum',
-                        fill_value=0
-                    )
-                    
-                    fig = px.imshow(
-                        pivot_data,
-                        labels=dict(x=y_axis, y=x_axis, color="Count"),
-                        title=f"<b>Heatmap: {x_axis} vs {y_axis}</b>",
-                        aspect="auto",
-                        color_continuous_scale='Blues',
-                        text_auto=True
-                    )
-                
-                elif chart_type == "Réseau":
-                    # Création du graphique réseau
-                    G = nx.from_pandas_edgelist(
-                        cross_data, 
-                        source=x_axis, 
-                        target=y_axis, 
-                        edge_attr='Count'
-                    )
-                    
-                    pos = nx.spring_layout(G)
-                    edge_x = []
-                    edge_y = []
-                    for edge in G.edges():
-                        x0, y0 = pos[edge[0]]
-                        x1, y1 = pos[edge[1]]
-                        edge_x.extend([x0, x1, None])
-                        edge_y.extend([y0, y1, None])
-                    
-                    edge_trace = go.Scatter(
-                        x=edge_x, y=edge_y,
-                        line=dict(width=0.5, color='#888'),
-                        hoverinfo='none',
-                        mode='lines'
-                    )
-                    
-                    node_x = []
-                    node_y = []
-                    for node in G.nodes():
-                        x, y = pos[node]
-                        node_x.append(x)
-                        node_y.append(y)
-                    
-                    node_trace = go.Scatter(
-                        x=node_x, y=node_y,
-                        mode='markers+text',
-                        hoverinfo='text',
-                        marker=dict(
-                            showscale=True,
-                            colorscale='YlGnBu',
-                            size=10,
-                            colorbar=dict(
-                                thickness=15,
-                                title='Connections',
-                                xanchor='left',
-                                titleside='right'
-                            )
-                        )
-                    )
-                    
-                    fig = go.Figure(
-                        data=[edge_trace, node_trace],
-                        layout=go.Layout(
-                            title=f'<br>Réseau: {x_axis} ↔ {y_axis}',
-                            showlegend=False,
-                            hovermode='closest',
-                            margin=dict(b=20,l=5,r=5,t=40),
-                            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
-                        )
-                    )
-                
-                # Affichage du graphique
-                st.plotly_chart(fig, use_container_width=True)
-                
-                # Options d'export
-                st.markdown("---")
-                col_export1, col_export2 = st.columns(2)
-                
-                with col_export1:
-                    if st.button("💾 Exporter le graphique en HTML"):
-                        fig.write_html("visualisation.html")
-                        st.success("Graphique exporté!")
-                
-                with col_export2:
-                    st.download_button(
-                        label="📄 Télécharger les données",
-                        data=cross_data.to_csv(index=False),
-                        file_name="donnees_croisees.csv",
-                        mime="text/csv"
-                    )
-                
-            except Exception as e:
-                st.error(f"Erreur lors de la génération du graphique : {str(e)}")
-                st.warning("Veuillez sélectionner des combinaisons de variables compatibles")
-    
-    # Section commentaires et historique
-    with st.expander("💬 Commentaires & Historique", expanded=False):
-        tab_comments, tab_history = st.tabs(["Commentaires", "Historique"])
-        
-        with tab_comments:
-            COMMENTS_FILE = "comments_advanced.csv"
-            
-            if os.path.exists(COMMENTS_FILE):
-                comments_df = pd.read_csv(COMMENTS_FILE)
-            else:
-                comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
-            
-            with st.form("comment_form"):
-                user_name = st.text_input("Votre nom", max_chars=20)
-                user_comment = st.text_area("Votre commentaire")
-                submitted = st.form_submit_button("Envoyer")
-                
-                if submitted and user_comment:
-                    new_comment = {
-                        "user": user_name,
-                        "comment": user_comment,
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
-                    }
-                    comments_df = pd.concat([comments_df, pd.DataFrame([new_comment])], ignore_index=True)
-                    comments_df.to_csv(COMMENTS_FILE, index=False)
-                    st.success("Commentaire enregistré!")
-            
-            st.subheader("Derniers commentaires")
-            for _, row in comments_df.tail(5).iterrows():
-                st.markdown(f"**{row['user']}** ({row['timestamp']}):  \n{row['comment']}")
-        
-        with tab_history:
-            if 'exploration_history' not in st.session_state:
-                st.session_state.exploration_history = []
-            
-            current_exploration = {
-                "x_axis": x_axis,
-                "y_axis": y_axis,
-                "color_by": color_by,
-                "chart_type": chart_type,
-                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
-            }
-            
-            if st.button("💾 Sauvegarder cette exploration"):
-                st.session_state.exploration_history.append(current_exploration)
-                st.success("Exploration sauvegardée dans l'historique!")
-            
-            st.subheader("Historique des explorations")
-            for i, exploration in enumerate(st.session_state.exploration_history[-5:]):
-                st.markdown(
-                    f"{i+1}. **{exploration['x_axis']}** × **{exploration['y_axis']}** "
-                    f"(couleur: {exploration['color_by']}) - {exploration['chart_type']} "
-                    f"({exploration['timestamp']})"
-                )
+            comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
+
+        with st.form("form_comments"):
+            user_name = st.text_input("Votre nom")
+            user_comment = st.text_area("Votre commentaire")
+            submit_comment = st.form_submit_button("Envoyer")
+
+            if submit_comment and user_comment.strip():
+                new_entry = pd.DataFrame([{
+                    "user": user_name, "comment": user_comment, "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
+                }])
+                comments_df = pd.concat([comments_df, new_entry], ignore_index=True)
+                comments_df.to_csv(COMMENTS_FILE, index=False)
+                st.success("Commentaire ajouté !")
+                st.experimental_rerun()
+
+        st.subheader("Derniers Commentaires :")
+        for _, row in comments_df.tail(5).iterrows():
+            st.markdown(f"**{row['user']}** ({row['timestamp']}) : {row['comment']}")
+
 # ================================
 # FIN ONGLET 2 - EXPLORATION AVANCEE
 # ================================
