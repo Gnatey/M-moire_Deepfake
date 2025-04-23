@@ -108,14 +108,6 @@ with st.sidebar:
             help="Filtrez les résultats par genre"
         )
         
-        # Filtre supplémentaire pour la connaissance des DeepFakes
-        connaissance_options = df["Connaissance DeepFakes"].dropna().unique()
-        selected_connaissance = st.multiselect(
-            "Niveau de connaissance :",
-            options=connaissance_options,
-            default=connaissance_options,
-            help="Filtrez par niveau de connaissance des DeepFakes"
-        )
     else:
         selected_ages = []
         selected_genres = []
