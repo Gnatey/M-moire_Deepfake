@@ -571,7 +571,6 @@ with tab2:
 # ================================
 # DEBUT MESSAGE ADMINISTRATRICE - DEVELOPPEUSE
 # ================================
-with tab2:
     st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSE")
     col_img, col_msg = st.columns([1, 4])
     with col_img:
