@@ -168,84 +168,163 @@ with tab1:
 # ================================
 with tab2:
     st.header("🔍 Exploration Avancée")
-
-    st.markdown("### 🎛️ Visualisation Dynamique Multi-Graphiques")
-    st.markdown("Choisissez les variables et le type de graphique pour explorer vos données :")
-
-    # Colonnes catégorielles
-    categorical_columns = df.select_dtypes(include='object').columns.tolist()
-
-    # Sélection des axes
-    x_axis = st.selectbox("📊 Axe X :", options=categorical_columns, index=0, key="x_axis")
-    y_axis = st.selectbox("📊 Axe Y :", options=categorical_columns, index=1, key="y_axis")
-    color_by = st.selectbox("🎨 Couleur par :", options=categorical_columns, index=2, key="color_by")
-
-    # Type de graphique
+    
+    # Section de configuration
+    with st.expander("⚙️ Paramètres de Visualisation", expanded=True):
+        col1, col2, col3 = st.columns(3)
+        
+        # Colonnes catégorielles disponibles
+        categorical_columns = [col for col in df.select_dtypes(include='object').columns.tolist() 
+                              if df[col].nunique() <= 15]  # Limite aux colonnes avec peu de catégories
+        
+        with col1:
+            x_axis = st.selectbox(
+                "Axe X (Catégorie principale)", 
+                options=categorical_columns, 
+                index=categorical_columns.index("Avez-vous déjà entendu parler des Deep Fakes ?") 
+                      if "Avez-vous déjà entendu parler des Deep Fakes ?" in categorical_columns else 0,
+                help="Sélectionnez la variable pour l'axe horizontal"
+            )
+        
+        with col2:
+            y_axis = st.selectbox(
+                "Axe Y (Sous-catégorie)", 
+                options=categorical_columns, 
+                index=categorical_columns.index("Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?") 
+                      if "Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?" in categorical_columns else 1,
+                help="Sélectionnez la variable pour segmenter les données"
+            )
+        
+        with col3:
+            color_by = st.selectbox(
+                "Couleur (Détail)", 
+                options=categorical_columns, 
+                index=categorical_columns.index("Vous êtes ...?") 
+                      if "Vous êtes ...?" in categorical_columns else 2,
+                help="Sélectionnez la variable pour le codage couleur"
+            )
+    
+    # Choix du type de visualisation
     chart_type = st.radio(
-        "📈 Choisissez un type de graphique :",
-        options=["Sunburst", "Bar", "Treemap"],
+        "Type de visualisation :",
+        options=["Diagramme en Barres", "Sunburst", "Treemap", "Heatmap"],
         horizontal=True,
-        key="chart_type"
+        index=0,
+        key="chart_type_selector"
     )
-
-    # Créer un DataFrame filtré pour l'affichage
+    
+    # Préparation des données
     filtered_data = df[[x_axis, y_axis, color_by]].dropna()
-
-    # Comptage croisé pour visualisation
     cross_data = filtered_data.groupby([x_axis, y_axis, color_by]).size().reset_index(name='Count')
-
+    
+    # Fonction pour tronquer les libellés longs
+    def truncate_label(text, max_length=25):
+        return (text[:max_length] + '...') if len(str(text)) > max_length else text
+    
     # Visualisation dynamique
-    if chart_type == "Sunburst":
-        fig_dynamic = px.sunburst(
-            cross_data,
-            path=[x_axis, y_axis, color_by],
-            values='Count',
-            title=f"🌞 Sunburst : {x_axis} > {y_axis} > {color_by}",
-            width=800,
-            height=600
-        )
-
-    elif chart_type == "Bar":
-        # Raccourcir les noms trop longs pour lisibilité
-        cross_data[x_axis] = cross_data[x_axis].apply(lambda x: str(x)[:30] + '...' if len(str(x)) > 33 else str(x))
-        cross_data[y_axis] = cross_data[y_axis].apply(lambda x: str(x)[:30] + '...' if len(str(x)) > 33 else str(x))
-        cross_data[color_by] = cross_data[color_by].apply(lambda x: str(x)[:30] + '...' if len(str(x)) > 33 else str(x))
-
-        fig_dynamic = px.bar(
-            cross_data,
-            x=x_axis,
-            y='Count',
-            color=color_by,
-            barmode='group',
-            text='Count',
-            title=f"📊 Bar Chart : {x_axis} vs Count coloré par {color_by}",
-            facet_col=y_axis
-        )
-
-        fig_dynamic.update_layout(
-            height=750,
-            width=1200,
-            xaxis_tickangle=-40,
-            bargap=0.05,         # Barres plus larges
-            bargroupgap=0.05,    # Moins d'espace entre groupes
-            xaxis_title=x_axis,
-            yaxis_title="Nombre d'observations",
-            font=dict(size=12)
-        )
-
-        fig_dynamic.update_traces(textposition='outside', textfont_size=10)
-
-    elif chart_type == "Treemap":
-        fig_dynamic = px.treemap(
-            cross_data,
-            path=[x_axis, y_axis, color_by],
-            values='Count',
-            title=f"🌳 Treemap : {x_axis} > {y_axis} > {color_by}",
-            width=800,
-            height=600
-        )
-
-    st.plotly_chart(fig_dynamic, use_container_width=True)
+    with st.spinner("Génération de la visualisation..."):
+        try:
+            if chart_type == "Diagramme en Barres":
+                # Préparation des libellés
+                cross_data[x_axis] = cross_data[x_axis].apply(truncate_label)
+                cross_data[y_axis] = cross_data[y_axis].apply(truncate_label)
+                cross_data[color_by] = cross_data[color_by].apply(truncate_label)
+                
+                fig = px.bar(
+                    cross_data,
+                    x=x_axis,
+                    y='Count',
+                    color=color_by,
+                    barmode='group',
+                    text='Count',
+                    facet_col=y_axis,
+                    title=f"<b>Relation entre {x_axis}, {y_axis} et {color_by}</b><br><sup>Nombre d'observations par catégorie</sup>",
+                    labels={'Count': "Nombre", x_axis: x_axis, color_by: color_by},
+                    color_discrete_sequence=px.colors.qualitative.Pastel
+                )
+                
+                fig.update_layout(
+                    height=600,
+                    width=max(800, len(cross_data)*20),  # Ajustement automatique de la largeur
+                    xaxis_tickangle=-45,
+                    xaxis_title=None,
+                    yaxis_title="Nombre d'observations",
+                    legend_title=color_by,
+                    hovermode="closest",
+                    margin=dict(t=100)  # Espace pour le titre multiligne
+                )
+                
+                fig.update_traces(
+                    textposition='outside',
+                    texttemplate='%{text}',
+                    hovertemplate=f"<b>{x_axis}</b>: %{{x}}<br><b>{y_axis}</b>: %{{customdata[0]}}<br><b>Count</b>: %{{y}}"
+                )
+            
+            elif chart_type == "Sunburst":
+                fig = px.sunburst(
+                    cross_data,
+                    path=[x_axis, y_axis, color_by],
+                    values='Count',
+                    title=f"<b>Hiérarchie: {x_axis} → {y_axis} → {color_by}</b>",
+                    width=800,
+                    height=700,
+                    color_discrete_sequence=px.colors.qualitative.Pastel
+                )
+                
+                fig.update_traces(
+                    textinfo="label+percent parent",
+                    hovertemplate="<b>%{label}</b><br>Count: %{value}<br>%{percentParent:.1%} of parent"
+                )
+            
+            elif chart_type == "Treemap":
+                fig = px.treemap(
+                    cross_data,
+                    path=[x_axis, y_axis, color_by],
+                    values='Count',
+                    title=f"<b>Répartition: {x_axis} → {y_axis} → {color_by}</b>",
+                    width=800,
+                    height=600,
+                    color_discrete_sequence=px.colors.qualitative.Pastel
+                )
+                
+                fig.update_traces(
+                    textinfo="label+value+percent parent",
+                    hovertemplate="<b>%{label}</b><br>Count: %{value}<br>%{percentParent:.1%} of parent"
+                )
+            
+            elif chart_type == "Heatmap":
+                pivot_data = cross_data.pivot_table(
+                    index=x_axis,
+                    columns=y_axis,
+                    values='Count',
+                    aggfunc='sum',
+                    fill_value=0
+                )
+                
+                fig = px.imshow(
+                    pivot_data,
+                    labels=dict(x=y_axis, y=x_axis, color="Count"),
+                    title=f"<b>Heatmap: {x_axis} vs {y_axis}</b>",
+                    aspect="auto",
+                    color_continuous_scale='Blues',
+                    text_auto=True
+                )
+                
+                fig.update_layout(
+                    xaxis_title=y_axis,
+                    yaxis_title=x_axis,
+                    coloraxis_colorbar_title="Count"
+                )
+            
+            # Affichage du graphique
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Légende explicative
+            st.caption(f"Visualisation des données croisées entre {x_axis}, {y_axis} et {color_by}")
+            
+        except Exception as e:
+            st.error(f"Erreur lors de la génération du graphique : {str(e)}")
+            st.warning("Veuillez sélectionner des combinaisons de variables compatibles")
 # ================================
 # FIN ONGLET 2 - EXPLORATION AVANCEE
 # ================================
