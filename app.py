@@ -164,12 +164,13 @@ with tab1:
 # ================================
 
 # ================================
-# DEBUT ONGLET 2 - DEVELOPPEUSE
+# DEBUT ONGLET 2 - EXPLORATION AVANCEE
 # ================================
 with tab2:
-    st.header("🎛️ Visualisation Dynamique")
+    st.header("🔍 Exploration Avancée")
 
-    st.markdown("Sélectionnez les variables que vous souhaitez explorer :")
+    st.markdown("### 🎛️ Visualisation Dynamique Multi-Graphiques")
+    st.markdown("Choisissez les variables et le type de graphique pour explorer vos données :")
 
     # Colonnes catégorielles
     categorical_columns = df.select_dtypes(include='object').columns.tolist()
@@ -179,26 +180,59 @@ with tab2:
     y_axis = st.selectbox("📊 Axe Y :", options=categorical_columns, index=1, key="y_axis")
     color_by = st.selectbox("🎨 Couleur par :", options=categorical_columns, index=2, key="color_by")
 
+    # Type de graphique
+    chart_type = st.radio(
+        "📈 Choisissez un type de graphique :",
+        options=["Sunburst", "Bar", "Treemap"],
+        horizontal=True,
+        key="chart_type"
+    )
+
     # Créer un DataFrame filtré pour l'affichage
     filtered_data = df[[x_axis, y_axis, color_by]].dropna()
 
     # Comptage croisé pour visualisation
     cross_data = filtered_data.groupby([x_axis, y_axis, color_by]).size().reset_index(name='Count')
 
-    # Graphique Sunburst (hiérarchique) pour visualiser 3 niveaux
-    fig_dynamic = px.sunburst(
-        cross_data,
-        path=[x_axis, y_axis, color_by],
-        values='Count',
-        title=f"Exploration Dynamique : {x_axis} > {y_axis} > {color_by}",
-        width=800,
-        height=600
-    )
+    # Visualisation dynamique
+    if chart_type == "Sunburst":
+        fig_dynamic = px.sunburst(
+            cross_data,
+            path=[x_axis, y_axis, color_by],
+            values='Count',
+            title=f"🌞 Sunburst : {x_axis} > {y_axis} > {color_by}",
+            width=800,
+            height=600
+        )
+    elif chart_type == "Bar":
+        fig_dynamic = px.bar(
+            cross_data,
+            x=x_axis,
+            y='Count',
+            color=color_by,
+            barmode='group',
+            title=f"📊 Bar Chart : {x_axis} vs Count coloré par {color_by}",
+            facet_col=y_axis
+        )
+    elif chart_type == "Treemap":
+        fig_dynamic = px.treemap(
+            cross_data,
+            path=[x_axis, y_axis, color_by],
+            values='Count',
+            title=f"🌳 Treemap : {x_axis} > {y_axis} > {color_by}",
+            width=800,
+            height=600
+        )
 
     st.plotly_chart(fig_dynamic, use_container_width=True)
 
+# ================================
+# FIN ONGLET 2 - EXPLORATION AVANCEE
+# ================================
 
-
+# ================================
+# DEBUT MESSAGE ADMINISTRATRICE - DEVELOPPEUSE
+# ================================
 with tab2:
     st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSE")
     col_img, col_msg = st.columns([1, 4])
@@ -207,5 +241,5 @@ with tab2:
     with col_msg:
         st.info("Cet onglet est en cours de rédaction. Vous verrez des visualisations sous peu.")
 # ================================
-# FIN ONGLET 2 - DEVELOPPEUSE
+# MESSAGE ADMINISTRATRICE - DEVELOPPEUSE
 # ================================
