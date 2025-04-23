@@ -219,23 +219,21 @@ with tab2:
             barmode='group',
             text='Count',
             title=f"📊 Bar Chart : {x_axis} vs Count coloré par {color_by}",
-            facet_col=y_axis,
-            facet_col_wrap=2
+            facet_col=y_axis
         )
 
         fig_dynamic.update_layout(
-            height=900,
-            width=1300,
-            xaxis_tickangle=-45,
-            bargap=0.1,
-            bargroupgap=0.05,
+            height=750,
+            width=1200,
+            xaxis_tickangle=-40,
+            bargap=0.05,         # Barres plus larges
+            bargroupgap=0.05,    # Moins d'espace entre groupes
             xaxis_title=x_axis,
             yaxis_title="Nombre d'observations",
-            font=dict(size=12),
-            margin=dict(l=20, r=20, t=80, b=150),
+            font=dict(size=12)
         )
 
-        fig_dynamic.update_traces(textposition='outside', textfont_size=11)
+        fig_dynamic.update_traces(textposition='outside', textfont_size=10)
 
     elif chart_type == "Treemap":
         fig_dynamic = px.treemap(
@@ -251,7 +249,6 @@ with tab2:
 # ================================
 # FIN ONGLET 2 - EXPLORATION AVANCEE
 # ================================
-
 
 
 # ================================
