@@ -236,11 +236,11 @@ if "Plateformes" in filtered_df.columns:
 
     # Nettoyage - Regroupement
     regroup_dict = {
-        "Facebook": "Meta",
-        "Instagram": "Meta",
+        "Facebook": "Facebook",
+        "Instagram": "Instagram",
         "TikTok": "TikTok",
         "YouTube": "YouTube",
-        "Twitter": "Twitter",
+        "X anciennement Twitter": "X anciennement Twitter",
         "Snapchat": "Snapchat",
         "Autres": "Autres",
         "LinkedIn": "Autres",  # Exemple, tu peux adapter
