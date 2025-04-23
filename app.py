@@ -19,3 +19,4 @@ def load_data():
     df = df.dropna()  # Optionnel : enlève les lignes incomplètes
 
     return df
+    
