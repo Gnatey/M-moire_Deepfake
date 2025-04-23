@@ -130,8 +130,15 @@ fig_corr = px.imshow(
 fig_corr.update_layout(
     width=700,
     height=600,
-    xaxis=dict(ticktext=short_labels, tickvals=list(range(len(short_labels))), tickangle=0),
-    yaxis=dict(ticktext=short_labels, tickvals=list(range(len(short_labels))))
+    xaxis=dict(
+        ticktext=short_labels,
+        tickvals=list(range(len(short_labels))),
+        tickangle=45  # Incliner les labels pour lisibilité
+    ),
+    yaxis=dict(
+        ticktext=short_labels,
+        tickvals=list(range(len(short_labels)))
+    )
 )
 
 st.plotly_chart(fig_corr, use_container_width=False)
