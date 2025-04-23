@@ -242,8 +242,7 @@ if "Plateformes" in filtered_df.columns:
         "YouTube": "YouTube",
         "X anciennement Twitter": "X anciennement Twitter",
         "Snapchat": "Snapchat",
-        "Autres": "Autres",
-        "LinkedIn": "Autres",  # Exemple, tu peux adapter
+        "LinkedIn": "LinkedIn",  # Exemple, tu peux adapter
         "Autres plateformes": "Autres"
     }
 
