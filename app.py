@@ -86,18 +86,36 @@ fig_impact.update_traces(textposition='outside')
 st.plotly_chart(fig_impact, use_container_width=True)
 
 # ================================
-# Matrice de Corrélation Lisible
+# Matrice de Corrélation - Colonnes Pertinentes
 # ================================
 
-# Encodage des variables catégorielles
-df_corr = filtered_df.select_dtypes(include=['object']).copy()
+# Sélectionner les colonnes les plus pertinentes
+selected_cols = [
+    "Avez-vous déjà entendu parler des Deep Fakes ?",
+    "Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?",
+    "Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?",
+    "Selon vous, quel est l’impact global des Deep Fakes sur la société ?",
+    "Quel est votre tranche d'âge ?",
+    "Vous êtes ...?"
+]
+
+df_corr = filtered_df[selected_cols].copy()
+
+# Encodage pour la corrélation
 for col in df_corr.columns:
     df_corr[col] = df_corr[col].astype('category').cat.codes
 
 corr_matrix = df_corr.corr()
 
-# Raccourcir et ajouter des sauts de ligne aux noms de colonnes
-wrapped_labels = [ "<br>".join(label[i:i+30] for i in range(0, len(label), 30)) for label in corr_matrix.columns]
+# Noms de colonnes plus courts
+short_labels = [
+    "Connaissance DeepFakes",
+    "Niveau Info",
+    "Confiance Infos",
+    "Impact Société",
+    "Âge",
+    "Genre"
+]
 
 fig_corr = px.imshow(
     corr_matrix,
@@ -106,18 +124,17 @@ fig_corr = px.imshow(
     zmin=-1,
     zmax=1,
     labels=dict(color='Corrélation'),
-    title='Matrice de Corrélation'
+    title='Matrice de Corrélation (Pertinente)'
 )
 
 fig_corr.update_layout(
-    width=1000,
-    height=900,
-    xaxis=dict(ticktext=wrapped_labels, tickvals=list(range(len(wrapped_labels))), tickangle=0),
-    yaxis=dict(ticktext=wrapped_labels, tickvals=list(range(len(wrapped_labels))))
+    width=700,
+    height=600,
+    xaxis=dict(ticktext=short_labels, tickvals=list(range(len(short_labels))), tickangle=0),
+    yaxis=dict(ticktext=short_labels, tickvals=list(range(len(short_labels))))
 )
 
 st.plotly_chart(fig_corr, use_container_width=False)
-
 
 # FIN ONGLET 1
 #-------------------------------------------------------------------------------------------#
