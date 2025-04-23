@@ -167,6 +167,39 @@ with tab1:
 # DEBUT ONGLET 2 - DEVELOPPEUSE
 # ================================
 with tab2:
+    st.header("🎛️ Visualisation Dynamique")
+
+    st.markdown("Sélectionnez les variables que vous souhaitez explorer :")
+
+    # Colonnes catégorielles
+    categorical_columns = df.select_dtypes(include='object').columns.tolist()
+
+    # Sélection des axes
+    x_axis = st.selectbox("📊 Axe X :", options=categorical_columns, index=0, key="x_axis")
+    y_axis = st.selectbox("📊 Axe Y :", options=categorical_columns, index=1, key="y_axis")
+    color_by = st.selectbox("🎨 Couleur par :", options=categorical_columns, index=2, key="color_by")
+
+    # Créer un DataFrame filtré pour l'affichage
+    filtered_data = df[[x_axis, y_axis, color_by]].dropna()
+
+    # Comptage croisé pour visualisation
+    cross_data = filtered_data.groupby([x_axis, y_axis, color_by]).size().reset_index(name='Count')
+
+    # Graphique Sunburst (hiérarchique) pour visualiser 3 niveaux
+    fig_dynamic = px.sunburst(
+        cross_data,
+        path=[x_axis, y_axis, color_by],
+        values='Count',
+        title=f"Exploration Dynamique : {x_axis} > {y_axis} > {color_by}",
+        width=800,
+        height=600
+    )
+
+    st.plotly_chart(fig_dynamic, use_container_width=True)
+
+
+
+with tab2:
     st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSE")
     col_img, col_msg = st.columns([1, 4])
     with col_img:
