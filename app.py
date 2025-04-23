@@ -202,7 +202,8 @@ user_feedback = st.text_area("Laissez vos impressions sur cette analyse :", plac
 
 if st.button("Envoyer"):
     if user_feedback.strip() != "" and user_name.strip() != "":
-        comments_df = comments_df.append({"user": user_name.strip(), "comment": user_feedback.strip()}, ignore_index=True)
+        new_comment = pd.DataFrame([{"user": user_name.strip(), "comment": user_feedback.strip()}])
+        comments_df = pd.concat([comments_df, new_comment], ignore_index=True)
         comments_df.to_csv(COMMENTS_FILE, index=False)
         st.success("Merci pour votre retour !")
         st.experimental_rerun()
