@@ -221,6 +221,15 @@ for idx, row in comments_df.iterrows():
 # ================================
 
 
+# FIN ONGLET GENERAL
+# ================================
+
+# ================================
+# DEBUT ONGLET 2
+# ================================
+with tab2:
+    st.write("🚧 Fonctionnalités supplémentaires en développement...")
+
 # ================================
 # DEBUT MESSAGE DEVELOPPEUSE
 # ================================
@@ -237,14 +246,5 @@ with col_msg:
 # FIN MESSAGE DEVELOPPEUSE
 # ================================
 
-
-# FIN ONGLET GENERAL
-# ================================
-
-# ================================
-# DEBUT ONGLET 2
-# ================================
-with tab2:
-    st.write("🚧 Fonctionnalités supplémentaires en développement...")
 # FIN ONGLET 2
 # ================================
