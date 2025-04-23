@@ -31,7 +31,7 @@ st.title("📊 Dashboard d'Analyse des DeepFakes - Accueil")
 st.header("🔍 Indicateurs Clés de Performance")
 
 total_respondents = len(df)
-aware_yes = df['avez-vous_deja_entendu_parler_des_deep_fakes_?'].value_counts(normalize=True).get('Oui', 0) * 100
+aware_yes = df['avez-vous deja_entendu parler des deep fakes_?'].value_counts(normalize=True).get('Oui', 0) * 100
 seen_yes = df['avez-vous_deja_vu_un_deep_fake_sur_les_reseaux_sociaux_?'].value_counts(normalize=True).get('Oui', 0) * 100
 trust_counts = df['faites-vous_confiance_aux_informations_que_vous_trouvez_sur_les_reseaux_sociaux_?'].value_counts(normalize=True) * 100
 
