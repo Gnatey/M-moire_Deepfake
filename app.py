@@ -206,14 +206,22 @@ with tab2:
         )
     elif chart_type == "Bar":
         fig_dynamic = px.bar(
-            cross_data,
-            x=x_axis,
-            y='Count',
-            color=color_by,
-            barmode='group',
-            title=f"📊 Bar Chart : {x_axis} vs Count coloré par {color_by}",
-            facet_col=y_axis
-        )
+        cross_data,
+        x='Count',
+        y=x_axis,
+        color=color_by,
+        orientation='h',
+        barmode='group',
+        title=f"📊 Bar Chart Horizontal : {x_axis} vs Count coloré par {color_by}",
+        facet_row=y_axis
+    )
+        fig_dynamic.update_layout(
+        height=800,
+        width=1000,
+        yaxis_title=x_axis,
+        xaxis_title="Count"
+    )
+
     elif chart_type == "Treemap":
         fig_dynamic = px.treemap(
             cross_data,
