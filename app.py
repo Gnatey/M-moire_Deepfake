@@ -8,6 +8,17 @@ import matplotlib.pyplot as plt
 from PIL import Image
 
 # ================================
+# DEBUT STYLE CSS
+# ================================
+def local_css(file_name):
+    with open(file_name) as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
+local_css("style.css")
+# FIN STYLE CSS
+# ================================
+
+# ================================
 # DEBUT CHARGEMENT DONNEES
 # ================================
 @st.cache_data
