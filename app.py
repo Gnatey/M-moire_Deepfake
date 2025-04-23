@@ -24,16 +24,31 @@ st.write(df.columns.tolist())
 # ONGLET 1
 
 # ================================
-# KPI
+# Sidebar - Filtres
 # ================================
-st.title("📊 Dashboard d'Analyse des DeepFakes - Accueil")
+st.sidebar.header("🎛️ Filtres")
+ages = df["Quel est votre tranche d'âge ?"].dropna().unique()
+genres = df["Vous êtes ...?"].dropna().unique()
+
+selected_ages = st.sidebar.multiselect("Tranches d'âge :", options=ages, default=ages)
+selected_genres = st.sidebar.multiselect("Genres :", options=genres, default=genres)
+
+filtered_df = df[
+    (df["Quel est votre tranche d'âge ?"].isin(selected_ages)) &
+    (df["Vous êtes ...?"].isin(selected_genres))
+]
+
+# ================================
+# Page: Général
+# ================================
+st.title("📊 Dashboard d'Analyse des DeepFakes - Général")
 
 st.header("🔍 Indicateurs Clés de Performance")
 
-total_respondents = len(df)
-aware_yes = df["Avez-vous déjà entendu parler des Deep Fakes ?"].value_counts(normalize=True).get('Oui', 0) * 100
-seen_yes = df["Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?"].value_counts(normalize=True).get('Oui', 0) * 100
-trust_counts = df["Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?"].value_counts(normalize=True) * 100
+total_respondents = len(filtered_df)
+aware_yes = filtered_df["Avez-vous déjà entendu parler des Deep Fakes ?"].value_counts(normalize=True).get('Oui', 0) * 100
+seen_yes = filtered_df["Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?"].value_counts(normalize=True).get('Oui', 0) * 100
+trust_counts = filtered_df["Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?"].value_counts(normalize=True) * 100
 
 col1, col2, col3 = st.columns(3)
 col1.metric("Nombre de Répondants", f"{total_respondents}")
@@ -44,19 +59,19 @@ st.write("### Distribution de la Confiance dans les Réseaux Sociaux")
 st.write(trust_counts.to_frame().rename(columns={trust_counts.name: 'Pourcentage'}))
 
 # ================================
-# Graphiques
+# Visualisations
 # ================================
+st.header("📈 Visualisations")
 
 # Histogramme - Niveau de Connaissance
-st.header("📈 Visualisations")
-knowledge_counts = df["Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?"].value_counts().reset_index()
+knowledge_counts = filtered_df["Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?"].value_counts().reset_index()
 knowledge_counts.columns = ['Niveau', 'Nombre']
 fig_knowledge = px.bar(knowledge_counts, x='Niveau', y='Nombre', text='Nombre', title='Niveau de Connaissance des DeepFakes')
 fig_knowledge.update_traces(textposition='outside')
 st.plotly_chart(fig_knowledge, use_container_width=True)
 
 # Pie Chart - Plateformes
-platform_series = df["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"].dropna().str.split(';')
+platform_series = filtered_df["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"].dropna().str.split(';')
 platform_flat = [item.strip() for sublist in platform_series for item in sublist]
 platform_counts = pd.Series(platform_flat).value_counts().reset_index()
 platform_counts.columns = ['Plateforme', 'Nombre']
@@ -64,26 +79,23 @@ fig_platforms = px.pie(platform_counts, names='Plateforme', values='Nombre', tit
 st.plotly_chart(fig_platforms, use_container_width=True)
 
 # Bar Chart - Impact perçu
-impact_counts = df["Selon vous, quel est l’impact global des Deep Fakes sur la société ?"].value_counts().reset_index()
+impact_counts = filtered_df["Selon vous, quel est l’impact global des Deep Fakes sur la société ?"].value_counts().reset_index()
 impact_counts.columns = ['Impact', 'Nombre']
 fig_impact = px.bar(impact_counts, x='Impact', y='Nombre', text='Nombre', title='Impact perçu des DeepFakes sur la Société')
 fig_impact.update_traces(textposition='outside')
 st.plotly_chart(fig_impact, use_container_width=True)
 
 # ================================
-# Matrice de Corrélation
+# Sidebar - Matrice de Corrélation
 # ================================
-st.header("🔗 Matrice de Corrélation")
+with st.sidebar.expander("📊 Matrice de Corrélation"):
+    df_corr = filtered_df.select_dtypes(include=['object']).copy()
+    for col in df_corr.columns:
+        df_corr[col] = df_corr[col].astype('category').cat.codes
 
-df_corr = df.select_dtypes(include=['object']).copy()
-for col in df_corr.columns:
-    df_corr[col] = df_corr[col].astype('category').cat.codes
-corr_matrix = df_corr.corr()
-
-fig_corr = px.imshow(corr_matrix, text_auto=True, color_continuous_scale='RdBu', zmin=-1, zmax=1,
-                     labels=dict(color='Corrélation'), title='Matrice de Corrélation')
-st.plotly_chart(fig_corr, use_container_width=True)
-
-df.columns.str.wrap(10)
+    corr_matrix = df_corr.corr()
+    fig_corr = px.imshow(corr_matrix, text_auto=True, color_continuous_scale='RdBu', zmin=-1, zmax=1,
+                         labels=dict(color='Corrélation'), title='Matrice de Corrélation')
+    st.plotly_chart(fig_corr, use_container_width=True)
 # FIN ONGLET 1
 #-------------------------------------------------------------------------------------------#
