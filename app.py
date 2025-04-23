@@ -177,13 +177,33 @@ with tab1:
     st.plotly_chart(fig_corr, use_container_width=False)
     # FIN MATRICE CORRELATION
 
-    # DEBUT COMMENTAIRES UTILISATEUR
-    st.header("💬 Vos Remarques")
-    user_feedback = st.text_area("Laissez vos impressions sur cette analyse :", placeholder="Écrivez ici...")
 
-    if st.button("Envoyer"):
+    # DEBUT COMMENTAIRES UTILISATEUR INTERACTIFS
+st.header("💬 Vos Remarques")
+
+# Stockage en session pour persistance durant la session utilisateur
+if 'comments' not in st.session_state:
+    st.session_state['comments'] = []
+
+# Formulaire pour ajouter une remarque
+user_feedback = st.text_area("Laissez vos impressions sur cette analyse :", placeholder="Écrivez ici...")
+
+col_feedback1, col_feedback2 = st.columns([1, 5])
+if col_feedback1.button("Envoyer"):
+    if user_feedback.strip() != "":
+        st.session_state['comments'].append(user_feedback.strip())
         st.success("Merci pour votre retour !")
-    # FIN COMMENTAIRES UTILISATEUR
+
+# Affichage des remarques existantes
+st.write("### Vos Remarques Soumises :")
+for idx, comment in enumerate(st.session_state['comments']):
+    st.info(f"💬 {comment}")
+    if st.button(f"Supprimer", key=f"delete_{idx}"):
+        st.session_state['comments'].pop(idx)
+        st.experimental_rerun()
+# FIN COMMENTAIRES UTILISATEUR INTERACTIFS
+
+
 # FIN ONGLET GENERAL
 # ================================
 
