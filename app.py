@@ -1,5 +1,14 @@
+import streamlit as st
+import pandas as pd
+import numpy as np
+import plotly.express as px
+import plotly.figure_factory as ff
+import seaborn as sns
+import matplotlib.pyplot as plt
+from PIL import Image
+
 # ================================
-# DEBUT CHARGEMENT DONNEES
+# Chargement des Données
 # ================================
 @st.cache_data
 def load_data():
@@ -8,11 +17,14 @@ def load_data():
     return df
 
 df = load_data()
-# FIN CHARGEMENT DONNEES
-# ================================
+
+#st.write(df.columns.tolist())
+
+#-------------------------------------------------------------------------------------------#
+# ONGLET 1
 
 # ================================
-# DEBUT SIDEBAR FILTRES
+# Sidebar - Filtres
 # ================================
 st.sidebar.header("🎛️ Filtres")
 ages = df["Quel est votre tranche d'âge ?"].dropna().unique()
@@ -25,24 +37,20 @@ filtered_df = df[
     (df["Quel est votre tranche d'âge ?"].isin(selected_ages)) &
     (df["Vous êtes ...?"].isin(selected_genres))
 ]
-# FIN SIDEBAR FILTRES
-# ================================
 
 # ================================
-# DEBUT TABS
+# Tabs
 # ================================
 st.title("📊 Dashboard d'Analyse des DeepFakes")
 
 tab1, tab2 = st.tabs(["📊 Général", "🔍 À venir"])
-# FIN TABS
-# ================================
 
 # ================================
-# DEBUT ONGLET GENERAL
+# Onglet Général
 # ================================
 with tab1:
-    # DEBUT KPI
     st.header("🔍 Indicateurs Clés de Performance")
+
     total_respondents = len(filtered_df)
     aware_yes = filtered_df["Avez-vous déjà entendu parler des Deep Fakes ?"].value_counts(normalize=True).get('Oui', 0) * 100
     seen_yes = filtered_df["Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?"].value_counts(normalize=True).get('Oui', 0) * 100
@@ -55,10 +63,12 @@ with tab1:
 
     st.write("### Distribution de la Confiance dans les Réseaux Sociaux")
     st.write(trust_counts.to_frame().rename(columns={trust_counts.name: 'Pourcentage'}))
-    # FIN KPI
 
-    # DEBUT VISUALISATIONS
+    # ================================
+    # Visualisations
+    # ================================
     st.header("📈 Visualisations")
+
     # Histogramme - Niveau de Connaissance
     knowledge_counts = filtered_df["Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?"].value_counts().reset_index()
     knowledge_counts.columns = ['Niveau', 'Nombre']
@@ -80,9 +90,11 @@ with tab1:
     fig_impact = px.bar(impact_counts, x='Impact', y='Nombre', text='Nombre', title='Impact perçu des DeepFakes sur la Société')
     fig_impact.update_traces(textposition='outside')
     st.plotly_chart(fig_impact, use_container_width=True)
-    # FIN VISUALISATIONS
 
-    # DEBUT MATRICE CORRELATION
+    # ================================
+    # Matrice de Corrélation - Colonnes Pertinentes
+    # ================================
+
     selected_cols = [
         "Avez-vous déjà entendu parler des Deep Fakes ?",
         "Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?",
@@ -93,6 +105,7 @@ with tab1:
     ]
 
     df_corr = filtered_df[selected_cols].copy()
+
     for col in df_corr.columns:
         df_corr[col] = df_corr[col].astype('category').cat.codes
 
@@ -132,14 +145,20 @@ with tab1:
     )
 
     st.plotly_chart(fig_corr, use_container_width=False)
-    # FIN MATRICE CORRELATION
-# FIN ONGLET GENERAL
-# ================================
+
+# FIN ONGLET 1
+#-------------------------------------------------------------------------------------------#
+
+# DEBUT ONGLET 2
 
 # ================================
-# DEBUT ONGLET 2
+# Onglet À venir
 # ================================
+
 with tab2:
     st.write("🚧 Fonctionnalités supplémentaires en développement...")
+
+
+
 # FIN ONGLET 2
-# ================================
+#-------------------------------------------------------------------------------------------#
