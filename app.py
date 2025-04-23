@@ -1,211 +1,162 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import plotly.express as px
 import os
-from PIL import Image
 
 # ================================
-# DEBUT STYLE CSS
+# CONFIGURATION DE BASE
+# ================================
+st.set_page_config(
+    page_title="Dashboard DeepFakes",
+    page_icon="📊",
+    layout="wide"
+)
+
+# ================================
+# STYLE CSS (version simplifiée)
 # ================================
 def local_css(file_name):
-    with open(file_name) as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+    try:
+        with open(file_name) as f:
+            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+    except:
+        # Style minimal si le fichier CSS est absent
+        st.markdown("""
+        <style>
+            .stMetric { background-color: #f0f2f6; border-radius: 10px; padding: 15px; }
+            .stMetric label { font-size: 0.9rem; color: #555; }
+            .stMetric div { font-size: 1.4rem; color: #000; }
+        </style>
+        """, unsafe_allow_html=True)
 
 local_css("style.css")
-# ================================
-# FIN STYLE CSS
-# ================================
 
 # ================================
-# DEBUT CHARGEMENT DONNEES
+# CHARGEMENT DES DONNÉES (version sécurisée)
 # ================================
 @st.cache_data
 def load_data():
     url = 'https://raw.githubusercontent.com/Gnatey/M-moire_Deepfake/refs/heads/main/DeepFakes.csv'
-    df = pd.read_csv(url, sep=';', encoding='utf-8')
-    return df
+    try:
+        df = pd.read_csv(url, sep=';', encoding='utf-8')
+        # Nettoyage minimal des noms de colonnes
+        df.columns = df.columns.str.strip()
+        return df
+    except Exception as e:
+        st.error(f"Erreur de chargement : {str(e)}")
+        return pd.DataFrame()
 
 df = load_data()
-# ================================
-# FIN CHARGEMENT DONNEES
-# ================================
 
 # ================================
-# DEBUT SIDEBAR FILTRES
+# SIDEBAR FILTRES (version claire)
 # ================================
 st.sidebar.header("🎛️ Filtres")
-ages = df["Quel est votre tranche d'âge ?"].dropna().unique()
-genres = df["Vous êtes ...?"].dropna().unique()
 
-selected_ages = st.sidebar.multiselect("Tranches d'âge :", options=ages, default=ages)
-selected_genres = st.sidebar.multiselect("Genres :", options=genres, default=genres)
+# Vérification que les colonnes existent
+age_col = "Quel est votre tranche d'âge ?"
+genre_col = "Vous êtes ...?"
 
-filtered_df = df[
-    (df["Quel est votre tranche d'âge ?"].isin(selected_ages)) &
-    (df["Vous êtes ...?"].isin(selected_genres))
-]
-# ================================
-# FIN SIDEBAR FILTRES
-# ================================
+if not df.empty:
+    ages = df[age_col].dropna().unique()
+    genres = df[genre_col].dropna().unique()
+    
+    selected_ages = st.sidebar.multiselect(
+        "Tranches d'âge :", 
+        ages, 
+        default=ages
+    )
+    
+    selected_genres = st.sidebar.multiselect(
+        "Genres :", 
+        genres, 
+        default=genres
+    )
+    
+    # Application des filtres
+    filtered_df = df[
+        (df[age_col].isin(selected_ages)) & 
+        (df[genre_col].isin(selected_genres))
+    ]
+else:
+    filtered_df = pd.DataFrame()
 
 # ================================
-# DEBUT TABS
+# ONGLETS PRINCIPAUX
 # ================================
-st.title("📊 Dashboard d'Analyse des DeepFakes")
-tab1, tab2 = st.tabs(["📊 Général", "🔍 À venir"])
-# ================================
-# FIN TABS
-# ================================
+tab1, tab2 = st.tabs(["📊 Général", "🔍 Analyse"])
 
 # ================================
-# DEBUT ONGLET GENERAL
+# ONGLET GENERAL (version lisible)
 # ================================
 with tab1:
-    st.header("🔍 Indicateurs Clés de Performance")
-    total_respondents = len(filtered_df)
-    aware_yes = filtered_df["Avez-vous déjà entendu parler des Deep Fakes ?"].value_counts(normalize=True).get('Oui', 0) * 100
-    seen_yes = filtered_df["Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?"].value_counts(normalize=True).get('Oui', 0) * 100
-    trust_counts = filtered_df["Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?"].value_counts(normalize=True) * 100
-
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Nombre de Répondants", f"{total_respondents}")
-    col2.metric("% ayant entendu parler des DeepFakes", f"{aware_yes:.1f}%")
-    col3.metric("% ayant vu un DeepFake", f"{seen_yes:.1f}%")
-
-    st.write("### Distribution de la Confiance dans les Réseaux Sociaux")
-    st.write(trust_counts.to_frame().rename(columns={trust_counts.name: 'Pourcentage'}))
-
-    # ================================
-    # DEBUT VISUALISATIONS
-    # ================================
-    st.header("📈 Visualisations")
-    knowledge_counts = filtered_df["Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?"].value_counts().reset_index()
-    knowledge_counts.columns = ['Niveau', 'Nombre']
-    fig_knowledge = px.bar(knowledge_counts, x='Niveau', y='Nombre', text='Nombre', title='Niveau de Connaissance des DeepFakes')
-    fig_knowledge.update_traces(textposition='outside')
-    st.plotly_chart(fig_knowledge, use_container_width=True)
-
-    platform_series = filtered_df["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"].dropna().str.split(';')
-    platform_flat = [item.strip() for sublist in platform_series for item in sublist]
-    platform_counts = pd.Series(platform_flat).value_counts().reset_index()
-    platform_counts.columns = ['Plateforme', 'Nombre']
-    fig_platforms = px.pie(platform_counts, names='Plateforme', values='Nombre', title='Plateformes Principales où les DeepFakes sont vus')
-    st.plotly_chart(fig_platforms, use_container_width=True)
-
-    impact_counts = filtered_df["Selon vous, quel est l’impact global des Deep Fakes sur la société ?"].value_counts().reset_index()
-    impact_counts.columns = ['Impact', 'Nombre']
-    fig_impact = px.bar(impact_counts, x='Impact', y='Nombre', text='Nombre', title='Impact perçu des DeepFakes sur la Société')
-    fig_impact.update_traces(textposition='outside')
-    st.plotly_chart(fig_impact, use_container_width=True)
-
-    st.header("📊 Confiance par Tranche d'âge")
-    trust_age = filtered_df.groupby("Quel est votre tranche d'âge ?")["Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?"].value_counts(normalize=True).rename('Pourcentage').reset_index()
-    trust_age["Pourcentage"] *= 100
-    fig_trust_age = px.bar(trust_age, x="Quel est votre tranche d'âge ?", y="Pourcentage", color="Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?", barmode="group", title="Confiance selon la Tranche d'âge")
-    fig_trust_age.update_layout(width=1000, height=700, legend_title="Confiance", xaxis_title="Tranche d'âge", yaxis_title="Pourcentage", xaxis_tickangle=-30)
-    st.plotly_chart(fig_trust_age, use_container_width=False)
-
-    st.header("🌐 Genre vs Plateformes DeepFakes")
-    platform_series = filtered_df[["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)", "Vous êtes ...?"]].dropna()
-    platform_series["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"] = platform_series["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"].str.split(';')
-    platform_exploded = platform_series.explode("_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)").dropna()
-    cross_tab = pd.crosstab(platform_exploded["Vous êtes ...?"], platform_exploded["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"])
-    fig_heatmap = px.imshow(cross_tab, text_auto=True, aspect="auto", title="Genre vs Plateformes DeepFakes")
-    st.plotly_chart(fig_heatmap, use_container_width=True)
-
-    st.header("🔗 Matrice de Corrélation")
-    selected_cols = [
-        "Avez-vous déjà entendu parler des Deep Fakes ?",
-        "Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?",
-        "Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?",
-        "Selon vous, quel est l’impact global des Deep Fakes sur la société ?",
-        "Quel est votre tranche d'âge ?",
-        "Vous êtes ...?"
-    ]
-    df_corr = filtered_df[selected_cols].copy()
-    for col in df_corr.columns:
-        df_corr[col] = df_corr[col].astype('category').cat.codes
-    corr_matrix = df_corr.corr()
-    short_labels = ["Connaissance DeepFakes", "Niveau Info", "Confiance Infos", "Impact Société", "Âge", "Genre"]
-    fig_corr = px.imshow(corr_matrix, text_auto=True, color_continuous_scale='RdBu', zmin=-1, zmax=1, labels=dict(color='Corrélation'), title='Matrice de Corrélation (Pertinente)')
-    fig_corr.update_layout(width=700, height=600, xaxis=dict(ticktext=short_labels, tickvals=list(range(len(short_labels))), tickangle=45), yaxis=dict(ticktext=short_labels, tickvals=list(range(len(short_labels)))))
-    st.plotly_chart(fig_corr, use_container_width=False)
-
-    # ================================
-    # COMMENTAIRES ADMIN
-    # ================================
-    st.header("💬 Vos Remarques - Général")
-    COMMENTS_FILE_GENERAL = "remarques_general.csv"
-    ADMIN_USER = "dendey"
-    if os.path.exists(COMMENTS_FILE_GENERAL):
-        comments_df = pd.read_csv(COMMENTS_FILE_GENERAL)
+    st.header("🔍 Indicateurs Clés")
+    
+    if not filtered_df.empty:
+        # Métriques en colonnes
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            total = len(filtered_df)
+            st.metric("Répondants", total)
+        
+        with col2:
+            connait = filtered_df["Avez-vous déjà entendu parler des Deep Fakes ?"].value_counts(normalize=True).get('Oui', 0) * 100
+            st.metric("Connaissent les DeepFakes", f"{connait:.1f}%")
+        
+        with col3:
+            vu = filtered_df["Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?"].value_counts(normalize=True).get('Oui', 0) * 100
+            st.metric("Ont vu un DeepFake", f"{vu:.1f}%")
+        
+        # Visualisation 1: Niveau de connaissance
+        st.subheader("Niveau de connaissance")
+        connaissance = filtered_df["Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?"].value_counts()
+        fig1 = px.bar(
+            connaissance, 
+            title="Niveau de connaissance des DeepFakes",
+            labels={'value': 'Nombre', 'index': 'Niveau'}
+        )
+        st.plotly_chart(fig1, use_container_width=True)
+        
+        # Visualisation 2: Plateformes
+        st.subheader("Plateformes de diffusion")
+        if "_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)" in filtered_df:
+            plateformes = filtered_df["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"].str.split(';').explode().str.strip()
+            fig2 = px.pie(
+                plateformes.value_counts(), 
+                names=plateformes.value_counts().index,
+                title="Répartition par plateforme"
+            )
+            st.plotly_chart(fig2, use_container_width=True)
+    
     else:
-        comments_df = pd.DataFrame(columns=["user", "comment"])
-    user_name = st.text_input("Votre nom ou pseudo :", key="user_name_general", max_chars=20)
-    user_feedback = st.text_area("Laissez vos impressions sur cette analyse :", placeholder="Écrivez ici...", key="feedback_general")
-    if st.button("Envoyer", key="submit_general"):
-        if user_feedback.strip() != "" and user_name.strip() != "":
-            new_comment = pd.DataFrame([{"user": user_name.strip(), "comment": user_feedback.strip()}])
-            comments_df = pd.concat([comments_df, new_comment], ignore_index=True)
-            comments_df.to_csv(COMMENTS_FILE_GENERAL, index=False)
+        st.warning("Aucune donnée avec les filtres sélectionnés")
+
+# ================================
+# ONGLET ANALYSE (version simple)
+# ================================
+with tab2:
+    st.header("🔍 Analyse Complémentaire")
+    
+    if not filtered_df.empty:
+        # Sélection des variables à analyser
+        colonnes = [c for c in filtered_df.columns if filtered_df[c].nunique() < 10]
+        
+        x = st.selectbox("Variable X", colonnes, index=0)
+        y = st.selectbox("Variable Y", colonnes, index=1)
+        
+        # Graphique croisé simple
+        croisement = pd.crosstab(filtered_df[x], filtered_df[y])
+        fig = px.bar(
+            croisement,
+            barmode='group',
+            title=f"Relation entre {x} et {y}"
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # Section commentaires (version basique)
+    st.subheader("💬 Commentaires")
+    comment = st.text_area("Vos remarques")
+    if st.button("Envoyer"):
+        if comment:
             st.success("Merci pour votre retour !")
-            st.experimental_rerun()
-    st.write("### Vos Remarques Soumises :")
-    for idx, row in comments_df.iterrows():
-        st.info(f"💬 **{row['user']}** : {row['comment']}")
-        if user_name.strip().lower() == row['user'].strip().lower() or user_name.strip().lower() == ADMIN_USER.lower():
-            if st.button(f"Supprimer", key=f"delete_general_{idx}"):
-                comments_df = comments_df.drop(index=idx).reset_index(drop=True)
-                comments_df.to_csv(COMMENTS_FILE_GENERAL, index=False)
-                st.experimental_rerun()
-# ================================
-# FIN ONGLET GENERAL
-# ================================
-
-# ================================
-# DEBUT ONGLET 2 - DEVELOPPEUSE
-# ================================
-with tab2:
-    st.header("🎛️ Visualisation Dynamique")
-
-    st.markdown("Sélectionnez les variables que vous souhaitez explorer :")
-
-    # Colonnes catégorielles
-    categorical_columns = df.select_dtypes(include='object').columns.tolist()
-
-    # Sélection des axes
-    x_axis = st.selectbox("📊 Axe X :", options=categorical_columns, index=0, key="x_axis")
-    y_axis = st.selectbox("📊 Axe Y :", options=categorical_columns, index=1, key="y_axis")
-    color_by = st.selectbox("🎨 Couleur par :", options=categorical_columns, index=2, key="color_by")
-
-    # Créer un DataFrame filtré pour l'affichage
-    filtered_data = df[[x_axis, y_axis, color_by]].dropna()
-
-    # Comptage croisé pour visualisation
-    cross_data = filtered_data.groupby([x_axis, y_axis, color_by]).size().reset_index(name='Count')
-
-    # Graphique Sunburst (hiérarchique) pour visualiser 3 niveaux
-    fig_dynamic = px.sunburst(
-        cross_data,
-        path=[x_axis, y_axis, color_by],
-        values='Count',
-        title=f"Exploration Dynamique : {x_axis} > {y_axis} > {color_by}",
-        width=800,
-        height=600
-    )
-
-    st.plotly_chart(fig_dynamic, use_container_width=True)
-
-
-
-with tab2:
-    st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSE")
-    col_img, col_msg = st.columns([1, 4])
-    with col_img:
-        st.image("images.jpeg", width=100)
-    with col_msg:
-        st.info("Cet onglet est en cours de rédaction. Vous verrez des visualisations sous peu.")
-# ================================
-# FIN ONGLET 2 - DEVELOPPEUSE
-# ================================
