@@ -220,17 +220,68 @@ with tab1:
         )
         st.plotly_chart(fig_trust_age, use_container_width=True)
         
-        # ======================
-        # VISUALISATION 5 - Genre vs Plateformes (pleine largeur)
-        # ======================
-        st.header("👥 Genre vs Plateformes")
-        platform_series = filtered_df[["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)", "Vous êtes ...?"]].dropna()
-        platform_series["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"] = platform_series["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"].str.split(';')
-        platform_exploded = platform_series.explode("_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)").dropna()
-        cross_tab = pd.crosstab(platform_exploded["Vous êtes ...?"], platform_exploded["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"])
-        fig_heatmap = px.imshow(cross_tab, text_auto=True, aspect="auto", title="Genre vs Plateformes DeepFakes")
+        # ================================
+# DEBUT GENRE VS PLATEFORMES
+# ================================
+st.header("👥 Genre vs Plateformes")
+
+# Vérifie si les colonnes longues ou renommées existent
+if "_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)" in filtered_df.columns:
+    platform_series = filtered_df[
+        ["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)", "Vous êtes ...?"]
+    ].dropna()
+
+    # Séparation des choix multiples
+    platform_series["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"] = platform_series[
+        "_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"
+    ].str.split(';')
+
+    # Expansion des lignes
+    platform_exploded = platform_series.explode("_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)").dropna()
+    platform_exploded["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"] = platform_exploded[
+        "_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"
+    ].str.strip()
+
+    # Table de contingence
+    cross_tab = pd.crosstab(
+        platform_exploded["Vous êtes ...?"],
+        platform_exploded["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"]
+    )
+
+    # Heatmap
+    fig_heatmap = px.imshow(
+        cross_tab,
+        text_auto=True,
+        aspect="auto",
+        color_continuous_scale='Blues',
+        title="Genre vs Plateformes DeepFakes",
+        height=500
+    )
     st.plotly_chart(fig_heatmap, use_container_width=True)
-        
+
+elif "Plateformes" in filtered_df.columns:
+    platform_exploded = filtered_df[["Plateformes", "Genre"]].dropna()
+    platform_exploded = platform_exploded.explode("Plateformes")
+    platform_exploded["Plateformes"] = platform_exploded["Plateformes"].str.strip()
+
+    cross_tab = pd.crosstab(platform_exploded["Genre"], platform_exploded["Plateformes"])
+
+    fig_heatmap = px.imshow(
+        cross_tab,
+        text_auto=True,
+        aspect="auto",
+        color_continuous_scale='Blues',
+        title="Genre vs Plateformes DeepFakes",
+        height=500
+    )
+    st.plotly_chart(fig_heatmap, use_container_width=True)
+
+else:
+    st.warning("Les données sur les plateformes ne sont pas disponibles.")
+# ================================
+# FIN GENRE VS PLATEFORMES
+# ================================
+
         # ======================
         # VISUALISATION 6 - Matrice de corrélation (réintégrée)
         # ======================
