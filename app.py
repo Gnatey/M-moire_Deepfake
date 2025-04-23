@@ -223,61 +223,54 @@ with tab1:
             st.plotly_chart(fig_trust_age, use_container_width=True)
         
 # ================================
-# DEBUT VISUALISATION - Genre vs Plateformes (Agrandie et Nettoyée)
+# DEBUT GENRE VS PLATEFORMES - VISUEL AMELIORE
 # ================================
-st.header("👥 Genre vs Plateformes (Vue élargie)")
+st.header("👥 Genre vs Plateformes (Amélioré)")
 
-if "Plateformes" in filtered_df.columns:
-    platform_exploded = filtered_df[["Plateformes", "Genre"]].dropna()
+# Expansion des plateformes
+platform_series = filtered_df[
+    ["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)", "Vous êtes ...?"]
+].dropna()
 
-    # Séparer les choix multiples
-    platform_exploded = platform_exploded.explode("Plateformes")
-    platform_exploded["Plateformes"] = platform_exploded["Plateformes"].str.strip()
+# Séparer les choix multiples
+platform_series["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"] = platform_series[
+    "_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"
+].str.split(';')
 
-    # Nettoyage - Regroupement
-    regroup_dict = {
-        "Facebook": "Facebook",
-        "Instagram": "Instagram",
-        "TikTok": "TikTok",
-        "YouTube": "YouTube",
-        "X anciennement Twitter": "X anciennement Twitter",
-        "Snapchat": "Snapchat",
-        "LinkedIn": "LinkedIn",  # Exemple, tu peux adapter
-        "Autres plateformes": "Autres"
-    }
+# Explosion des lignes
+platform_exploded = platform_series.explode("_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)").dropna()
+platform_exploded["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"] = platform_exploded[
+    "_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"
+].str.strip()
 
-    platform_exploded["Plateformes regroupées"] = platform_exploded["Plateformes"].map(regroup_dict).fillna("Autres")
+# Table de contingence
+cross_tab = pd.crosstab(
+    platform_exploded["Vous êtes ...?"],
+    platform_exploded["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"]
+)
 
-    # Table de contingence
-    cross_tab_grouped = pd.crosstab(
-        platform_exploded["Genre"],
-        platform_exploded["Plateformes regroupées"]
-    )
+# Création de la heatmap améliorée
+fig_heatmap = px.imshow(
+    cross_tab,
+    text_auto=True,
+    aspect="auto",
+    color_continuous_scale='Blues',
+    title="Répartition Genre vs Plateformes",
+    height=600,  # Augmenter la hauteur
+    width=1000   # Augmenter la largeur
+)
 
-    # Heatmap améliorée
-    fig_heatmap_grouped = px.imshow(
-        cross_tab_grouped,
-        text_auto=True,
-        aspect="auto",
-        color_continuous_scale='Blues',
-        title="Genre vs Plateformes DeepFakes (Regroupées)",
-        height=600,
-        width=1000
-    )
+# Amélioration de la lisibilité des labels
+fig_heatmap.update_layout(
+    xaxis_tickangle=-30,  # Inclinaison pour mieux lire
+    font=dict(size=12),
+    margin=dict(t=50, b=100)
+)
 
-    fig_heatmap_grouped.update_layout(
-        margin=dict(l=40, r=40, t=80, b=80),
-        xaxis_title="Plateformes",
-        yaxis_title="Genre",
-        font=dict(size=12)
-    )
+st.plotly_chart(fig_heatmap, use_container_width=True)
 
-    st.plotly_chart(fig_heatmap_grouped, use_container_width=True)
-
-else:
-    st.warning("Les données sur les plateformes ne sont pas disponibles.")
 # ================================
-# FIN VISUALISATION - Genre vs Plateformes
+# FIN GENRE VS PLATEFORMES - VISUEL AMELIORE
 # ================================
 
 
