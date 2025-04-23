@@ -78,13 +78,12 @@ st.header("🔗 Matrice de Corrélation")
 df_corr = df.select_dtypes(include=['object']).copy()
 for col in df_corr.columns:
     df_corr[col] = df_corr[col].astype('category').cat.codes
-    df.columns.str.wrap(10)
 corr_matrix = df_corr.corr()
 
 fig_corr = px.imshow(corr_matrix, text_auto=True, color_continuous_scale='RdBu', zmin=-1, zmax=1,
                      labels=dict(color='Corrélation'), title='Matrice de Corrélation')
 st.plotly_chart(fig_corr, use_container_width=True)
 
-
+df.columns.str.wrap(10)
 # FIN ONGLET 1
 #-------------------------------------------------------------------------------------------#
