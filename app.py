@@ -172,50 +172,33 @@ with tab2:
     st.markdown("### 🎛️ Visualisation Dynamique Multi-Graphiques")
     st.markdown("Choisissez les variables et le type de graphique pour explorer vos données :")
 
-    # Colonnes catégorielles
     categorical_columns = df.select_dtypes(include='object').columns.tolist()
 
-    # Sélection des axes
     x_axis = st.selectbox("📊 Axe X :", options=categorical_columns, index=0, key="x_axis")
     y_axis = st.selectbox("📊 Axe Y :", options=categorical_columns, index=1, key="y_axis")
     color_by = st.selectbox("🎨 Couleur par :", options=categorical_columns, index=2, key="color_by")
 
-    # Type de graphique
-    chart_type = st.radio(
-        "📈 Choisissez un type de graphique :",
-        options=["Sunburst", "Bar", "Treemap"],
-        horizontal=True,
-        key="chart_type"
-    )
+    chart_type = st.radio("📈 Choisissez un type de graphique :", options=["Sunburst", "Bar", "Treemap"], horizontal=True, key="chart_type")
 
-    # Créer un DataFrame filtré pour l'affichage
     filtered_data = df[[x_axis, y_axis, color_by]].dropna()
-
-    # Comptage croisé pour visualisation
     cross_data = filtered_data.groupby([x_axis, y_axis, color_by]).size().reset_index(name='Count')
 
-    # Visualisation dynamique
     if chart_type == "Sunburst":
-        fig_dynamic = px.sunburst(
-            cross_data,
-            path=[x_axis, y_axis, color_by],
-            values='Count',
-            title=f"🌞 Sunburst : {x_axis} > {y_axis} > {color_by}",
-            width=800,
-            height=600
-        )
+        fig_dynamic = px.sunburst(cross_data, path=[x_axis, y_axis, color_by], values='Count', title=f"🌞 Sunburst : {x_axis} > {y_axis} > {color_by}", width=800, height=600)
     elif chart_type == "Bar":
-        fig_dynamic = px.bar(
-            cross_data,
-            x=x_axis,
-            y='Count',
-            color=color_by,
-            barmode='group',
-            title=f"📊 Bar Chart : {x_axis} vs Count coloré par {color_by}",
-            facet_col=y_axis
-        )
+        cross_data[x_axis] = cross_data[x_axis].apply(lambda x: x if len(str(x)) <= 30 else str(x)[:27] + '...')
+        cross_data[color_by] = cross_data[color_by].apply(lambda x: x if len(str(x)) <= 30 else str(x)[:27] + '...')
+        cross_data[y_axis] = cross_data[y_axis].apply(lambda x: x if len(str(x)) <= 30 else str(x)[:27] + '...')
+        fig_dynamic = px.bar(cross_data, x=x_axis, y='Count', color=color_by, barmode='group', text='Count', title=f"📊 Bar Chart : {x_axis} vs Count coloré par {color_by}", facet_col=y_axis)
+        fig_dynamic.update_layout(height=800, width=1200, xaxis_tickangle=-30, xaxis_title=x_axis, yaxis_title="Count", bargap=0.2, bargroupgap=0.1)
+        fig_dynamic.update_traces(textposition='outside')
     elif chart_type == "Treemap":
-        fig_dynamic = px.treemap(
+        fig_dynamic = px.treemap(cross_data, path=[x_axis, y_axis, color_by], values='Count', title=f"🌳 Treemap : {x_axis} > {y_axis} > {color_by}", width=800, height=600)
+
+    st.plotly_chart(fig_dynamic, use_container_width=True)
+    
+    elif chart_type == "Treemap":
+    fig_dynamic = px.treemap(
             cross_data,
             path=[x_axis, y_axis, color_by],
             values='Count',
