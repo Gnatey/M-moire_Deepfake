@@ -214,13 +214,37 @@ with tab1:
         
         with col1:
             st.markdown("**Confiance par Tranche d'âge**")
-            trust_age = filtered_df.groupby("Tranche d'âge")["Confiance réseaux sociaux"].value_counts(normalize=True).unstack() * 100
-            fig_trust_age = px.bar(
-                trust_age,
-                barmode="group",
-                labels={'value': 'Pourcentage', 'variable': 'Confiance'}
-            )
-            st.plotly_chart(fig_trust_age, use_container_width=True)
+    trust_age = (
+        filtered_df.groupby("Tranche d'âge")["Confiance réseaux sociaux"]
+        .value_counts(normalize=True)
+        .unstack()
+        .fillna(0) * 100
+    )
+
+    fig_trust_age = px.bar(
+        trust_age.reset_index().melt(id_vars="Tranche d'âge"),
+        x="Tranche d'âge",
+        y="value",
+        color="Confiance réseaux sociaux",
+        barmode="group",
+        labels={'value': 'Pourcentage', 'Tranche d\'âge': 'Tranche d\'âge'},
+        text="value",
+        height=600,
+        width=700
+    )
+
+    fig_trust_age.update_layout(
+        xaxis_tickangle=-30,
+        yaxis_title="Pourcentage (%)",
+        font=dict(size=13),
+        legend_title="Confiance",
+        margin=dict(t=50, b=100)
+    )
+
+    fig_trust_age.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
+
+    st.plotly_chart(fig_trust_age, use_container_width=True)
+
         
 # ================================
 # DEBUT GENRE VS PLATEFORMES - VISUEL AMELIORE
