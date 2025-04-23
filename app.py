@@ -3,328 +3,567 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import os
+from datetime import datetime
+from scipy.stats import chi2_contingency
+import networkx as nx
+import plotly.graph_objects as go
 from PIL import Image
 
-# ================================
-# DEBUT STYLE CSS
-# ================================
+# =============================================
+# INITIALISATION ET CONFIGURATION DE BASE
+# =============================================
+st.set_page_config(
+    page_title="Dashboard DeepFakes",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# =============================================
+# FONCTIONS UTILITAIRES
+# =============================================
 def local_css(file_name):
-    with open(file_name) as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+    """Charge un fichier CSS personnalisé"""
+    try:
+        with open(file_name) as f:
+            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+    except FileNotFoundError:
+        st.markdown("""
+        <style>
+            .stMetric { border-radius: 10px; padding: 15px; background-color: #f8f9fa; }
+            .stMetric label { font-size: 0.9rem; color: #6c757d; }
+            .stMetric div { font-size: 1.4rem; font-weight: bold; color: #212529; }
+            .stPlotlyChart { border: 1px solid #e1e4e8; border-radius: 8px; }
+        </style>
+        """, unsafe_allow_html=True)
 
-local_css("style.css")
-# ================================
-# FIN STYLE CSS
-# ================================
+def calculate_cramers_v(contingency_table):
+    """Calcule le coefficient Cramer's V pour les tableaux de contingence"""
+    chi2 = chi2_contingency(contingency_table)[0]
+    n = contingency_table.sum().sum()
+    phi2 = chi2/n
+    r, k = contingency_table.shape
+    return np.sqrt(phi2/min((k-1),(r-1)))
 
-# ================================
-# DEBUT CHARGEMENT DONNEES
-# ================================
+def truncate_label(text, max_length=25):
+    """Tronque les libellés trop longs pour la lisibilité"""
+    return (text[:max_length] + '...') if len(str(text)) > max_length else str(text)
+
+# =============================================
+# CHARGEMENT DES DONNÉES (optimisé et sécurisé)
+# =============================================
 @st.cache_data
 def load_data():
+    """Charge et prépare les données avec gestion des erreurs"""
     url = 'https://raw.githubusercontent.com/Gnatey/M-moire_Deepfake/refs/heads/main/DeepFakes.csv'
-    df = pd.read_csv(url, sep=';', encoding='utf-8')
-    return df
+    try:
+        df = pd.read_csv(url, sep=';', encoding='utf-8')
+        
+        # Nettoyage des noms de colonnes
+        df.columns = df.columns.str.strip()
+        
+        # Renommage des colonnes longues
+        column_rename = {
+            "Quel est votre tranche d'âge ?": "Tranche d'âge",
+            "Vous êtes ...?": "Genre",
+            "Avez-vous déjà entendu parler des Deep Fakes ?": "Connaissance DeepFakes",
+            "Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?": "Exposition DeepFakes",
+            "_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)": "Plateformes",
+            "Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?": "Niveau connaissance",
+            "Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?": "Confiance réseaux sociaux",
+            "Selon vous, quel est l’impact global des Deep Fakes sur la société ?": "Impact société"
+        }
+        
+        return df.rename(columns=column_rename)
+    
+    except Exception as e:
+        st.error(f"Erreur lors du chargement des données: {str(e)}")
+        return pd.DataFrame()
 
+# Chargement initial
 df = load_data()
-# ================================
-# FIN CHARGEMENT DONNEES
-# ================================
+local_css("style.css")
 
-# ================================
-# DEBUT SIDEBAR FILTRES
-# ================================
-st.sidebar.header("🎛️ Filtres")
-ages = df["Quel est votre tranche d'âge ?"].dropna().unique()
-genres = df["Vous êtes ...?"].dropna().unique()
-
-selected_ages = st.sidebar.multiselect("Tranches d'âge :", options=ages, default=ages)
-selected_genres = st.sidebar.multiselect("Genres :", options=genres, default=genres)
-
-filtered_df = df[
-    (df["Quel est votre tranche d'âge ?"].isin(selected_ages)) &
-    (df["Vous êtes ...?"].isin(selected_genres))
-]
-# ================================
-# FIN SIDEBAR FILTRES
-# ================================
-
-# ================================
-# DEBUT TABS
-# ================================
-st.title("📊 Dashboard d'Analyse des DeepFakes")
-tab1, tab2 = st.tabs(["🏠 Accueil", "🔬 Analyse Profonde"])
-# ================================
-# FIN TABS
-# ================================
-
-# ================================
-# DEBUT ONGLET GENERAL
-# ================================
-with tab1:
-    st.header("🔍 Indicateurs Clés de Performance")
-    total_respondents = len(filtered_df)
-    aware_yes = filtered_df["Avez-vous déjà entendu parler des Deep Fakes ?"].value_counts(normalize=True).get('Oui', 0) * 100
-    seen_yes = filtered_df["Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?"].value_counts(normalize=True).get('Oui', 0) * 100
-    trust_counts = filtered_df["Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?"].value_counts(normalize=True) * 100
-
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Nombre de Répondants", f"{total_respondents}")
-    col2.metric("% ayant entendu parler des DeepFakes", f"{aware_yes:.1f}%")
-    col3.metric("% ayant vu un DeepFake", f"{seen_yes:.1f}%")
-
-    st.write("### Distribution de la Confiance dans les Réseaux Sociaux")
-    st.write(trust_counts.to_frame().rename(columns={trust_counts.name: 'Pourcentage'}))
-
-    # ================================
-    # DEBUT VISUALISATIONS
-    # ================================
-    st.header("📈 Visualisations")
-    knowledge_counts = filtered_df["Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?"].value_counts().reset_index()
-    knowledge_counts.columns = ['Niveau', 'Nombre']
-    fig_knowledge = px.bar(knowledge_counts, x='Niveau', y='Nombre', text='Nombre', title='Niveau de Connaissance des DeepFakes')
-    fig_knowledge.update_traces(textposition='outside')
-    st.plotly_chart(fig_knowledge, use_container_width=True)
-
-    platform_series = filtered_df["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"].dropna().str.split(';')
-    platform_flat = [item.strip() for sublist in platform_series for item in sublist]
-    platform_counts = pd.Series(platform_flat).value_counts().reset_index()
-    platform_counts.columns = ['Plateforme', 'Nombre']
-    fig_platforms = px.pie(platform_counts, names='Plateforme', values='Nombre', title='Plateformes Principales où les DeepFakes sont vus')
-    st.plotly_chart(fig_platforms, use_container_width=True)
-
-    impact_counts = filtered_df["Selon vous, quel est l’impact global des Deep Fakes sur la société ?"].value_counts().reset_index()
-    impact_counts.columns = ['Impact', 'Nombre']
-    fig_impact = px.bar(impact_counts, x='Impact', y='Nombre', text='Nombre', title='Impact perçu des DeepFakes sur la Société')
-    fig_impact.update_traces(textposition='outside')
-    st.plotly_chart(fig_impact, use_container_width=True)
-
-    st.header("📊 Confiance par Tranche d'âge")
-    trust_age = filtered_df.groupby("Quel est votre tranche d'âge ?")["Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?"].value_counts(normalize=True).rename('Pourcentage').reset_index()
-    trust_age["Pourcentage"] *= 100
-    fig_trust_age = px.bar(trust_age, x="Quel est votre tranche d'âge ?", y="Pourcentage", color="Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?", barmode="group", title="Confiance selon la Tranche d'âge")
-    fig_trust_age.update_layout(width=1000, height=700, legend_title="Confiance", xaxis_title="Tranche d'âge", yaxis_title="Pourcentage", xaxis_tickangle=-30)
-    st.plotly_chart(fig_trust_age, use_container_width=False)
-
-    st.header("🌐 Genre vs Plateformes DeepFakes")
-    platform_series = filtered_df[["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)", "Vous êtes ...?"]].dropna()
-    platform_series["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"] = platform_series["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"].str.split(';')
-    platform_exploded = platform_series.explode("_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)").dropna()
-    cross_tab = pd.crosstab(platform_exploded["Vous êtes ...?"], platform_exploded["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"])
-    fig_heatmap = px.imshow(cross_tab, text_auto=True, aspect="auto", title="Genre vs Plateformes DeepFakes")
-    st.plotly_chart(fig_heatmap, use_container_width=True)
-
-    st.header("🔗 Matrice de Corrélation")
-    selected_cols = [
-        "Avez-vous déjà entendu parler des Deep Fakes ?",
-        "Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?",
-        "Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?",
-        "Selon vous, quel est l’impact global des Deep Fakes sur la société ?",
-        "Quel est votre tranche d'âge ?",
-        "Vous êtes ...?"
-    ]
-    df_corr = filtered_df[selected_cols].copy()
-    for col in df_corr.columns:
-        df_corr[col] = df_corr[col].astype('category').cat.codes
-    corr_matrix = df_corr.corr()
-    short_labels = ["Connaissance DeepFakes", "Niveau Info", "Confiance Infos", "Impact Société", "Âge", "Genre"]
-    fig_corr = px.imshow(corr_matrix, text_auto=True, color_continuous_scale='RdBu', zmin=-1, zmax=1, labels=dict(color='Corrélation'), title='Matrice de Corrélation (Pertinente)')
-    fig_corr.update_layout(width=700, height=600, xaxis=dict(ticktext=short_labels, tickvals=list(range(len(short_labels))), tickangle=45), yaxis=dict(ticktext=short_labels, tickvals=list(range(len(short_labels)))))
-    st.plotly_chart(fig_corr, use_container_width=False)
-
-    # ================================
-    # COMMENTAIRES ADMIN
-    # ================================
-    st.header("💬 Vos Remarques - Général")
-    COMMENTS_FILE_GENERAL = "remarques_general.csv"
-    ADMIN_USER = "dendey"
-    if os.path.exists(COMMENTS_FILE_GENERAL):
-        comments_df = pd.read_csv(COMMENTS_FILE_GENERAL)
+# =============================================
+# SIDEBAR FILTRES (version améliorée)
+# =============================================
+with st.sidebar:
+    st.header("🎛️ Filtres Principaux")
+    
+    if not df.empty:
+        # Filtres de base
+        ages = df["Tranche d'âge"].dropna().unique()
+        genres = df["Genre"].dropna().unique()
+        
+        selected_ages = st.multiselect(
+            "Tranches d'âge :", 
+            options=ages, 
+            default=ages,
+            help="Sélectionnez les tranches d'âge à inclure"
+        )
+        
+        selected_genres = st.multiselect(
+            "Genres :", 
+            options=genres, 
+            default=genres,
+            help="Filtrez les résultats par genre"
+        )
+        
+        # Filtre supplémentaire pour la connaissance des DeepFakes
+        connaissance_options = df["Connaissance DeepFakes"].dropna().unique()
+        selected_connaissance = st.multiselect(
+            "Niveau de connaissance :",
+            options=connaissance_options,
+            default=connaissance_options,
+            help="Filtrez par niveau de connaissance des DeepFakes"
+        )
     else:
-        comments_df = pd.DataFrame(columns=["user", "comment"])
-    user_name = st.text_input("Votre nom ou pseudo :", key="user_name_general", max_chars=20)
-    user_feedback = st.text_area("Laissez vos impressions sur cette analyse :", placeholder="Écrivez ici...", key="feedback_general")
-    if st.button("Envoyer", key="submit_general"):
-        if user_feedback.strip() != "" and user_name.strip() != "":
-            new_comment = pd.DataFrame([{"user": user_name.strip(), "comment": user_feedback.strip()}])
-            comments_df = pd.concat([comments_df, new_comment], ignore_index=True)
-            comments_df.to_csv(COMMENTS_FILE_GENERAL, index=False)
-            st.success("Merci pour votre retour !")
-            st.experimental_rerun()
-    st.write("### Vos Remarques Soumises :")
-    for idx, row in comments_df.iterrows():
-        st.info(f"💬 **{row['user']}** : {row['comment']}")
-        if user_name.strip().lower() == row['user'].strip().lower() or user_name.strip().lower() == ADMIN_USER.lower():
-            if st.button(f"Supprimer", key=f"delete_general_{idx}"):
-                comments_df = comments_df.drop(index=idx).reset_index(drop=True)
-                comments_df.to_csv(COMMENTS_FILE_GENERAL, index=False)
-                st.experimental_rerun()
-# ================================
-# FIN ONGLET GENERAL
-# ================================
+        selected_ages = []
+        selected_genres = []
+        selected_connaissance = []
 
-# ================================
-# DEBUT ONGLET 2 - EXPLORATION AVANCEE
-# ================================
+# Application des filtres
+if not df.empty:
+    filtered_df = df[
+        (df["Tranche d'âge"].isin(selected_ages)) &
+        (df["Genre"].isin(selected_genres)) &
+        (df["Connaissance DeepFakes"].isin(selected_connaissance))
+    ]
+else:
+    filtered_df = pd.DataFrame()
+
+# =============================================
+# ONGLETS PRINCIPAUX
+# =============================================
+st.title("📊 Dashboard d'Analyse des DeepFakes")
+tab1, tab2 = st.tabs(["🏠 Tableau de Bord", "🔬 Exploration Avancée"])
+
+# =============================================
+# ONGLET 1 - TABLEAU DE BORD PRINCIPAL
+# =============================================
+with tab1:
+    if filtered_df.empty:
+        st.warning("Aucune donnée disponible avec les filtres sélectionnés.")
+    else:
+        st.header("🔍 Indicateurs Clés")
+        
+        # Métriques en colonnes
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            total_respondents = len(filtered_df)
+            st.metric("Nombre de Répondants", total_respondents)
+        
+        with col2:
+            aware_yes = filtered_df["Connaissance DeepFakes"].value_counts(normalize=True).get('Oui', 0) * 100
+            st.metric("% Connaissance DeepFakes", f"{aware_yes:.1f}%")
+        
+        with col3:
+            seen_yes = filtered_df["Exposition DeepFakes"].value_counts(normalize=True).get('Oui', 0) * 100
+            st.metric("% Ayant vu un DeepFake", f"{seen_yes:.1f}%")
+        
+        with col4:
+            trust_mean = filtered_df["Confiance réseaux sociaux"].apply(lambda x: 1 if x == 'Oui' else 0).mean() * 100
+            st.metric("Confiance moyenne (réseaux)", f"{trust_mean:.1f}%")
+        
+        # Visualisations principales
+        st.header("📈 Visualisations Clés")
+        
+        # 1. Niveau de connaissance
+        st.subheader("Niveau de Connaissance des DeepFakes")
+        knowledge_counts = filtered_df["Niveau connaissance"].value_counts().reset_index()
+        fig_knowledge = px.bar(
+            knowledge_counts, 
+            x="Niveau connaissance", 
+            y="count", 
+            text="count",
+            color="Niveau connaissance",
+            template="plotly_white"
+        )
+        st.plotly_chart(fig_knowledge, use_container_width=True)
+        
+        # 2. Plateformes de DeepFakes
+        st.subheader("Plateformes où les DeepFakes sont vus")
+        if "Plateformes" in filtered_df.columns:
+            platform_series = filtered_df["Plateformes"].dropna().str.split(';')
+            platform_flat = [item.strip() for sublist in platform_series for item in sublist]
+            platform_counts = pd.Series(platform_flat).value_counts().reset_index()
+            fig_platforms = px.pie(
+                platform_counts, 
+                names='index', 
+                values='count',
+                hole=0.3,
+                labels={'index': 'Plateforme', 'count': 'Occurrences'}
+            )
+            st.plotly_chart(fig_platforms, use_container_width=True)
+        
+        # 3. Impact perçu
+        st.subheader("Impact perçu des DeepFakes")
+        impact_counts = filtered_df["Impact société"].value_counts().reset_index()
+        fig_impact = px.bar(
+            impact_counts,
+            x="Impact société",
+            y="count",
+            text="count",
+            color="Impact société"
+        )
+        st.plotly_chart(fig_impact, use_container_width=True)
+        
+        # 4. Analyse croisée
+        st.subheader("Analyse Croisée")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("**Confiance par Tranche d'âge**")
+            trust_age = filtered_df.groupby("Tranche d'âge")["Confiance réseaux sociaux"].value_counts(normalize=True).unstack() * 100
+            fig_trust_age = px.bar(
+                trust_age,
+                barmode="group",
+                labels={'value': 'Pourcentage', 'variable': 'Confiance'}
+            )
+            st.plotly_chart(fig_trust_age, use_container_width=True)
+        
+        with col2:
+            st.markdown("**Genre vs Plateformes**")
+            if "Plateformes" in filtered_df.columns:
+                platform_exploded = filtered_df[["Plateformes", "Genre"]].dropna()
+                platform_exploded = platform_exploded.explode("Plateformes")
+                platform_exploded["Plateformes"] = platform_exploded["Plateformes"].str.strip()
+                cross_tab = pd.crosstab(platform_exploded["Genre"], platform_exploded["Plateformes"])
+                fig_heatmap = px.imshow(
+                    cross_tab,
+                    text_auto=True,
+                    aspect="auto",
+                    color_continuous_scale='Blues'
+                )
+                st.plotly_chart(fig_heatmap, use_container_width=True)
+
+# =============================================
+# ONGLET 2 - EXPLORATION AVANCÉE (version complète)
+# =============================================
 with tab2:
     st.header("🔍 Exploration Avancée")
     
-    # Section de configuration
-    with st.expander("⚙️ Paramètres de Visualisation", expanded=True):
-        col1, col2, col3 = st.columns(3)
+    # Section de configuration avancée
+    with st.expander("⚙️ Paramètres Avancés", expanded=True):
+        col_config1, col_config2, col_config3 = st.columns(3)
         
         # Colonnes catégorielles disponibles
-        categorical_columns = [col for col in df.select_dtypes(include='object').columns.tolist() 
-                              if df[col].nunique() <= 15]  # Limite aux colonnes avec peu de catégories
+        categorical_columns = [col for col in df.select_dtypes(include='object').columns 
+                             if df[col].nunique() <= 15 and col in df.columns]
         
-        with col1:
+        with col_config1:
             x_axis = st.selectbox(
                 "Axe X (Catégorie principale)", 
                 options=categorical_columns, 
-                index=categorical_columns.index("Avez-vous déjà entendu parler des Deep Fakes ?") 
-                      if "Avez-vous déjà entendu parler des Deep Fakes ?" in categorical_columns else 0,
-                help="Sélectionnez la variable pour l'axe horizontal"
+                index=categorical_columns.index("Connaissance DeepFakes") if "Connaissance DeepFakes" in categorical_columns else 0,
+                help="Variable pour l'axe horizontal"
             )
         
-        with col2:
+        with col_config2:
             y_axis = st.selectbox(
                 "Axe Y (Sous-catégorie)", 
                 options=categorical_columns, 
-                index=categorical_columns.index("Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?") 
-                      if "Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?" in categorical_columns else 1,
-                help="Sélectionnez la variable pour segmenter les données"
+                index=categorical_columns.index("Exposition DeepFakes") if "Exposition DeepFakes" in categorical_columns else 1,
+                help="Variable pour segmenter les données"
             )
         
-        with col3:
+        with col_config3:
             color_by = st.selectbox(
                 "Couleur (Détail)", 
                 options=categorical_columns, 
-                index=categorical_columns.index("Vous êtes ...?") 
-                      if "Vous êtes ...?" in categorical_columns else 2,
-                help="Sélectionnez la variable pour le codage couleur"
+                index=categorical_columns.index("Genre") if "Genre" in categorical_columns else 2,
+                help="Variable pour le codage couleur"
+            )
+        
+        # Options supplémentaires
+        st.markdown("---")
+        col_opt1, col_opt2, col_opt3 = st.columns(3)
+        
+        with col_opt1:
+            chart_type = st.selectbox(
+                "Type de visualisation :",
+                options=["Barres", "Sunburst", "Treemap", "Heatmap", "Réseau"],
+                index=0,
+                help="Choisissez le type de graphique"
+            )
+            
+        with col_opt2:
+            show_percentage = st.checkbox(
+                "Afficher les pourcentages", 
+                True,
+                help="Convertir les counts en pourcentages"
+            )
+            
+        with col_opt3:
+            min_count = st.slider(
+                "Filtre count minimum", 
+                min_value=1, 
+                max_value=50, 
+                value=5,
+                help="Exclure les catégories trop petites"
             )
     
-    # Choix du type de visualisation
-    chart_type = st.radio(
-        "Type de visualisation :",
-        options=["Diagramme en Barres", "Sunburst", "Treemap", "Heatmap"],
-        horizontal=True,
-        index=0,
-        key="chart_type_selector"
-    )
-    
     # Préparation des données
-    filtered_data = df[[x_axis, y_axis, color_by]].dropna()
-    cross_data = filtered_data.groupby([x_axis, y_axis, color_by]).size().reset_index(name='Count')
+    if not filtered_df.empty:
+        filtered_data = filtered_df[[x_axis, y_axis, color_by]].dropna()
+        cross_data = filtered_data.groupby([x_axis, y_axis, color_by]).size().reset_index(name='Count')
+        
+        # Application du filtre minimum
+        cross_data = cross_data[cross_data['Count'] >= min_count]
+        
+        # Conversion en pourcentages si demandé
+        if show_percentage:
+            total = cross_data['Count'].sum()
+            cross_data['Count'] = (cross_data['Count'] / total * 100).round(1)
     
-    # Fonction pour tronquer les libellés longs
-    def truncate_label(text, max_length=25):
-        return (text[:max_length] + '...') if len(str(text)) > max_length else text
+    # Section d'analyse statistique
+    with st.expander("📊 Analyse Statistique", expanded=False):
+        if not filtered_df.empty:
+            contingency_table = pd.crosstab(filtered_df[x_axis], filtered_df[y_axis])
+            
+            if contingency_table.size > 0:
+                chi2, p, dof, expected = chi2_contingency(contingency_table)
+                cramers_v = calculate_cramers_v(contingency_table)
+                
+                st.markdown(f"""
+                **Test du Chi2 d'indépendance**
+                - p-value = `{p:.4f}`  
+                - Degrés de liberté = `{dof}`  
+                - Significatif à 5%? `{"✅ Oui" if p < 0.05 else "❌ Non"}`  
+                - Coefficient Cramer's V = `{cramers_v:.3f}`
+                """)
+            else:
+                st.warning("Table de contingence trop petite pour l'analyse")
+        else:
+            st.warning("Aucune donnée disponible pour l'analyse")
     
     # Visualisation dynamique
-    with st.spinner("Génération de la visualisation..."):
-        try:
-            if chart_type == "Diagramme en Barres":
-                # Préparation des libellés
-                cross_data[x_axis] = cross_data[x_axis].apply(truncate_label)
-                cross_data[y_axis] = cross_data[y_axis].apply(truncate_label)
-                cross_data[color_by] = cross_data[color_by].apply(truncate_label)
+    if not filtered_df.empty:
+        with st.spinner("Génération de la visualisation..."):
+            try:
+                if chart_type == "Barres":
+                    # Préparation des libellés
+                    cross_data[x_axis] = cross_data[x_axis].apply(truncate_label)
+                    cross_data[y_axis] = cross_data[y_axis].apply(truncate_label)
+                    cross_data[color_by] = cross_data[color_by].apply(truncate_label)
+                    
+                    fig = px.bar(
+                        cross_data,
+                        x=x_axis,
+                        y='Count',
+                        color=color_by,
+                        barmode='group',
+                        text='Count',
+                        facet_col=y_axis,
+                        title=f"<b>{x_axis} vs {y_axis} par {color_by}</b>",
+                        labels={'Count': "Nombre" if not show_percentage else "Pourcentage"},
+                        color_discrete_sequence=px.colors.qualitative.Pastel
+                    )
+                    
+                    fig.update_layout(
+                        height=600,
+                        width=max(800, len(cross_data)*20),
+                        xaxis_tickangle=-45,
+                        yaxis_title="Nombre" if not show_percentage else "Pourcentage (%)",
+                        legend_title=color_by,
+                        margin=dict(t=100)
+                    )
+                    
+                    fig.update_traces(
+                        textposition='outside',
+                        texttemplate='%{text}' + ('%' if show_percentage else '')
+                    )
                 
-                fig = px.bar(
-                    cross_data,
-                    x=x_axis,
-                    y='Count',
-                    color=color_by,
-                    barmode='group',
-                    text='Count',
-                    facet_col=y_axis,
-                    title=f"<b>Relation entre {x_axis}, {y_axis} et {color_by}</b><br><sup>Nombre d'observations par catégorie</sup>",
-                    labels={'Count': "Nombre", x_axis: x_axis, color_by: color_by},
-                    color_discrete_sequence=px.colors.qualitative.Pastel
-                )
+                elif chart_type == "Sunburst":
+                    fig = px.sunburst(
+                        cross_data,
+                        path=[x_axis, y_axis, color_by],
+                        values='Count',
+                        title=f"<b>Hiérarchie: {x_axis} > {y_axis} > {color_by}</b>",
+                        color_discrete_sequence=px.colors.qualitative.Pastel
+                    )
+                    
+                    fig.update_traces(
+                        textinfo="label+percent parent",
+                        hovertemplate="<b>%{label}</b><br>" + 
+                                     ("Count: %{value}<br>" if not show_percentage else "Pourcentage: %{value}%<br>") + 
+                                     "%{percentParent:.1%} of parent"
+                    )
                 
-                fig.update_layout(
-                    height=600,
-                    width=max(800, len(cross_data)*20),  # Ajustement automatique de la largeur
-                    xaxis_tickangle=-45,
-                    xaxis_title=None,
-                    yaxis_title="Nombre d'observations",
-                    legend_title=color_by,
-                    hovermode="closest",
-                    margin=dict(t=100)  # Espace pour le titre multiligne
-                )
+                elif chart_type == "Treemap":
+                    fig = px.treemap(
+                        cross_data,
+                        path=[x_axis, y_axis, color_by],
+                        values='Count',
+                        title=f"<b>Répartition: {x_axis} > {y_axis} > {color_by}</b>",
+                        color_discrete_sequence=px.colors.qualitative.Pastel
+                    )
+                    
+                    fig.update_traces(
+                        textinfo="label+value+percent parent",
+                        texttemplate="<b>%{label}</b><br>" + 
+                                    ("%{value}" if not show_percentage else "%{value}%") + 
+                                    "<br>%{percentParent:.1%}"
+                    )
                 
-                fig.update_traces(
-                    textposition='outside',
-                    texttemplate='%{text}',
-                    hovertemplate=f"<b>{x_axis}</b>: %{{x}}<br><b>{y_axis}</b>: %{{customdata[0]}}<br><b>Count</b>: %{{y}}"
-                )
+                elif chart_type == "Heatmap":
+                    pivot_data = cross_data.pivot_table(
+                        index=x_axis,
+                        columns=y_axis,
+                        values='Count',
+                        aggfunc='sum',
+                        fill_value=0
+                    )
+                    
+                    fig = px.imshow(
+                        pivot_data,
+                        labels=dict(x=y_axis, y=x_axis, color="Count"),
+                        title=f"<b>Heatmap: {x_axis} vs {y_axis}</b>",
+                        aspect="auto",
+                        color_continuous_scale='Blues',
+                        text_auto=True
+                    )
+                
+                elif chart_type == "Réseau":
+                    # Création du graphique réseau
+                    G = nx.from_pandas_edgelist(
+                        cross_data, 
+                        source=x_axis, 
+                        target=y_axis, 
+                        edge_attr='Count'
+                    )
+                    
+                    pos = nx.spring_layout(G)
+                    edge_x = []
+                    edge_y = []
+                    for edge in G.edges():
+                        x0, y0 = pos[edge[0]]
+                        x1, y1 = pos[edge[1]]
+                        edge_x.extend([x0, x1, None])
+                        edge_y.extend([y0, y1, None])
+                    
+                    edge_trace = go.Scatter(
+                        x=edge_x, y=edge_y,
+                        line=dict(width=0.5, color='#888'),
+                        hoverinfo='none',
+                        mode='lines'
+                    )
+                    
+                    node_x = []
+                    node_y = []
+                    for node in G.nodes():
+                        x, y = pos[node]
+                        node_x.append(x)
+                        node_y.append(y)
+                    
+                    node_trace = go.Scatter(
+                        x=node_x, y=node_y,
+                        mode='markers+text',
+                        hoverinfo='text',
+                        marker=dict(
+                            showscale=True,
+                            colorscale='YlGnBu',
+                            size=10,
+                            colorbar=dict(
+                                thickness=15,
+                                title='Connections',
+                                xanchor='left',
+                                titleside='right'
+                            )
+                        )
+                    )
+                    
+                    fig = go.Figure(
+                        data=[edge_trace, node_trace],
+                        layout=go.Layout(
+                            title=f'<br>Réseau: {x_axis} ↔ {y_axis}',
+                            showlegend=False,
+                            hovermode='closest',
+                            margin=dict(b=20,l=5,r=5,t=40),
+                            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
+                        )
+                    )
+                
+                # Affichage du graphique
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # Options d'export
+                st.markdown("---")
+                col_export1, col_export2 = st.columns(2)
+                
+                with col_export1:
+                    if st.button("💾 Exporter le graphique en HTML"):
+                        fig.write_html("visualisation.html")
+                        st.success("Graphique exporté!")
+                
+                with col_export2:
+                    st.download_button(
+                        label="📄 Télécharger les données",
+                        data=cross_data.to_csv(index=False),
+                        file_name="donnees_croisees.csv",
+                        mime="text/csv"
+                    )
+                
+            except Exception as e:
+                st.error(f"Erreur lors de la génération du graphique : {str(e)}")
+                st.warning("Veuillez sélectionner des combinaisons de variables compatibles")
+    
+    # Section commentaires et historique
+    with st.expander("💬 Commentaires & Historique", expanded=False):
+        tab_comments, tab_history = st.tabs(["Commentaires", "Historique"])
+        
+        with tab_comments:
+            COMMENTS_FILE = "comments_advanced.csv"
             
-            elif chart_type == "Sunburst":
-                fig = px.sunburst(
-                    cross_data,
-                    path=[x_axis, y_axis, color_by],
-                    values='Count',
-                    title=f"<b>Hiérarchie: {x_axis} → {y_axis} → {color_by}</b>",
-                    width=800,
-                    height=700,
-                    color_discrete_sequence=px.colors.qualitative.Pastel
-                )
+            if os.path.exists(COMMENTS_FILE):
+                comments_df = pd.read_csv(COMMENTS_FILE)
+            else:
+                comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
+            
+            with st.form("comment_form"):
+                user_name = st.text_input("Votre nom", max_chars=20)
+                user_comment = st.text_area("Votre commentaire")
+                submitted = st.form_submit_button("Envoyer")
                 
-                fig.update_traces(
-                    textinfo="label+percent parent",
-                    hovertemplate="<b>%{label}</b><br>Count: %{value}<br>%{percentParent:.1%} of parent"
-                )
+                if submitted and user_comment:
+                    new_comment = {
+                        "user": user_name,
+                        "comment": user_comment,
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
+                    }
+                    comments_df = pd.concat([comments_df, pd.DataFrame([new_comment])], ignore_index=True)
+                    comments_df.to_csv(COMMENTS_FILE, index=False)
+                    st.success("Commentaire enregistré!")
             
-            elif chart_type == "Treemap":
-                fig = px.treemap(
-                    cross_data,
-                    path=[x_axis, y_axis, color_by],
-                    values='Count',
-                    title=f"<b>Répartition: {x_axis} → {y_axis} → {color_by}</b>",
-                    width=800,
-                    height=600,
-                    color_discrete_sequence=px.colors.qualitative.Pastel
-                )
-                
-                fig.update_traces(
-                    textinfo="label+value+percent parent",
-                    hovertemplate="<b>%{label}</b><br>Count: %{value}<br>%{percentParent:.1%} of parent"
-                )
+            st.subheader("Derniers commentaires")
+            for _, row in comments_df.tail(5).iterrows():
+                st.markdown(f"**{row['user']}** ({row['timestamp']}):  \n{row['comment']}")
+        
+        with tab_history:
+            if 'exploration_history' not in st.session_state:
+                st.session_state.exploration_history = []
             
-            elif chart_type == "Heatmap":
-                pivot_data = cross_data.pivot_table(
-                    index=x_axis,
-                    columns=y_axis,
-                    values='Count',
-                    aggfunc='sum',
-                    fill_value=0
-                )
-                
-                fig = px.imshow(
-                    pivot_data,
-                    labels=dict(x=y_axis, y=x_axis, color="Count"),
-                    title=f"<b>Heatmap: {x_axis} vs {y_axis}</b>",
-                    aspect="auto",
-                    color_continuous_scale='Blues',
-                    text_auto=True
-                )
-                
-                fig.update_layout(
-                    xaxis_title=y_axis,
-                    yaxis_title=x_axis,
-                    coloraxis_colorbar_title="Count"
-                )
+            current_exploration = {
+                "x_axis": x_axis,
+                "y_axis": y_axis,
+                "color_by": color_by,
+                "chart_type": chart_type,
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
+            }
             
-            # Affichage du graphique
-            st.plotly_chart(fig, use_container_width=True)
+            if st.button("💾 Sauvegarder cette exploration"):
+                st.session_state.exploration_history.append(current_exploration)
+                st.success("Exploration sauvegardée dans l'historique!")
             
-            # Légende explicative
-            st.caption(f"Visualisation des données croisées entre {x_axis}, {y_axis} et {color_by}")
-            
-        except Exception as e:
-            st.error(f"Erreur lors de la génération du graphique : {str(e)}")
-            st.warning("Veuillez sélectionner des combinaisons de variables compatibles")
+            st.subheader("Historique des explorations")
+            for i, exploration in enumerate(st.session_state.exploration_history[-5:]):
+                st.markdown(
+                    f"{i+1}. **{exploration['x_axis']}** × **{exploration['y_axis']}** "
+                    f"(couleur: {exploration['color_by']}) - {exploration['chart_type']} "
+                    f"({exploration['timestamp']})"
+                )
 # ================================
 # FIN ONGLET 2 - EXPLORATION AVANCEE
 # ================================
