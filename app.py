@@ -18,7 +18,7 @@ def load_data():
 
 df = load_data()
 
-st.write(df.columns.tolist())
+#st.write(df.columns.tolist())
 
 #-------------------------------------------------------------------------------------------#
 # ONGLET 1
