@@ -44,6 +44,7 @@ selected_genres = st.sidebar.multiselect("Genres :", options=genres, default=gen
 filtered_df = df[
     (df["Quel est votre tranche d'âge ?"].isin(selected_ages)) &
     (df["Vous êtes ...?"].isin(selected_genres))
+    color_continuous_scale='black',
 ]
 # FIN SIDEBAR FILTRES
 # ================================
