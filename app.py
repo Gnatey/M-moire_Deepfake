@@ -116,8 +116,7 @@ with st.sidebar:
 if not df.empty:
     filtered_df = df[
         (df["Tranche d'âge"].isin(selected_ages)) &
-        (df["Genre"].isin(selected_genres)) &
-        (df["Connaissance DeepFakes"].isin(selected_connaissance))
+        (df["Genre"].isin(selected_genres))
     ]
 else:
     filtered_df = pd.DataFrame()
