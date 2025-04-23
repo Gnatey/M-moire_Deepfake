@@ -227,47 +227,45 @@ with tab1:
 # ================================
 st.header("👥 Genre vs Plateformes (Amélioré)")
 
-# Expansion des plateformes
-platform_series = filtered_df[
-    ["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)", "Vous êtes ...?"]
-].dropna()
+if "Plateformes" in filtered_df.columns:
+    # Expansion des plateformes
+    platform_series = filtered_df[["Plateformes", "Genre"]].dropna()
 
-# Séparer les choix multiples
-platform_series["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"] = platform_series[
-    "_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"
-].str.split(';')
+    # Séparer les choix multiples
+    platform_series["Plateformes"] = platform_series["Plateformes"].str.split(';')
 
-# Explosion des lignes
-platform_exploded = platform_series.explode("_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)").dropna()
-platform_exploded["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"] = platform_exploded[
-    "_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"
-].str.strip()
+    # Explosion des lignes
+    platform_exploded = platform_series.explode("Plateformes").dropna()
+    platform_exploded["Plateformes"] = platform_exploded["Plateformes"].str.strip()
 
-# Table de contingence
-cross_tab = pd.crosstab(
-    platform_exploded["Vous êtes ...?"],
-    platform_exploded["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"]
-)
+    # Table de contingence
+    cross_tab = pd.crosstab(
+        platform_exploded["Genre"],
+        platform_exploded["Plateformes"]
+    )
 
-# Création de la heatmap améliorée
-fig_heatmap = px.imshow(
-    cross_tab,
-    text_auto=True,
-    aspect="auto",
-    color_continuous_scale='Blues',
-    title="Répartition Genre vs Plateformes",
-    height=600,  # Augmenter la hauteur
-    width=1000   # Augmenter la largeur
-)
+    # Création de la heatmap améliorée
+    fig_heatmap = px.imshow(
+        cross_tab,
+        text_auto=True,
+        aspect="auto",
+        color_continuous_scale='Blues',
+        title="Répartition Genre vs Plateformes",
+        height=600,
+        width=1000
+    )
 
-# Amélioration de la lisibilité des labels
-fig_heatmap.update_layout(
-    xaxis_tickangle=-30,  # Inclinaison pour mieux lire
-    font=dict(size=12),
-    margin=dict(t=50, b=100)
-)
+    # Amélioration de la lisibilité des labels
+    fig_heatmap.update_layout(
+        xaxis_tickangle=-30,
+        font=dict(size=12),
+        margin=dict(t=50, b=100)
+    )
 
-st.plotly_chart(fig_heatmap, use_container_width=True)
+    st.plotly_chart(fig_heatmap, use_container_width=True)
+
+else:
+    st.warning("La colonne 'Plateformes' n'est pas disponible dans les données filtrées.")
 
 # ================================
 # FIN GENRE VS PLATEFORMES - VISUEL AMELIORE
