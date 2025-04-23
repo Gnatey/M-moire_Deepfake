@@ -102,6 +102,29 @@ with tab1:
     st.plotly_chart(fig_impact, use_container_width=True)
     # FIN VISUALISATIONS
 
+    # DEBUT COURBE CONFIANCE VS AGE
+    st.header("📊 Confiance par Tranche d'âge")
+
+    trust_age = filtered_df.groupby("Quel est votre tranche d'âge ?")["Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?"].value_counts(normalize=True).rename('Pourcentage').reset_index()
+    trust_age["Pourcentage"] *= 100
+
+    fig_trust_age = px.bar(trust_age, x="Quel est votre tranche d'âge ?", y="Pourcentage", color="Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?", barmode="group", title="Confiance selon la Tranche d'âge")
+    st.plotly_chart(fig_trust_age, use_container_width=True)
+    # FIN COURBE CONFIANCE VS AGE
+
+    # DEBUT HEATMAP GENRE VS PLATEFORMES
+    st.header("🌐 Genre vs Plateformes DeepFakes")
+
+    platform_series = filtered_df[["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)", "Vous êtes ...?"]].dropna()
+    platform_series["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"] = platform_series["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"].str.split(';')
+
+    platform_exploded = platform_series.explode("_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)").dropna()
+    cross_tab = pd.crosstab(platform_exploded["Vous êtes ...?"], platform_exploded["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"])
+
+    fig_heatmap = px.imshow(cross_tab, text_auto=True, aspect="auto", title="Genre vs Plateformes DeepFakes")
+    st.plotly_chart(fig_heatmap, use_container_width=True)
+    # FIN HEATMAP GENRE VS PLATEFORMES
+
     # DEBUT MATRICE CORRELATION
     selected_cols = [
         "Avez-vous déjà entendu parler des Deep Fakes ?",
@@ -153,6 +176,14 @@ with tab1:
 
     st.plotly_chart(fig_corr, use_container_width=False)
     # FIN MATRICE CORRELATION
+
+    # DEBUT COMMENTAIRES UTILISATEUR
+    st.header("💬 Vos Remarques")
+    user_feedback = st.text_area("Laissez vos impressions sur cette analyse :", placeholder="Écrivez ici...")
+
+    if st.button("Envoyer"):
+        st.success("Merci pour votre retour !")
+    # FIN COMMENTAIRES UTILISATEUR
 # FIN ONGLET GENERAL
 # ================================
 
