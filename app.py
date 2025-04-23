@@ -221,22 +221,111 @@ with tab1:
         st.plotly_chart(fig_trust_age, use_container_width=True)
         
         # ======================
-        # VISUALISATION 5 - Genre vs Plateformes (pleine largeur)
-        # ======================
-        st.header("👥 Genre vs Plateformes")
-        if "Plateformes" in filtered_df.columns:
-            platform_exploded = filtered_df[["Plateformes", "Genre"]].dropna()
-            platform_exploded = platform_exploded.explode("Plateformes")
-            platform_exploded["Plateformes"] = platform_exploded["Plateformes"].str.strip()
-            cross_tab = pd.crosstab(platform_exploded["Genre"], platform_exploded["Plateformes"])
-            fig_heatmap = px.imshow(
-                cross_tab,
-                text_auto=True,
-                aspect="auto",
-                color_continuous_scale='Blues',
-                height=500
-            )
-            st.plotly_chart(fig_heatmap, use_container_width=True)
+# VISUALISATION 5 - Genre vs Plateformes (version améliorée)
+# ======================
+st.header("👥 Répartition par Genre et Plateformes")
+
+if "Plateformes" in filtered_df.columns:
+    # Préparation des données avec regroupement des plateformes mineures
+    platform_exploded = filtered_df[["Plateformes", "Genre"]].dropna()
+    platform_exploded = platform_exploded.explode("Plateformes")
+    platform_exploded["Plateformes"] = platform_exploded["Plateformes"].str.strip()
+    
+    # Option de regroupement
+    with st.expander("⚙️ Options d'affichage", expanded=False):
+        min_count = st.slider(
+            "Seuil de regroupement des plateformes", 
+            min_value=1, 
+            max_value=20, 
+            value=5,
+            help="Les plateformes avec moins d'occurrences seront regroupées"
+        )
+        
+        display_type = st.radio(
+            "Type de visualisation",
+            options=["Heatmap", "Barres empilées", "Camembert"],
+            horizontal=True
+        )
+    
+    # Regroupement des plateformes peu fréquentes
+    platform_counts = platform_exploded["Plateformes"].value_counts()
+    small_platforms = platform_counts[platform_counts < min_count].index
+    platform_exploded["Plateforme_groupée"] = platform_exploded["Plateformes"].replace(
+        dict.fromkeys(small_platforms, "Autres plateformes")
+    )
+    
+    if display_type == "Heatmap":
+        # Heatmap avec plateformes groupées
+        cross_tab = pd.crosstab(
+            platform_exploded["Genre"], 
+            platform_exploded["Plateforme_groupée"]
+        )
+        
+        # Réorganisation par fréquence totale
+        cross_tab = cross_tab[cross_tab.sum().sort_values(ascending=False).index]
+        
+        fig = px.imshow(
+            cross_tab,
+            text_auto=True,
+            aspect="auto",
+            color_continuous_scale='Blues',
+            labels=dict(x="Plateforme", y="Genre", color="Nombre"),
+            height=500
+        )
+        fig.update_layout(
+            xaxis_title="Plateformes",
+            yaxis_title="Genre",
+            coloraxis_colorbar_title="Nombre"
+        )
+        
+    elif display_type == "Barres empilées":
+        # Diagramme en barres empilées
+        cross_data = platform_exploded.groupby(["Genre", "Plateforme_groupée"]).size().reset_index(name='Count')
+        
+        # Tri par fréquence
+        platform_order = cross_data.groupby("Plateforme_groupée")["Count"].sum().sort_values(ascending=False).index
+        cross_data["Plateforme_groupée"] = pd.Categorical(
+            cross_data["Plateforme_groupée"], 
+            categories=platform_order,
+            ordered=True
+        )
+        
+        fig = px.bar(
+            cross_data,
+            x="Genre",
+            y="Count",
+            color="Plateforme_groupée",
+            title="Répartition par genre et plateforme",
+            labels={'Count': 'Nombre de répondants', 'Genre': 'Genre'},
+            barmode='stack',
+            height=500
+        )
+        
+    elif display_type == "Camembert":
+        # Diagramme en camembert par genre
+        genre_list = platform_exploded["Genre"].unique()
+        selected_genre = st.selectbox("Sélectionnez un genre", options=genre_list)
+        
+        genre_data = platform_exploded[platform_exploded["Genre"] == selected_genre]
+        platform_dist = genre_data["Plateforme_groupée"].value_counts().reset_index()
+        
+        fig = px.pie(
+            platform_dist,
+            names='Plateforme_groupée',
+            values='count',
+            title=f"Plateformes pour le genre {selected_genre}",
+            hole=0.3,
+            height=500
+        )
+    
+    # Affichage du graphique
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Légende explicative
+    st.caption(f"*Les plateformes avec moins de {min_count} occurrences sont regroupées dans 'Autres plateformes'")
+    
+else:
+    st.warning("La colonne 'Plateformes' n'est pas disponible dans les données")
         
         # ======================
         # VISUALISATION 6 - Matrice de corrélation (réintégrée)
