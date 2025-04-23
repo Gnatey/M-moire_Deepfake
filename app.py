@@ -53,7 +53,7 @@ filtered_df = df[
 # DEBUT TABS
 # ================================
 st.title("📊 Dashboard d'Analyse des DeepFakes")
-tab1, tab2 = st.tabs(["📊 Général", "🔍 À venir"])
+tab1, tab2 = st.tabs(["🏠 Accueil", "🔬 Analyse Profonde"])
 # ================================
 # FIN TABS
 # ================================
