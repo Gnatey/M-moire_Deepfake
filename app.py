@@ -207,48 +207,44 @@ with tab1:
         )
         st.plotly_chart(fig_impact, use_container_width=True)
         
-        # ======================
-        # VISUALISATION 4 - Confiance par âge (pleine largeur)
-        # ======================
-        st.header("📈 Confiance par Tranche d'âge")
-        trust_age = filtered_df.groupby("Tranche d'âge")["Confiance réseaux sociaux"].value_counts(normalize=True).unstack() * 100
-        fig_trust_age = px.bar(
-            trust_age,
-            barmode="group",
-            labels={'value': 'Pourcentage', 'variable': 'Confiance'},
-            height=500
-        )
-        st.plotly_chart(fig_trust_age, use_container_width=True)
-        
         # ================================
-# DEBUT GENRE VS PLATEFORMES
+# VISUALISATION 4 - Confiance par Tranche d'âge
+# ================================
+st.header("📈 Confiance par Tranche d'âge")
+trust_age = filtered_df.groupby("Tranche d'âge")["Confiance réseaux sociaux"].value_counts(normalize=True).unstack() * 100
+fig_trust_age = px.bar(
+    trust_age,
+    barmode="group",
+    labels={'value': 'Pourcentage', 'variable': 'Confiance'},
+    height=500
+)
+st.plotly_chart(fig_trust_age, use_container_width=True)
+
+# ================================
+# GENRE VS PLATEFORMES
 # ================================
 st.header("👥 Genre vs Plateformes")
 
-# Vérifie si les colonnes longues ou renommées existent
+# Vérifie les colonnes disponibles
 if "_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)" in filtered_df.columns:
     platform_series = filtered_df[
         ["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)", "Vous êtes ...?"]
     ].dropna()
 
-    # Séparation des choix multiples
     platform_series["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"] = platform_series[
         "_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"
     ].str.split(';')
 
-    # Expansion des lignes
     platform_exploded = platform_series.explode("_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)").dropna()
     platform_exploded["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"] = platform_exploded[
         "_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"
     ].str.strip()
 
-    # Table de contingence
     cross_tab = pd.crosstab(
         platform_exploded["Vous êtes ...?"],
         platform_exploded["_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)"]
     )
 
-    # Heatmap
     fig_heatmap = px.imshow(
         cross_tab,
         text_auto=True,
@@ -278,56 +274,54 @@ elif "Plateformes" in filtered_df.columns:
 
 else:
     st.warning("Les données sur les plateformes ne sont pas disponibles.")
-# ================================
-# FIN GENRE VS PLATEFORMES
-# ================================
 
-        # ======================
-        # VISUALISATION 6 - Matrice de corrélation (réintégrée)
-        # ======================
-    st.header("🔗 Matrice de Corrélation")
-    selected_cols = [
-            "Connaissance DeepFakes",
-            "Niveau connaissance",
-            "Confiance réseaux sociaux",
-            "Impact société",
-            "Tranche d'âge",
-            "Genre"
-        ]
-        # Conversion des catégories en codes numériques
-    df_corr = filtered_df[selected_cols].copy()
-    for col in df_corr.columns:
-            df_corr[col] = df_corr[col].astype('category').cat.codes
-        
-    corr_matrix = df_corr.corr()
-        
-        # Noms courts pour les labels
-    short_labels = {
-            "Connaissance DeepFakes": "Connaissance DF",
-            "Niveau connaissance": "Niveau Connaissance",
-            "Confiance réseaux sociaux": "Confiance RS",
-            "Impact société": "Impact Société",
-            "Tranche d'âge": "Âge",
-            "Genre": "Genre"
-        }
-        
-    fig_corr = px.imshow(
-            corr_matrix,
-            text_auto=True,
-            color_continuous_scale='RdBu',
-            zmin=-1,
-            zmax=1,
-            labels=dict(color="Corrélation"),
-            x=[short_labels.get(col, col) for col in corr_matrix.columns],
-            y=[short_labels.get(col, col) for col in corr_matrix.index],
-            aspect="auto"
-        )
-    fig_corr.update_layout(
-            width=800,
-            height=600,
-            xaxis_tickangle=-45
-        )
-    st.plotly_chart(fig_corr, use_container_width=True)
+# ================================
+# VISUALISATION 6 - Matrice de Corrélation
+# ================================
+st.header("🔗 Matrice de Corrélation")
+selected_cols = [
+    "Connaissance DeepFakes",
+    "Niveau connaissance",
+    "Confiance réseaux sociaux",
+    "Impact société",
+    "Tranche d'âge",
+    "Genre"
+]
+
+df_corr = filtered_df[selected_cols].copy()
+for col in df_corr.columns:
+    df_corr[col] = df_corr[col].astype('category').cat.codes
+
+corr_matrix = df_corr.corr()
+
+short_labels = {
+    "Connaissance DeepFakes": "Connaissance DF",
+    "Niveau connaissance": "Niveau Connaissance",
+    "Confiance réseaux sociaux": "Confiance RS",
+    "Impact société": "Impact Société",
+    "Tranche d'âge": "Âge",
+    "Genre": "Genre"
+}
+
+fig_corr = px.imshow(
+    corr_matrix,
+    text_auto=True,
+    color_continuous_scale='RdBu',
+    zmin=-1,
+    zmax=1,
+    labels=dict(color="Corrélation"),
+    x=[short_labels.get(col, col) for col in corr_matrix.columns],
+    y=[short_labels.get(col, col) for col in corr_matrix.index],
+    aspect="auto"
+)
+
+fig_corr.update_layout(
+    width=800,
+    height=600,
+    xaxis_tickangle=-45
+)
+
+st.plotly_chart(fig_corr, use_container_width=True)
 # ================================
 # FIN ONGLET 2 - EXPLORATION AVANCEE
 # ================================
