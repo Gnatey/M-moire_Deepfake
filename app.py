@@ -86,16 +86,15 @@ fig_impact.update_traces(textposition='outside')
 st.plotly_chart(fig_impact, use_container_width=True)
 
 # ================================
-# Sidebar - Matrice de Corrélation
+# Matrice de Corrélation
 # ================================
-with st.sidebar.expander("📊 Matrice de Corrélation"):
-    df_corr = filtered_df.select_dtypes(include=['object']).copy()
-    for col in df_corr.columns:
+df_corr = filtered_df.select_dtypes(include=['object']).copy()
+for col in df_corr.columns:
         df_corr[col] = df_corr[col].astype('category').cat.codes
 
-    corr_matrix = df_corr.corr()
-    fig_corr = px.imshow(corr_matrix, text_auto=True, color_continuous_scale='RdBu', zmin=-1, zmax=1,
+corr_matrix = df_corr.corr()
+fig_corr = px.imshow(corr_matrix, text_auto=True, color_continuous_scale='RdBu', zmin=-1, zmax=1,
                          labels=dict(color='Corrélation'), title='Matrice de Corrélation')
-    st.plotly_chart(fig_corr, use_container_width=True)
+st.plotly_chart(fig_corr, use_container_width=True)
 # FIN ONGLET 1
 #-------------------------------------------------------------------------------------------#
