@@ -5,7 +5,6 @@ import plotly.express as px
 import os
 from datetime import datetime
 from scipy.stats import chi2_contingency
-import networkx as nx
 import plotly.graph_objects as go
 from PIL import Image
 
