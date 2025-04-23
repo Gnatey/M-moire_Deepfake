@@ -178,12 +178,22 @@ with tab1:
     # FIN MATRICE CORRELATION
 
 
-    # DEBUT COMMENTAIRES UTILISATEUR INTERACTIFS
+    import os
+
+# ================================
+# DEBUT COMMENTAIRES UTILISATEUR PERSISTANTS
+# ================================
 st.header("💬 Vos Remarques")
 
-# Stockage en session pour persistance durant la session utilisateur
-if 'comments' not in st.session_state:
-    st.session_state['comments'] = []
+# Fichier où stocker les remarques
+COMMENTS_FILE = "remarques.csv"
+
+# Charger les remarques existantes
+if os.path.exists(COMMENTS_FILE):
+    comments_df = pd.read_csv(COMMENTS_FILE)
+    comments = comments_df['comment'].tolist()
+else:
+    comments = []
 
 # Formulaire pour ajouter une remarque
 user_feedback = st.text_area("Laissez vos impressions sur cette analyse :", placeholder="Écrivez ici...")
@@ -191,17 +201,24 @@ user_feedback = st.text_area("Laissez vos impressions sur cette analyse :", plac
 col_feedback1, col_feedback2 = st.columns([1, 5])
 if col_feedback1.button("Envoyer"):
     if user_feedback.strip() != "":
-        st.session_state['comments'].append(user_feedback.strip())
+        comments.append(user_feedback.strip())
+        # Sauvegarder
+        pd.DataFrame({'comment': comments}).to_csv(COMMENTS_FILE, index=False)
         st.success("Merci pour votre retour !")
+        st.experimental_rerun()
 
 # Affichage des remarques existantes
 st.write("### Vos Remarques Soumises :")
-for idx, comment in enumerate(st.session_state['comments']):
+for idx, comment in enumerate(comments):
     st.info(f"💬 {comment}")
     if st.button(f"Supprimer", key=f"delete_{idx}"):
-        st.session_state['comments'].pop(idx)
+        comments.pop(idx)
+        pd.DataFrame({'comment': comments}).to_csv(COMMENTS_FILE, index=False)
         st.experimental_rerun()
-# FIN COMMENTAIRES UTILISATEUR INTERACTIFS
+# ================================
+# FIN COMMENTAIRES UTILISATEUR PERSISTANTS
+# ================================
+
 
 
 # FIN ONGLET GENERAL
