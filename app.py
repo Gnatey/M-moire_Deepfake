@@ -181,30 +181,30 @@ with tab1:
     import os
 
 # ================================
-# DEBUT COMMENTAIRES UTILISATEUR PERSISTANTS + ADMIN
+# DEBUT COMMENTAIRES ONGLET GENERAL
 # ================================
-st.header("💬 Vos Remarques")
+st.header("💬 Vos Remarques - Général")
 
-# Fichier où stocker les remarques
-COMMENTS_FILE = "remarques.csv"
+# Fichier spécifique pour cet onglet
+COMMENTS_FILE_GENERAL = "remarques_general.csv"
 
 # Charger les remarques existantes
-if os.path.exists(COMMENTS_FILE):
-    comments_df = pd.read_csv(COMMENTS_FILE)
+if os.path.exists(COMMENTS_FILE_GENERAL):
+    comments_df = pd.read_csv(COMMENTS_FILE_GENERAL)
 else:
     comments_df = pd.DataFrame(columns=["user", "comment"])
 
-# Saisir l'utilisateur (ou dev)
-user_name = st.text_input("Votre nom ou pseudo :", max_chars=20)
+# Saisir l'utilisateur
+user_name = st.text_input("Votre nom ou pseudo :", key="user_name_general", max_chars=20)
 
 # Formulaire pour ajouter une remarque
-user_feedback = st.text_area("Laissez vos impressions sur cette analyse :", placeholder="Écrivez ici...")
+user_feedback = st.text_area("Laissez vos impressions sur cette analyse :", placeholder="Écrivez ici...", key="feedback_general")
 
-if st.button("Envoyer"):
+if st.button("Envoyer", key="submit_general"):
     if user_feedback.strip() != "" and user_name.strip() != "":
         new_comment = pd.DataFrame([{"user": user_name.strip(), "comment": user_feedback.strip()}])
         comments_df = pd.concat([comments_df, new_comment], ignore_index=True)
-        comments_df.to_csv(COMMENTS_FILE, index=False)
+        comments_df.to_csv(COMMENTS_FILE_GENERAL, index=False)
         st.success("Merci pour votre retour !")
         st.experimental_rerun()
 
@@ -213,14 +213,13 @@ st.write("### Vos Remarques Soumises :")
 for idx, row in comments_df.iterrows():
     st.info(f"💬 **{row['user']}** : {row['comment']}")
     if user_name == row['user'] or user_name.lower() == "admin":
-        if st.button(f"Supprimer", key=f"delete_{idx}"):
+        if st.button(f"Supprimer", key=f"delete_general_{idx}"):
             comments_df = comments_df.drop(index=idx).reset_index(drop=True)
-            comments_df.to_csv(COMMENTS_FILE, index=False)
+            comments_df.to_csv(COMMENTS_FILE_GENERAL, index=False)
             st.experimental_rerun()
 # ================================
-# FIN COMMENTAIRES UTILISATEUR PERSISTANTS + ADMIN
+# FIN COMMENTAIRES ONGLET GENERAL
 # ================================
-
 
 # FIN ONGLET GENERAL
 # ================================
@@ -232,19 +231,50 @@ with tab2:
     st.write("🚧 Fonctionnalités supplémentaires en développement...")
 
 # ================================
-# DEBUT MESSAGE DEVELOPPEUSE
+# DEBUT ONGLET 2 - MESSAGE DEVELOPPEUSE
 # ================================
-st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSE")
+with tab2:
+    st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSE")
 
-col_img, col_msg = st.columns([1, 4])
+    col_img, col_msg = st.columns([1, 4])
 
-with col_img:
-    st.image("images.jpeg", width=100)  # Ton image panda
+    with col_img:
+        st.image("images.jpeg", width=100)
 
-with col_msg:
-    st.info("Cet onglet est en cours de rédaction. Vous verrez des visualisations sous peu.")
+    with col_msg:
+        st.info("Cet onglet est en cours de rédaction. Vous verrez des visualisations sous peu.")
+
+    # Commentaires spécifiques à l'onglet 2 (si besoin)
+    st.header("💬 Vos Remarques - Export")
+
+    COMMENTS_FILE_EXPORT = "remarques_export.csv"
+
+    if os.path.exists(COMMENTS_FILE_EXPORT):
+        comments_export_df = pd.read_csv(COMMENTS_FILE_EXPORT)
+    else:
+        comments_export_df = pd.DataFrame(columns=["user", "comment"])
+
+    user_name_export = st.text_input("Votre nom ou pseudo :", key="user_name_export", max_chars=20)
+    user_feedback_export = st.text_area("Laissez vos impressions :", placeholder="Écrivez ici...", key="feedback_export")
+
+    if st.button("Envoyer", key="submit_export"):
+        if user_feedback_export.strip() != "" and user_name_export.strip() != "":
+            new_comment_export = pd.DataFrame([{"user": user_name_export.strip(), "comment": user_feedback_export.strip()}])
+            comments_export_df = pd.concat([comments_export_df, new_comment_export], ignore_index=True)
+            comments_export_df.to_csv(COMMENTS_FILE_EXPORT, index=False)
+            st.success("Merci pour votre retour !")
+            st.experimental_rerun()
+
+    st.write("### Vos Remarques Soumises :")
+    for idx, row in comments_export_df.iterrows():
+        st.info(f"💬 **{row['user']}** : {row['comment']}")
+        if user_name_export == row['user'] or user_name_export.lower() == "admin":
+            if st.button(f"Supprimer", key=f"delete_export_{idx}"):
+                comments_export_df = comments_export_df.drop(index=idx).reset_index(drop=True)
+                comments_export_df.to_csv(COMMENTS_FILE_EXPORT, index=False)
+                st.experimental_rerun()
 # ================================
-# FIN MESSAGE DEVELOPPEUSE
+# FIN ONGLET 2 - MESSAGE DEVELOPPEUSE
 # ================================
 
 # FIN ONGLET 2
