@@ -259,15 +259,15 @@ with tab1:
 # 🔗 Matrice de Corrélation (uniquement dans l'onglet Tableau de Bord)
 st.header("🔗 Matrice de Corrélation")
 
-# 1. Sélection des colonnes pertinentes (catégorielles)
+    # 1. Sélection des colonnes pertinentes (catégorielles)
 selected_cols = [
-    "Connaissance DeepFakes",
-    "Niveau connaissance",
-    "Confiance réseaux sociaux",
-    "Impact société",
-    "Tranche d'âge",
-    "Genre"
-]
+        "Connaissance DeepFakes",
+        "Niveau connaissance",
+        "Confiance réseaux sociaux",
+        "Impact société",
+        "Tranche d'âge",
+        "Genre"
+    ]
 
 # 2. Vérifie que toutes les colonnes existent
 if all(col in filtered_df.columns for col in selected_cols):
