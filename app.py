@@ -297,8 +297,8 @@ if all(col in filtered_df.columns for col in selected_cols):
         zmin=-1,
         zmax=1,
         labels=dict(color="Corrélation"),
-        x=[short_labels.get(col, col) for col in corr_matrix.columns],
-        y=[short_labels.get(col, col) for col in corr_matrix.index],
+        x=[short_labels.get(col1, col1) for col1 in corr_matrix.columns],
+        y=[short_labels.get(col1, col1) for col1 in corr_matrix.index],
         aspect="auto",
         title="Matrice de Corrélation (Variables Pertinentes)"
     )
