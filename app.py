@@ -569,9 +569,11 @@ with tab2:
                 col_export1, col_export2 = st.columns(2)
                 
                 with col_export1:
-                    if st.button("💾 Exporter le graphique en HTML"):
-                        fig.write_html("visualisation.html")
-                        st.success("Graphique exporté!")
+                    if st.download_button("💾 Exporter le graphique en HTML"):
+                        label="💾 Télécharger le graphique en PDF",
+                        data=pdf_buffer,
+                        file_name="graphique_plotly.pdf",
+                        mime="application/pdf"
                 
                 with col_export2:
                     st.download_button(
