@@ -249,19 +249,19 @@ with tab1:
         else:
             st.warning("La colonne 'Plateformes' n'est pas disponible")
 
-# ================================
-# 🔗 Matrice de Corrélation
-# ================================
-st.header("🔗 Matrice de Corrélation")
+    # ================================
+    # 🔗 Matrice de Corrélation
+    # ================================
+            st.header("🔗 Matrice de Corrélation")
 
-# 1. Sélection des colonnes pertinentes (catégorielles)
-selected_cols = [
-    "Connaissance DeepFakes",
-    "Niveau connaissance",
-    "Confiance réseaux sociaux",
-    "Impact société",
-    "Tranche d'âge",
-    "Genre"
+    # 1. Sélection des colonnes pertinentes (catégorielles)
+            selected_cols = [
+            "Connaissance DeepFakes",
+            "Niveau connaissance",
+            "Confiance réseaux sociaux",
+            "Impact société",
+            "Tranche d'âge",
+            "Genre"
 ]
 
 # 2. Vérifie que toutes les colonnes existent
