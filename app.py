@@ -606,11 +606,23 @@ with st.expander("💬 Commentaires & Historique", expanded=False):
         else:
             comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
         
-        # Authentification admin (cachée dans un expander)
-        admin_expander = st.expander("Accès administrateur", expanded=False)
-        with admin_expander:
+        # Authentification admin
+        if 'is_admin' not in st.session_state:
+            st.session_state.is_admin = False
+        
+        # Créer un formulaire pour l'authentification admin
+        with st.expander("🔒 Accès administrateur", expanded=False):
             admin_password = st.text_input("Mot de passe admin", type="password")
-            is_admin = admin_password == st.secrets.get("ADMIN_PASSWORD", "admin123")  # À changer en production
+            if st.button("Se connecter"):
+                if admin_password == st.secrets.get("ADMIN_PASSWORD", "admin123"):
+                    st.session_state.is_admin = True
+                    st.success("Connecté en tant qu'administrateur")
+                else:
+                    st.error("Mot de passe incorrect")
+            
+            if st.session_state.is_admin and st.button("Se déconnecter"):
+                st.session_state.is_admin = False
+                st.success("Déconnexion réussie")
         
         with st.form("comment_form"):
             user_name = st.text_input("Votre nom", max_chars=20)
@@ -636,17 +648,15 @@ with st.expander("💬 Commentaires & Historique", expanded=False):
                 st.markdown(f"**{row['user']}** ({row['timestamp']}):  \n{row['comment']}")
             
             with col2:
-                # Afficher le bouton de suppression si:
-                # 1. On est admin (authentifié) OU
-                # 2. L'utilisateur actuel est l'auteur du commentaire
-                if is_admin or (user_name and user_name == row['user']):
+                # Afficher le bouton de suppression si admin ou auteur du commentaire
+                if st.session_state.is_admin or (user_name and user_name == row['user']):
                     if st.button("❌", key=f"delete_{idx}"):
                         comments_df = comments_df.drop(index=idx)
                         comments_df.to_csv(COMMENTS_FILE, index=False)
                         st.experimental_rerun()
         
         # Bouton pour vider tous les commentaires (admin seulement)
-        if is_admin:
+        if st.session_state.is_admin:
             if st.button("🗑️ Vider tous les commentaires"):
                 comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
                 comments_df.to_csv(COMMENTS_FILE, index=False)
