@@ -594,18 +594,6 @@ with tab2:
                 st.error(f"Erreur lors de la génération du graphique : {str(e)}")
                 st.warning("Veuillez sélectionner des combinaisons de variables compatibles")
     
-# Section commentaires et historique
-with st.expander("💬 Commentaires & Historique", expanded=False):
-    tab_comments, tab_history = st.tabs(["Commentaires", "Historique"])
-    
-    with tab_comments:
-        COMMENTS_FILE = "comments_advanced.csv"
-        
-        if os.path.exists(COMMENTS_FILE):
-            comments_df = pd.read_csv(COMMENTS_FILE)
-        else:
-            comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
-        
 # Authentification admin (en dehors des expanders)
 if 'is_admin' not in st.session_state:
     st.session_state.is_admin = False
@@ -624,6 +612,17 @@ if st.session_state.is_admin:
         st.session_state.is_admin = False
         st.sidebar.success("Déconnexion réussie")
 
+# Section commentaires et historique
+with st.expander("💬 Commentaires & Historique", expanded=False):
+    tab_comments, tab_history = st.tabs(["Commentaires", "Historique"])
+
+    with tab_comments:
+        COMMENTS_FILE = "comments_advanced.csv"
+        
+        if os.path.exists(COMMENTS_FILE):
+            comments_df = pd.read_csv(COMMENTS_FILE)
+        else:
+            comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
         
         with st.form("comment_form"):
             user_name = st.text_input("Votre nom", max_chars=20)
@@ -639,6 +638,7 @@ if st.session_state.is_admin:
                 comments_df = pd.concat([comments_df, pd.DataFrame([new_comment])], ignore_index=True)
                 comments_df.to_csv(COMMENTS_FILE, index=False)
                 st.success("Commentaire enregistré!")
+                st.experimental_rerun()
         
         st.subheader("Derniers commentaires")
         
@@ -662,7 +662,7 @@ if st.session_state.is_admin:
                 comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
                 comments_df.to_csv(COMMENTS_FILE, index=False)
                 st.experimental_rerun()
-    
+
     with tab_history:
         if 'exploration_history' not in st.session_state:
             st.session_state.exploration_history = []
@@ -686,6 +686,7 @@ if st.session_state.is_admin:
                 f"(couleur: {exploration['color_by']}) - {exploration['chart_type']} "
                 f"({exploration['timestamp']})"
             )
+
             
 with tab3,tab3,tab4:
     # =============================================
