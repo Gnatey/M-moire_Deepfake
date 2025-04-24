@@ -594,60 +594,84 @@ with tab2:
                 st.error(f"Erreur lors de la génération du graphique : {str(e)}")
                 st.warning("Veuillez sélectionner des combinaisons de variables compatibles")
     
-    # Section commentaires et historique
+# Section commentaires et historique
 with st.expander("💬 Commentaires & Historique", expanded=False):
-        tab_comments, tab_history = st.tabs(["Commentaires", "Historique"])
+    tab_comments, tab_history = st.tabs(["Commentaires", "Historique"])
+    
+    with tab_comments:
+        COMMENTS_FILE = "comments_advanced.csv"
         
-        with tab_comments:
-            COMMENTS_FILE = "comments_advanced.csv"
+        if os.path.exists(COMMENTS_FILE):
+            comments_df = pd.read_csv(COMMENTS_FILE)
+        else:
+            comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
+        
+        with st.form("comment_form"):
+            user_name = st.text_input("Votre nom", max_chars=20)
+            user_comment = st.text_area("Votre commentaire")
+            submitted = st.form_submit_button("Envoyer")
             
-            if os.path.exists(COMMENTS_FILE):
-                comments_df = pd.read_csv(COMMENTS_FILE)
-            else:
-                comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
+            if submitted and user_comment:
+                new_comment = {
+                    "user": user_name,
+                    "comment": user_comment,
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
+                }
+                comments_df = pd.concat([comments_df, pd.DataFrame([new_comment])], ignore_index=True)
+                comments_df.to_csv(COMMENTS_FILE, index=False)
+                st.success("Commentaire enregistré!")
+        
+        st.subheader("Derniers commentaires")
+        
+        # Ajout d'une checkbox pour l'administrateur
+        admin_mode = st.checkbox("Mode administrateur")
+        
+        for idx, row in comments_df.tail(5).iterrows():
+            col1, col2 = st.columns([0.9, 0.1])
             
-            with st.form("comment_form"):
-                user_name = st.text_input("Votre nom", max_chars=20)
-                user_comment = st.text_area("Votre commentaire")
-                submitted = st.form_submit_button("Envoyer")
-                
-                if submitted and user_comment:
-                    new_comment = {
-                        "user": user_name,
-                        "comment": user_comment,
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
-                    }
-                    comments_df = pd.concat([comments_df, pd.DataFrame([new_comment])], ignore_index=True)
-                    comments_df.to_csv(COMMENTS_FILE, index=False)
-                    st.success("Commentaire enregistré!")
-            
-            st.subheader("Derniers commentaires")
-            for _, row in comments_df.tail(5).iterrows():
+            with col1:
                 st.markdown(f"**{row['user']}** ({row['timestamp']}):  \n{row['comment']}")
+            
+            with col2:
+                # Afficher le bouton de suppression si:
+                # 1. On est en mode admin OU
+                # 2. L'utilisateur actuel est l'auteur du commentaire
+                if admin_mode or (user_name and user_name == row['user']):
+                    if st.button("❌", key=f"delete_{idx}"):
+                        comments_df = comments_df.drop(index=idx)
+                        comments_df.to_csv(COMMENTS_FILE, index=False)
+                        st.experimental_rerun()
         
-        with tab_history:
-            if 'exploration_history' not in st.session_state:
-                st.session_state.exploration_history = []
-            
-            current_exploration = {
-                "x_axis": x_axis,
-                "y_axis": y_axis,
-                "color_by": color_by,
-                "chart_type": chart_type,
-                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
-            }
-            
-            if st.button("💾 Sauvegarder cette exploration"):
-                st.session_state.exploration_history.append(current_exploration)
-                st.success("Exploration sauvegardée dans l'historique!")
-            
-            st.subheader("Historique des explorations")
-            for i, exploration in enumerate(st.session_state.exploration_history[-5:]):
-                st.markdown(
-                    f"{i+1}. **{exploration['x_axis']}** × **{exploration['y_axis']}** "
-                    f"(couleur: {exploration['color_by']}) - {exploration['chart_type']} "
-                    f"({exploration['timestamp']})"
-                )
+        # Bouton pour vider tous les commentaires (admin seulement)
+        if admin_mode:
+            if st.button("🗑️ Vider tous les commentaires"):
+                comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
+                comments_df.to_csv(COMMENTS_FILE, index=False)
+                st.experimental_rerun()
+    
+    with tab_history:
+        if 'exploration_history' not in st.session_state:
+            st.session_state.exploration_history = []
+        
+        current_exploration = {
+            "x_axis": x_axis,
+            "y_axis": y_axis,
+            "color_by": color_by,
+            "chart_type": chart_type,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
+        }
+        
+        if st.button("💾 Sauvegarder cette exploration"):
+            st.session_state.exploration_history.append(current_exploration)
+            st.success("Exploration sauvegardée dans l'historique!")
+        
+        st.subheader("Historique des explorations")
+        for i, exploration in enumerate(st.session_state.exploration_history[-5:]):
+            st.markdown(
+                f"{i+1}. **{exploration['x_axis']}** × **{exploration['y_axis']}** "
+                f"(couleur: {exploration['color_by']}) - {exploration['chart_type']} "
+                f"({exploration['timestamp']})"
+            )
 with tab3,tab3,tab4:
     # =============================================
     # MESSAGE DEVELOPPEUSE (dans l'onglet 2)
