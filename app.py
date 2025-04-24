@@ -606,23 +606,24 @@ with st.expander("💬 Commentaires & Historique", expanded=False):
         else:
             comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
         
-        # Authentification admin
-        if 'is_admin' not in st.session_state:
-            st.session_state.is_admin = False
-        
-        # Créer un formulaire pour l'authentification admin
-        with st.expander("🔒 Accès administrateur", expanded=False):
-            admin_password = st.text_input("Mot de passe admin", type="password")
-            if st.button("Se connecter"):
-                if admin_password == st.secrets.get("ADMIN_PASSWORD", "admin123"):
-                    st.session_state.is_admin = True
-                    st.success("Connecté en tant qu'administrateur")
-                else:
-                    st.error("Mot de passe incorrect")
-            
-            if st.session_state.is_admin and st.button("Se déconnecter"):
-                st.session_state.is_admin = False
-                st.success("Déconnexion réussie")
+# Authentification admin (en dehors des expanders)
+if 'is_admin' not in st.session_state:
+    st.session_state.is_admin = False
+
+st.sidebar.markdown("## 🔒 Accès Administrateur")
+admin_password = st.sidebar.text_input("Mot de passe admin", type="password")
+if st.sidebar.button("Se connecter"):
+    if admin_password == st.secrets.get("ADMIN_PASSWORD", "admin123"):
+        st.session_state.is_admin = True
+        st.sidebar.success("Connecté en tant qu'administrateur")
+    else:
+        st.sidebar.error("Mot de passe incorrect")
+
+if st.session_state.is_admin:
+    if st.sidebar.button("Se déconnecter"):
+        st.session_state.is_admin = False
+        st.sidebar.success("Déconnexion réussie")
+
         
         with st.form("comment_form"):
             user_name = st.text_input("Votre nom", max_chars=20)
@@ -686,31 +687,16 @@ with st.expander("💬 Commentaires & Historique", expanded=False):
                 f"({exploration['timestamp']})"
             )
             
-
-with tab3:
+with tab3,tab3,tab4:
+    # =============================================
+    # MESSAGE DEVELOPPEUSE (dans l'onglet 2)
+    # =============================================
     st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSE")
     col_img, col_msg = st.columns([1, 4])
     with col_img:
         st.image("images.jpeg", width=100)
     with col_msg:
         st.info("Cet onglet est en cours de rédaction. Vous verrez des visualisations sous peu.")
-
-with tab4:
-    st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSE")
-    col_img, col_msg = st.columns([1, 4])
-    with col_img:
-        st.image("images.jpeg", width=100)
-    with col_msg:
-        st.info("Cet onglet est en cours de rédaction. Vous verrez des visualisations sous peu.")
-
-with tab5:
-    st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSE")
-    col_img, col_msg = st.columns([1, 4])
-    with col_img:
-        st.image("images.jpeg", width=100)
-    with col_msg:
-        st.info("Cet onglet est en cours de rédaction. Vous verrez des visualisations sous peu.")
-
     # =============================================
     # FIN MESSAGE DEVELOPPEUSE
     # =============================================
