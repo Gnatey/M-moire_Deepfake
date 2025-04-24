@@ -595,7 +595,7 @@ with tab2:
                 st.warning("Veuillez sélectionner des combinaisons de variables compatibles")
     
     # Section commentaires et historique
-    with st.expander("💬 Commentaires & Historique", expanded=False):
+with st.expander("💬 Commentaires & Historique", expanded=False):
         tab_comments, tab_history = st.tabs(["Commentaires", "Historique"])
         
         with tab_comments:
