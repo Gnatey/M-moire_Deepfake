@@ -257,8 +257,7 @@ with tab1:
 # 🔗 Matrice de Corrélation
 # ================================
 # 🔗 Matrice de Corrélation (uniquement dans l'onglet Tableau de Bord)
-with tab1:
-    st.header("🔗 Matrice de Corrélation")
+st.header("🔗 Matrice de Corrélation")
 
     # 1. Sélection des colonnes pertinentes (catégorielles)
 selected_cols = [
