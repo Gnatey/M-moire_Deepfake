@@ -130,7 +130,7 @@ else:
 # ONGLETS PRINCIPAUX
 # =============================================
 st.title("📊 Dashboard Analyse des DeepFakes")
-tab1, tab2,tab3,tab4,tab5 = st.tabs(["🏠 Tableau de Bord", "🔬 Exploration Avancée", "En cours", "En cours", "En cours")
+tab1, tab2,tab3,tab4,tab5 = st.tabs(["🏠 Tableau de Bord", "🔬 Exploration Avancée", "En cours", "En cours", "En cours"])
 
 # =============================================
 # ONGLET 1 - TABLEAU DE BORD PRINCIPAL
