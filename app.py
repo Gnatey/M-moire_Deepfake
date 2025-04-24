@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import streamlit as st
 import io
 
+
 # =============================================
 # INITIALISATION ET CONFIGURATION DE BASE
 # =============================================
@@ -566,17 +567,22 @@ with tab2:
                 
                 # Affichage du graphique
                 st.plotly_chart(fig, use_container_width=True)
+                pdf_buffer = io.BytesIO()
+                fig.write_image(pdf_buffer, format="pdf")
+                pdf_buffer.seek(0)
                 
                 # Options d'export
                 st.markdown("---")
                 col_export1, col_export2 = st.columns(2)
                 
                 with col_export1:
-                    if st.download_button("💾 Exporter le graphique en HTML"):
+                    st.download_button(
                         label="💾 Télécharger le graphique en PDF",
                         data=pdf_buffer,
                         file_name="graphique_plotly.pdf",
                         mime="application/pdf"
+                    )
+
                 
                 with col_export2:
                     st.download_button(
