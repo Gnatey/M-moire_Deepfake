@@ -612,7 +612,11 @@ if st.session_state.is_admin:
         st.session_state.is_admin = False
         st.sidebar.success("Déconnexion réussie")
 
-# Section commentaires et historique
+# [Tout le code précédent jusqu'à la section commentaires reste identique...]
+
+# =============================================
+# SECTION COMMENTAIRES ET HISTORIQUE (CORRIGÉE)
+# =============================================
 with st.expander("💬 Commentaires & Historique", expanded=False):
     tab_comments, tab_history = st.tabs(["Commentaires", "Historique"])
     
@@ -624,24 +628,7 @@ with st.expander("💬 Commentaires & Historique", expanded=False):
         else:
             comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
         
-        # Authentification admin
-        if 'is_admin' not in st.session_state:
-            st.session_state.is_admin = False
-        
-        # Créer un formulaire pour l'authentification admin
-        with st.expander("🔒 Accès administrateur", expanded=False):
-            admin_password = st.text_input("Mot de passe admin", type="password")
-            if st.button("Se connecter"):
-                if admin_password == st.secrets.get("ADMIN_PASSWORD", "admin123"):
-                    st.session_state.is_admin = True
-                    st.success("Connecté en tant qu'administrateur")
-                else:
-                    st.error("Mot de passe incorrect")
-            
-            if st.session_state.is_admin and st.button("Se déconnecter"):
-                st.session_state.is_admin = False
-                st.success("Déconnexion réussie")
-        
+        # Formulaire de commentaire
         with st.form("comment_form"):
             user_name = st.text_input("Votre nom", max_chars=20)
             user_comment = st.text_area("Votre commentaire")
@@ -657,6 +644,7 @@ with st.expander("💬 Commentaires & Historique", expanded=False):
                 comments_df.to_csv(COMMENTS_FILE, index=False)
                 st.success("Commentaire enregistré!")
         
+        # Affichage des commentaires
         st.subheader("Derniers commentaires")
         
         for idx, row in comments_df.tail(5).iterrows():
@@ -666,15 +654,15 @@ with st.expander("💬 Commentaires & Historique", expanded=False):
                 st.markdown(f"**{row['user']}** ({row['timestamp']}):  \n{row['comment']}")
             
             with col2:
-                # Afficher le bouton de suppression si admin ou auteur du commentaire
-                if st.session_state.is_admin or (user_name and user_name == row['user']):
+                # Bouton suppression visible seulement pour admin ou auteur
+                if st.session_state.get('is_admin', False) or (user_name and user_name == row['user']):
                     if st.button("❌", key=f"delete_{idx}"):
                         comments_df = comments_df.drop(index=idx)
                         comments_df.to_csv(COMMENTS_FILE, index=False)
                         st.experimental_rerun()
         
-        # Bouton pour vider tous les commentaires (admin seulement)
-        if st.session_state.is_admin:
+        # Bouton vider tous les commentaires (admin seulement)
+        if st.session_state.get('is_admin', False):
             if st.button("🗑️ Vider tous les commentaires"):
                 comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
                 comments_df.to_csv(COMMENTS_FILE, index=False)
@@ -703,17 +691,20 @@ with st.expander("💬 Commentaires & Historique", expanded=False):
                 f"(couleur: {exploration['color_by']}) - {exploration['chart_type']} "
                 f"({exploration['timestamp']})"
             )
-            
-with tab3,tab3,tab4:
-    # =============================================
-    # MESSAGE DEVELOPPEUSE (dans l'onglet 2)
-    # =============================================
+
+# =============================================
+# ONGLETS EN CONSTRUCTION (CORRIGÉ)
+# =============================================
+with tab3:
     st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSE")
     col_img, col_msg = st.columns([1, 4])
     with col_img:
         st.image("images.jpeg", width=100)
     with col_msg:
         st.info("Cet onglet est en cours de rédaction. Vous verrez des visualisations sous peu.")
-    # =============================================
-    # FIN MESSAGE DEVELOPPEUSE
-    # =============================================
+
+with tab4:
+    st.info("Onglet en cours de développement")
+
+with tab5:
+    st.info("Onglet en cours de développement")
