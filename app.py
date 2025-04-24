@@ -11,7 +11,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import streamlit as st
 import io
-$ pip install -U kaleido
+pip install -U kaleido
 
 # =============================================
 # INITIALISATION ET CONFIGURATION DE BASE
