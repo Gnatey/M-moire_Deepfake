@@ -606,6 +606,12 @@ with st.expander("💬 Commentaires & Historique", expanded=False):
         else:
             comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
         
+        # Authentification admin (cachée dans un expander)
+        admin_expander = st.expander("Accès administrateur", expanded=False)
+        with admin_expander:
+            admin_password = st.text_input("Mot de passe admin", type="password")
+            is_admin = admin_password == st.secrets.get("ADMIN_PASSWORD", "admin123")  # À changer en production
+        
         with st.form("comment_form"):
             user_name = st.text_input("Votre nom", max_chars=20)
             user_comment = st.text_area("Votre commentaire")
@@ -623,9 +629,6 @@ with st.expander("💬 Commentaires & Historique", expanded=False):
         
         st.subheader("Derniers commentaires")
         
-        # Ajout d'une checkbox pour l'administrateur
-        admin_mode = st.checkbox("Mode administrateur")
-        
         for idx, row in comments_df.tail(5).iterrows():
             col1, col2 = st.columns([0.9, 0.1])
             
@@ -634,16 +637,16 @@ with st.expander("💬 Commentaires & Historique", expanded=False):
             
             with col2:
                 # Afficher le bouton de suppression si:
-                # 1. On est en mode admin OU
+                # 1. On est admin (authentifié) OU
                 # 2. L'utilisateur actuel est l'auteur du commentaire
-                if admin_mode or (user_name and user_name == row['user']):
+                if is_admin or (user_name and user_name == row['user']):
                     if st.button("❌", key=f"delete_{idx}"):
                         comments_df = comments_df.drop(index=idx)
                         comments_df.to_csv(COMMENTS_FILE, index=False)
                         st.experimental_rerun()
         
         # Bouton pour vider tous les commentaires (admin seulement)
-        if admin_mode:
+        if is_admin:
             if st.button("🗑️ Vider tous les commentaires"):
                 comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
                 comments_df.to_csv(COMMENTS_FILE, index=False)
@@ -672,6 +675,7 @@ with st.expander("💬 Commentaires & Historique", expanded=False):
                 f"(couleur: {exploration['color_by']}) - {exploration['chart_type']} "
                 f"({exploration['timestamp']})"
             )
+
 with tab3,tab3,tab4:
     # =============================================
     # MESSAGE DEVELOPPEUSE (dans l'onglet 2)
