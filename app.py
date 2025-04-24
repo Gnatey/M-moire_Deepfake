@@ -675,7 +675,7 @@ with st.expander("💬 Commentaires & Historique", expanded=False):
                 f"(couleur: {exploration['color_by']}) - {exploration['chart_type']} "
                 f"({exploration['timestamp']})"
             )
-
+            
 with tab3,tab3,tab4:
     # =============================================
     # MESSAGE DEVELOPPEUSE (dans l'onglet 2)
