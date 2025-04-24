@@ -7,6 +7,7 @@ from datetime import datetime
 from scipy.stats import chi2_contingency
 import plotly.graph_objects as go
 from PIL import Image
+import networkx as nx
 
 # =============================================
 # INITIALISATION ET CONFIGURATION DE BASE
