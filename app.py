@@ -8,6 +8,9 @@ from scipy.stats import chi2_contingency
 import plotly.graph_objects as go
 from PIL import Image
 import networkx as nx
+import matplotlib.pyplot as plt
+import streamlit as st
+import io
 
 # =============================================
 # INITIALISATION ET CONFIGURATION DE BASE
