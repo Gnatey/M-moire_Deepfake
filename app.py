@@ -256,10 +256,7 @@ with tab1:
 # ================================
 # 🔗 Matrice de Corrélation
 # ================================
-    else:
-    st.warning("La colonne 'Plateformes' n'est pas disponible")
-
-    # 🔗 Matrice de Corrélation (uniquement dans l'onglet Tableau de Bord)
+# 🔗 Matrice de Corrélation (uniquement dans l'onglet Tableau de Bord)
     st.header("🔗 Matrice de Corrélation")
 
     # 1. Sélection des colonnes pertinentes (catégorielles)
