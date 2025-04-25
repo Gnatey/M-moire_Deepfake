@@ -617,6 +617,20 @@ if st.session_state.is_admin:
 # =============================================
 # SECTION COMMENTAIRES ET HISTORIQUE (CORRIGÉE)
 # =============================================
+import streamlit as st
+import pandas as pd
+import os
+from datetime import datetime
+
+# Vérification mot de passe pour accès admin
+password_input = st.text_input("🔑 Entrez le mot de passe admin", type="password")
+
+if password_input == st.secrets["APP_PASSWORD"]:
+    st.success("Accès admin autorisé ✅")
+    st.session_state['is_admin'] = True
+else:
+    st.session_state['is_admin'] = False
+
 # Section commentaires et historique
 with st.expander("💬 Commentaires & Historique", expanded=False):
     tab_comments, tab_history = st.tabs(["Commentaires", "Historique"])
@@ -655,13 +669,13 @@ with st.expander("💬 Commentaires & Historique", expanded=False):
                 st.markdown(f"**{row['user']}** ({row['timestamp']}):  \n{row['comment']}")
             
             with col2:
-                if st.session_state.get('is_admin', False) or (user_name and user_name == row['user']):
+                if st.session_state['is_admin'] or (user_name and user_name == row['user']):
                     if st.button("❌", key=f"delete_{idx}"):
                         comments_df = comments_df.drop(index=idx)
                         comments_df.to_csv(COMMENTS_FILE, index=False)
                         st.rerun()
         
-        if st.session_state.get('is_admin', False):
+        if st.session_state['is_admin']:
             if st.button("🗑️ Vider tous les commentaires"):
                 comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
                 comments_df.to_csv(COMMENTS_FILE, index=False)
@@ -672,10 +686,10 @@ with st.expander("💬 Commentaires & Historique", expanded=False):
             st.session_state.exploration_history = []
         
         current_exploration = {
-            "x_axis": x_axis,
-            "y_axis": y_axis,
-            "color_by": color_by,
-            "chart_type": chart_type,
+            "x_axis": "X",
+            "y_axis": "Y",
+            "color_by": "Couleur",
+            "chart_type": "Type",
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
         }
         
@@ -690,6 +704,7 @@ with st.expander("💬 Commentaires & Historique", expanded=False):
                 f"(couleur: {exploration['color_by']}) - {exploration['chart_type']} "
                 f"({exploration['timestamp']})"
             )
+
 
 # =============================================
 # ONGLETS EN CONSTRUCTION (CORRIGÉ)
