@@ -625,7 +625,7 @@ from datetime import datetime
 
 # --- Section Connexion Admin ---
 st.sidebar.subheader("🔒 Accès Administrateur")
-password_input = st.sidebar.text_input("Mot de passe admin", type="password")
+password_input = st.sidebar.text_input("Mot de passe admin", type="password", key="admin_password_input")
 login_button = st.sidebar.button("Se connecter")
 
 if login_button:
