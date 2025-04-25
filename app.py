@@ -617,6 +617,7 @@ if st.session_state.is_admin:
 # =============================================
 # SECTION COMMENTAIRES ET HISTORIQUE (CORRIGÉE)
 # =============================================
+# Section commentaires et historique
 with st.expander("💬 Commentaires & Historique", expanded=False):
     tab_comments, tab_history = st.tabs(["Commentaires", "Historique"])
     
@@ -654,19 +655,17 @@ with st.expander("💬 Commentaires & Historique", expanded=False):
                 st.markdown(f"**{row['user']}** ({row['timestamp']}):  \n{row['comment']}")
             
             with col2:
-                # Bouton suppression visible seulement pour admin ou auteur
                 if st.session_state.get('is_admin', False) or (user_name and user_name == row['user']):
                     if st.button("❌", key=f"delete_{idx}"):
                         comments_df = comments_df.drop(index=idx)
                         comments_df.to_csv(COMMENTS_FILE, index=False)
-                        st.experimental_rerun()
+                        st.rerun()
         
-        # Bouton vider tous les commentaires (admin seulement)
         if st.session_state.get('is_admin', False):
             if st.button("🗑️ Vider tous les commentaires"):
                 comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
                 comments_df.to_csv(COMMENTS_FILE, index=False)
-                st.experimental_rerun()
+                st.rerun()
     
     with tab_history:
         if 'exploration_history' not in st.session_state:
