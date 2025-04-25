@@ -618,6 +618,11 @@ if st.session_state.is_admin:
 # SECTION COMMENTAIRES ET HISTORIQUE (CORRIGÉE)
 # =============================================
 
+import streamlit as st
+import pandas as pd
+import os
+from datetime import datetime
+
 # --- Section Connexion Admin ---
 st.sidebar.subheader("🔒 Accès Administrateur")
 password_input = st.sidebar.text_input("Mot de passe admin", type="password")
@@ -630,8 +635,8 @@ if login_button:
     else:
         st.session_state['is_admin'] = False
         st.sidebar.error("Mot de passe incorrect ❌")
-        
-# Section commentaires et historique
+
+# --- Section Commentaires & Historique ---
 with st.expander("💬 Commentaires & Historique", expanded=False):
     tab_comments, tab_history = st.tabs(["Commentaires", "Historique"])
     
@@ -686,10 +691,10 @@ with st.expander("💬 Commentaires & Historique", expanded=False):
             st.session_state.exploration_history = []
         
         current_exploration = {
-            "x_axis": x_axis,
-            "y_axis": y_axis,
-            "color_by": color_by,
-            "chart_type": chart_type,
+            "x_axis": "X",
+            "y_axis": "Y",
+            "color_by": "Couleur",
+            "chart_type": "Type",
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
         }
         
@@ -704,6 +709,7 @@ with st.expander("💬 Commentaires & Historique", expanded=False):
                 f"(couleur: {exploration['color_by']}) - {exploration['chart_type']} "
                 f"({exploration['timestamp']})"
             )
+
 
 # =============================================
 # ONGLETS EN CONSTRUCTION (CORRIGÉ)
