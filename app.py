@@ -617,6 +617,20 @@ if st.session_state.is_admin:
 # =============================================
 # SECTION COMMENTAIRES ET HISTORIQUE (CORRIGÉE)
 # =============================================
+
+# --- Section Connexion Admin ---
+st.sidebar.subheader("🔒 Accès Administrateur")
+password_input = st.sidebar.text_input("Mot de passe admin", type="password")
+login_button = st.sidebar.button("Se connecter")
+
+if login_button:
+    if password_input == st.secrets["ADMIN_PASSWORD"]:
+        st.session_state['is_admin'] = True
+        st.sidebar.success("Connecté ✅")
+    else:
+        st.session_state['is_admin'] = False
+        st.sidebar.error("Mot de passe incorrect ❌")
+        
 # Section commentaires et historique
 with st.expander("💬 Commentaires & Historique", expanded=False):
     tab_comments, tab_history = st.tabs(["Commentaires", "Historique"])
