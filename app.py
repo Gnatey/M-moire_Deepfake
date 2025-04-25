@@ -679,12 +679,6 @@ with st.expander("💬 Commentaires & Historique", expanded=False):
                         comments_df = comments_df.drop(index=idx)
                         comments_df.to_csv(COMMENTS_FILE, index=False)
                         st.rerun()
-        
-        if st.session_state.get('is_admin', False):
-            if st.button("🗑️ Vider tous les commentaires"):
-                comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
-                comments_df.to_csv(COMMENTS_FILE, index=False)
-                st.rerun()
     
     with tab_history:
         if 'exploration_history' not in st.session_state:
