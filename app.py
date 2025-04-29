@@ -604,62 +604,55 @@ COMMENTS_FILE = "comments_advanced.csv"
 VISITORS_FILE = "visitors_log.csv"
 
 # ------------------ INITIALISATION SESSION ------------------
-if 'user_logged_in' not in st.session_state:
-    st.session_state.user_logged_in = False
 if 'is_admin' not in st.session_state:
     st.session_state.is_admin = False
+if 'user_logged_in' not in st.session_state:
+    st.session_state.user_logged_in = False
 
-# ------------------ FUSION : CONNEXION UNIQUE ------------------
-st.sidebar.header("👤 Connexion")
+st.title("💬 Système de Commentaires et Connexion Sécurisée")
 
-user_name = st.sidebar.text_input("Votre prénom ou pseudo")
-email = st.sidebar.text_input("Votre email (optionnel)")
-password = st.sidebar.text_input("Mot de passe (laisser vide si simple visiteur)", type="password")
+# ------------------ VISITOR LOGIN (facultatif) ------------------
+with st.sidebar.expander("👤 Se connecter (Visiteur)"):
+    pseudo = st.text_input("Votre prénom ou pseudo", key="visitor_name")
+    email = st.text_input("Votre email (optionnel)", key="visitor_email")
 
-if st.sidebar.button("Se connecter"):
-    if user_name:
-        if user_name.lower() == "admin" and password == st.secrets.get("ADMIN_PASSWORD", "admin123"):
-            st.session_state.is_admin = True
+    if st.button("Se connecter (Visiteur)", key="visitor_login_btn"):
+        if pseudo:
             st.session_state.user_logged_in = True
-            st.session_state.user_name = user_name
-            st.success(f"✅ Bienvenue Administrateur {user_name} !")
-        else:
-            st.session_state.is_admin = False
-            st.session_state.user_logged_in = True
-            st.session_state.user_name = user_name
-            st.success(f"✅ Bienvenue {user_name} !")
+            st.session_state.pseudo = pseudo
+            st.success(f"Bienvenue {pseudo} !")
 
-        # Log visitor
-        visitor_entry = {
-            "pseudo": user_name,
-            "email": email,
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
-        if os.path.exists(VISITORS_FILE):
-            visitors_df = pd.read_csv(VISITORS_FILE)
-            visitors_df = pd.concat([visitors_df, pd.DataFrame([visitor_entry])], ignore_index=True)
-        else:
-            visitors_df = pd.DataFrame([visitor_entry])
-        visitors_df.to_csv(VISITORS_FILE, index=False)
+            visitor_entry = {
+                "pseudo": pseudo,
+                "email": email,
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            if os.path.exists(VISITORS_FILE):
+                visitors_df = pd.read_csv(VISITORS_FILE)
+                visitors_df = pd.concat([visitors_df, pd.DataFrame([visitor_entry])], ignore_index=True)
+            else:
+                visitors_df = pd.DataFrame([visitor_entry])
+            visitors_df.to_csv(VISITORS_FILE, index=False)
+
+# ------------------ ADMIN LOGIN (strict) ------------------
+st.sidebar.subheader("🔒 Connexion administrateur")
+
+first_name = st.sidebar.text_input("Prénom (admin)", key="admin_firstname")
+last_name = st.sidebar.text_input("Nom (admin)", key="admin_lastname")
+admin_password = st.sidebar.text_input("Mot de passe admin", type="password", key="admin_password")
+
+if st.sidebar.button("Se connecter (Admin)", key="admin_login_btn"):
+    if first_name.lower() == "admin" and last_name.lower() == "principal" and admin_password == st.secrets.get("ADMIN_PASSWORD", "admin123"):
+        st.session_state.is_admin = True
+        st.sidebar.success(f"Bienvenue Administrateur {first_name} {last_name}")
     else:
-        st.sidebar.error("Veuillez remplir votre prénom")
+        st.sidebar.error("Identifiants incorrects")
 
-# ------------------ DECONNEXION ------------------
-if st.session_state.user_logged_in:
-    if st.sidebar.button("Se déconnecter"):
-        for key in ["user_logged_in", "is_admin", "user_name"]:
-            if key in st.session_state:
-                del st.session_state[key]
+if st.session_state.is_admin:
+    if st.sidebar.button("Se déconnecter (Admin)", key="admin_logout_btn"):
+        st.session_state.is_admin = False
         st.sidebar.success("Déconnecté avec succès")
         st.rerun()
-
-# ------------------ UTILISATION ------------------
-st.title("💬 Zone Commentaires")
-
-if not st.session_state.user_logged_in:
-    st.warning("⚠️ Connectez-vous pour laisser un commentaire.")
-else:
-    st.success(f"Connecté en tant que **{st.session_state.user_name}**")
 
 # ------------------ COMMENTAIRE FORMULAIRE ------------------
 st.subheader("📝 Laisser un commentaire")
