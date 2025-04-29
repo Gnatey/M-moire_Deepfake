@@ -600,9 +600,6 @@ with tab2:
 # SECTION COMMENTAIRES - ADMIN
 # =============================================
 
-# ------------------ CONFIG ------------------
-st.set_page_config(page_title="💬 Commentaires et Connexion", page_icon="💬")
-
 COMMENTS_FILE = "comments_advanced.csv"
 VISITORS_FILE = "visitors_log.csv"
 
