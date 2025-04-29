@@ -615,40 +615,9 @@ if st.session_state.is_admin:
         st.sidebar.success("Déconnexion réussie")
 
 
-# =========================
-# SECTION AUTHENTIFICATION ADMIN (Sidebar)
-# =========================
-
-if "is_admin" not in st.session_state:
-    st.session_state.is_admin = False
-if "login_attempts" not in st.session_state:
-    st.session_state.login_attempts = 0
-
-with st.sidebar:
-    st.subheader("🔒 Accès Administrateur")
-
-    if st.session_state.is_admin:
-        if st.button("Se déconnecter", key="logout_btn"):
-            st.session_state.is_admin = False
-            st.success("Déconnecté avec succès")
-            st.rerun()
-    else:
-        admin_password = st.text_input("Mot de passe admin", type="password", key="admin_pass_input")
-        if st.button("Se connecter", key="login_btn"):
-            if st.session_state.login_attempts >= 3:
-                st.error("Trop de tentatives. Veuillez réessayer plus tard.")
-            elif admin_password == st.secrets.get("ADMIN_PASSWORD", "admin123"):
-                st.session_state.is_admin = True
-                st.session_state.login_attempts = 0
-                st.success("Connecté ✅")
-                st.rerun()
-            else:
-                st.session_state.login_attempts += 1
-                st.error("Mot de passe incorrect ❌")
-
-# =========================
-# SECTION AUTHENTIFICATION ADMIN (Sidebar)
-# =========================
+# =============================================
+# SECTION COMMENTAIRES
+# =============================================
 
 COMMENTS_FILE = "comments_advanced.csv"
 
@@ -747,6 +716,7 @@ with st.expander("💬 Commentaires", expanded=False):
                         pd.DataFrame(columns=["user", "comment", "timestamp", "token"]).to_csv(COMMENTS_FILE, index=False)
                         st.success("Tous les commentaires ont été supprimés")
                         st.rerun()
+
 
 # =============================================
 # ONGLETS EN CONSTRUCTION - MESSAGE EDITEUR
