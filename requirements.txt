@@ -21,6 +21,8 @@ streamlit-aggrid==0.3.4.post3
 # Composants supplémentaires
 streamlit-extras>=0.2.7
 
+# Graphes de Réseau
 networkx==3.2.1
 
+# Export d'images Plotly
 kaleido==0.2.1
