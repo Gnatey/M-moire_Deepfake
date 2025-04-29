@@ -679,23 +679,6 @@ with st.expander("💬 Commentaires", expanded=False):
                         comments_df = comments_df.drop(index=idx)
                         comments_df.to_csv(COMMENTS_FILE, index=False)
                         st.rerun()
-    
-    with tab_history:
-        if 'exploration_history' not in st.session_state:
-            st.session_state.exploration_history = []
-        
-        current_exploration = {
-            "x_axis": "X",
-            "y_axis": "Y",
-            "color_by": "Couleur",
-            "chart_type": "Type",
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
-        }
-        
-        if st.button("💾 Sauvegarder cette exploration"):
-            st.session_state.exploration_history.append(current_exploration)
-            st.success("Exploration sauvegardée dans l'historique!")
-
 
 # =============================================
 # ONGLETS EN CONSTRUCTION - MESSAGE EDITEUR
