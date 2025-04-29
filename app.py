@@ -615,107 +615,110 @@ if st.session_state.is_admin:
         st.sidebar.success("Déconnexion réussie")
 
 
-# =============================================
-# SECTION COMMENTAIRES
-# =============================================
+# =========================
+# SECTION AUTHENTIFICATION ADMIN (Sidebar)
+# =========================
 
-COMMENTS_FILE = "comments_advanced.csv"
-
-# Initialisation des variables session
 if "is_admin" not in st.session_state:
     st.session_state.is_admin = False
 if "login_attempts" not in st.session_state:
     st.session_state.login_attempts = 0
-if "user_token" not in st.session_state:
-    st.session_state.user_token = hashlib.sha256(str(uuid.uuid4()).encode()).hexdigest()
 
-# Fonction pour générer une empreinte unique invisible
+with st.sidebar:
+    st.subheader("🔒 Accès Administrateur")
 
-def get_user_token():
-    return st.session_state.user_token
-
-# Authentification administrateur (UN SEUL bloc)
-st.sidebar.subheader("🔒 Accès Administrateur")
-if st.session_state.is_admin:
-    if st.sidebar.button("Se déconnecter"):
-        st.session_state.is_admin = False
-        st.sidebar.success("Déconnecté avec succès")
-        st.rerun()
-else:
-    admin_name = st.sidebar.text_input("Nom d'utilisateur")
-    admin_password = st.sidebar.text_input("Mot de passe admin", type="password")
-    if st.sidebar.button("Se connecter"):
-        if st.session_state.login_attempts >= 3:
-            st.sidebar.error("Trop de tentatives. Veuillez réessayer plus tard.")
-        elif admin_name == "Juliana" and admin_password == st.secrets.get("ADMIN_PASSWORD", ""):
-            st.session_state.is_admin = True
-            st.session_state.login_attempts = 0
-            st.sidebar.success("Connectée en tant qu'administratrice ✅")
+    if st.session_state.is_admin:
+        if st.button("Se déconnecter", key="logout_btn"):
+            st.session_state.is_admin = False
+            st.success("Déconnecté avec succès")
             st.rerun()
-        else:
-            st.session_state.login_attempts += 1
-            st.sidebar.error("Nom ou mot de passe incorrect")
+    else:
+        admin_password = st.text_input("Mot de passe admin", type="password", key="admin_pass_input")
+        if st.button("Se connecter", key="login_btn"):
+            if st.session_state.login_attempts >= 3:
+                st.error("Trop de tentatives. Veuillez réessayer plus tard.")
+            elif admin_password == st.secrets.get("ADMIN_PASSWORD", "admin123"):
+                st.session_state.is_admin = True
+                st.session_state.login_attempts = 0
+                st.success("Connecté ✅")
+                st.rerun()
+            else:
+                st.session_state.login_attempts += 1
+                st.error("Mot de passe incorrect ❌")
 
-# Section commentaires
-with st.expander("💬 Commentaires", expanded=False):
-    tab_comments, = st.tabs(["📝 Commentaires"])
-    with tab_comments:
-        if os.path.exists(COMMENTS_FILE):
-            comments_df = pd.read_csv(COMMENTS_FILE)
-        else:
-            comments_df = pd.DataFrame(columns=["user", "comment", "timestamp", "token"])
+# =========================
+# SECTION COMMENTAIRES PAR ONGLET
+# =========================
 
-        # --- Formulaire ---
-        with st.form("comment_form", clear_on_submit=True):
-            user_name = st.text_input("Votre nom", max_chars=20)
-            user_comment = st.text_area("Votre commentaire")
-            submitted = st.form_submit_button("📤 Envoyer")
+def get_user_id():
+    """Crée une empreinte unique utilisateur (cookie ou IP simulée)"""
+    if "user_id" not in st.session_state:
+        raw = str(uuid.uuid4())
+        st.session_state.user_id = hashlib.sha256(raw.encode()).hexdigest()
+    return st.session_state.user_id
 
-            if submitted:
-                if not user_comment:
-                    st.warning("Veuillez écrire un commentaire")
-                else:
-                    new_comment = {
-                        "user": user_name.strip() or "Anonyme",
-                        "comment": user_comment.strip(),
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "token": get_user_token()
-                    }
-                    comments_df = pd.concat([comments_df, pd.DataFrame([new_comment])], ignore_index=True)
-                    comments_df.to_csv(COMMENTS_FILE, index=False)
-                    st.success("Commentaire enregistré !")
 
-        # --- Affichage ---
-        st.subheader("Derniers commentaires")
-        if comments_df.empty:
-            st.info("Aucun commentaire pour le moment")
-        else:
-            for idx, row in comments_df.sort_values("timestamp", ascending=False).head(5).iterrows():
-                with st.container(border=True):
-                    col1, col2 = st.columns([4, 1])
-                    with col1:
-                        st.markdown(f"**{row['user']}** - *{row['timestamp']}*\n\n> {row['comment']}")
-                    with col2:
-                        # Affichage bouton suppression
-                        is_owner = row.get("token", "") == get_user_token()
-                        if st.session_state.is_admin or is_owner:
-                            if st.button("🗑️", key=f"delete_{idx}"):
-                                with st.popover("Confirmer la suppression"):
-                                    if st.button("✅ Supprimer maintenant", key=f"confirm_{idx}"):
-                                        comments_df = comments_df.drop(index=idx)
-                                        comments_df.to_csv(COMMENTS_FILE, index=False)
-                                        st.success("Commentaire supprimé")
-                                        st.rerun()
+def display_comment_section(section_id: str):
+    COMMENTS_FILE = f"comments_{section_id}.csv"
+    user_id = get_user_id()
 
-        # Bouton reset (admin only)
+    st.markdown("### 💬 Commentaires")
+
+    if os.path.exists(COMMENTS_FILE):
+        comments_df = pd.read_csv(COMMENTS_FILE)
+    else:
+        comments_df = pd.DataFrame(columns=["user", "comment", "timestamp", "user_id"])
+
+    with st.form(f"form_{section_id}", clear_on_submit=True):
+        user_name = st.text_input("Votre nom", max_chars=20, key=f"name_{section_id}")
+        user_comment = st.text_area("Votre commentaire", key=f"comment_{section_id}")
+        submitted = st.form_submit_button("📤 Envoyer")
+
+        if submitted:
+            if not user_comment.strip():
+                st.warning("Merci de remplir le champ commentaire.")
+            else:
+                new_comment = {
+                    "user": user_name.strip() or "Anonyme",
+                    "comment": user_comment.strip(),
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "user_id": user_id
+                }
+                comments_df = pd.concat([comments_df, pd.DataFrame([new_comment])], ignore_index=True)
+                comments_df.to_csv(COMMENTS_FILE, index=False)
+                st.success("✅ Commentaire enregistré")
+                st.rerun()
+
+    # Affichage des commentaires
+    if comments_df.empty:
+        st.info("Aucun commentaire pour le moment.")
+    else:
+        for idx, row in comments_df.sort_values("timestamp", ascending=False).head(5).iterrows():
+            with st.container(border=True):
+                col1, col2 = st.columns([5, 1])
+                with col1:
+                    st.markdown(f"**{row['user']}** - *{row['timestamp']}*\n\n{row['comment']}")
+                with col2:
+                    can_delete = st.session_state.is_admin or row['user_id'] == user_id
+                    if can_delete:
+                        confirm = st.checkbox("Confirmer", key=f"confirm_{idx}")
+                        if st.button("🗑️", key=f"delete_{idx}") and confirm:
+                            comments_df = comments_df.drop(index=idx)
+                            comments_df.to_csv(COMMENTS_FILE, index=False)
+                            st.success("Commentaire supprimé")
+                            st.rerun()
+
+        # Admin: vider tous les commentaires
         if st.session_state.is_admin and not comments_df.empty:
-            if st.button("🧹 Vider tous les commentaires"):
-                with st.popover("🚨 Confirmer la suppression totale"):
-                    st.warning("Cette action supprimera tous les commentaires")
-                    if st.button("✅ Confirmer et supprimer tout"):
-                        pd.DataFrame(columns=["user", "comment", "timestamp", "token"]).to_csv(COMMENTS_FILE, index=False)
+            if st.button("💣 Vider tous les commentaires", key=f"clear_{section_id}"):
+                with st.popover("Confirmer suppression totale"):
+                    st.warning("Cette action est définitive !")
+                    if st.button("✅ Confirmer la suppression"):
+                        comments_df = pd.DataFrame(columns=["user", "comment", "timestamp", "user_id"])
+                        comments_df.to_csv(COMMENTS_FILE, index=False)
                         st.success("Tous les commentaires ont été supprimés")
                         st.rerun()
+
 
 # =============================================
 # ONGLETS EN CONSTRUCTION - MESSAGE EDITEUR
