@@ -638,7 +638,7 @@ if login_button:
 
 # --- Section Commentaires ---
 with st.expander("💬 Commentaires", expanded=False):
-    tab_comments, tab_history = st.tabs(["Commentaires"])
+    tab_comments, tab_history = st.tabs("Commentaires")
     
     with tab_comments:
         COMMENTS_FILE = "comments_advanced.csv"
