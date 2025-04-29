@@ -607,6 +607,15 @@ with tab2:
 COMMENTS_FILE = "comments_advanced.csv"
 USERS_FILE = "users.csv"
 
+if 'comments_by_tab' not in st.session_state:
+    st.session_state.comments_by_tab = {
+        "tab1": [],
+        "tab2": [],
+        "tab3": [],
+        "tab4": [],
+        "tab5": []
+    }
+
 # =============================================
 # INITIALISATION SESSION
 # =============================================
