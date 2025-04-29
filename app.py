@@ -708,19 +708,6 @@ with st.expander("💬 Commentaires", expanded=False):
                     with col1:
                         st.markdown(f"**{row['user']}** - *{row['timestamp']}*")
                         st.markdown(f"> {row['comment']}")
-                    
-                    with col2:
-                        # Bouton suppression seulement pour admin ou auteur
-                        if st.session_state.is_admin or ('user_name' in locals() and user_name == row['user']):
-                            if st.button("🗑️", key=f"delete_{idx}"):
-                                if st.session_state.is_admin or st.checkbox("Confirmer la suppression de votre commentaire?"):
-                                    comments_df = comments_df.drop(index=idx)
-                                    try:
-                                        comments_df.to_csv(COMMENTS_FILE, index=False)
-                                        st.success("Commentaire supprimé")
-                                        st.rerun()
-                                    except Exception as e:
-                                        st.error(f"Erreur: {str(e)}")
         
         # Bouton de réinitialisation (admin seulement)
         if st.session_state.is_admin and not comments_df.empty:
