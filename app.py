@@ -607,23 +607,6 @@ with tab2:
 USERS_FILE = "users.csv"
 
 # =============================================
-# INITIALISATION SESSION
-# =============================================
-if 'user_logged_in' not in st.session_state:
-    st.session_state.user_logged_in = False
-if 'is_admin' not in st.session_state:
-    st.session_state.is_admin = False
-if 'comments_by_tab' not in st.session_state:
-    st.session_state.comments_by_tab = {
-        "tab1": [],
-        "tab2": [],
-        "tab3": [],
-        "tab4": [],
-        "tab5": [],
-        # ajoute ici autant de tabs que tu veux
-    }
-
-# =============================================
 # FONCTIONS UTILES
 # =============================================
 def hash_password(password):
