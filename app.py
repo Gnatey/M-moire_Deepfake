@@ -637,7 +637,7 @@ if login_button:
         st.sidebar.error("Mot de passe incorrect ❌")
 
 # --- Section Commentaires & Historique ---
-with st.expander("💬 Commentaires & Historique", expanded=False):
+with st.expander("💬 Commentaires", expanded=False):
     tab_comments, tab_history = st.tabs(["Commentaires", "Historique"])
     
     with tab_comments:
@@ -695,14 +695,6 @@ with st.expander("💬 Commentaires & Historique", expanded=False):
         if st.button("💾 Sauvegarder cette exploration"):
             st.session_state.exploration_history.append(current_exploration)
             st.success("Exploration sauvegardée dans l'historique!")
-        
-        st.subheader("Historique des explorations")
-        for i, exploration in enumerate(st.session_state.exploration_history[-5:]):
-            st.markdown(
-                f"{i+1}. **{exploration['x_axis']}** × **{exploration['y_axis']}** "
-                f"(couleur: {exploration['color_by']}) - {exploration['chart_type']} "
-                f"({exploration['timestamp']})"
-            )
 
 
 # =============================================
