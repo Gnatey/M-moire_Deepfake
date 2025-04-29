@@ -600,149 +600,143 @@ with tab2:
 # SECTION COMMENTAIRES - ADMIN
 # =============================================
 
-# =============================================
-# CONFIGURATION
-# =============================================
-
 COMMENTS_FILE = "comments_advanced.csv"
-USERS_FILE = "users.csv"
+VISITORS_FILE = "visitors_log.csv"
 
-# =============================================
-# INITIALISATION SESSION
-# =============================================
+# ------------------ INITIALISATION SESSION ------------------
 if 'user_logged_in' not in st.session_state:
     st.session_state.user_logged_in = False
 if 'is_admin' not in st.session_state:
     st.session_state.is_admin = False
 
-# =============================================
-# FONCTIONS UTILES
-# =============================================
-def hash_password(password):
-    return hashlib.sha256(password.encode()).hexdigest()
+# ------------------ FUSION : CONNEXION UNIQUE ------------------
+st.sidebar.header("👤 Connexion")
 
-def load_users():
-    if os.path.exists(USERS_FILE):
-        return pd.read_csv(USERS_FILE)
-    else:
-        return pd.DataFrame(columns=["pseudo", "password"])
+user_name = st.sidebar.text_input("Votre prénom ou pseudo")
+email = st.sidebar.text_input("Votre email (optionnel)")
+password = st.sidebar.text_input("Mot de passe (laisser vide si simple visiteur)", type="password")
 
-def save_users(users_df):
-    users_df.to_csv(USERS_FILE, index=False)
-
-# =============================================
-# SIDEBAR : CONNEXION / INSCRIPTION
-# =============================================
-st.sidebar.header("🔐 Connexion rapide")
-
-mode = st.sidebar.radio("Choisissez une option :", ["Se connecter", "S'inscrire"])
-
-with st.sidebar.form(key="auth_form"):
-    pseudo = st.text_input("Votre pseudo")
-    password = st.text_input("Mot de passe", type="password")
-    submit = st.form_submit_button("Valider")
-
-    if submit:
-        if not pseudo or not password:
-            st.sidebar.error("Veuillez remplir tous les champs.")
+if st.sidebar.button("Se connecter"):
+    if user_name:
+        if user_name.lower() == "admin" and password == st.secrets.get("ADMIN_PASSWORD", "admin123"):
+            st.session_state.is_admin = True
+            st.session_state.user_logged_in = True
+            st.session_state.user_name = user_name
+            st.success(f"✅ Bienvenue Administrateur {user_name} !")
         else:
-            users_df = load_users()
+            st.session_state.is_admin = False
+            st.session_state.user_logged_in = True
+            st.session_state.user_name = user_name
+            st.success(f"✅ Bienvenue {user_name} !")
 
-            if mode == "Se connecter":
-                hashed_pwd = hash_password(password)
-                if (users_df['pseudo'] == pseudo).any():
-                    user_row = users_df.loc[users_df['pseudo'] == pseudo].iloc[0]
-                    if user_row['password'] == hashed_pwd:
-                        st.session_state.user_logged_in = True
-                        st.session_state.user_name = pseudo
-                        if pseudo.lower() == "admin":
-                            st.session_state.is_admin = True
-                        st.success(f"Bienvenue {pseudo} !")
-                        st.experimental_rerun()
-                    else:
-                        st.sidebar.error("Mot de passe incorrect.")
-                else:
-                    st.sidebar.error("Utilisateur inconnu.")
-            elif mode == "S'inscrire":
-                if (users_df['pseudo'] == pseudo).any():
-                    st.sidebar.error("Ce pseudo est déjà utilisé.")
-                else:
-                    new_user = pd.DataFrame([{"pseudo": pseudo, "password": hash_password(password)}])
-                    users_df = pd.concat([users_df, new_user], ignore_index=True)
-                    save_users(users_df)
-                    st.success("Inscription réussie, vous êtes connecté.")
-                    st.session_state.user_logged_in = True
-                    st.session_state.user_name = pseudo
-                    st.experimental_rerun()
+        # Log visitor
+        visitor_entry = {
+            "pseudo": user_name,
+            "email": email,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        if os.path.exists(VISITORS_FILE):
+            visitors_df = pd.read_csv(VISITORS_FILE)
+            visitors_df = pd.concat([visitors_df, pd.DataFrame([visitor_entry])], ignore_index=True)
+        else:
+            visitors_df = pd.DataFrame([visitor_entry])
+        visitors_df.to_csv(VISITORS_FILE, index=False)
+    else:
+        st.sidebar.error("Veuillez remplir votre prénom")
 
-# =============================================
-# DECONNEXION
-# =============================================
+# ------------------ DECONNEXION ------------------
 if st.session_state.user_logged_in:
     if st.sidebar.button("Se déconnecter"):
         for key in ["user_logged_in", "is_admin", "user_name"]:
             if key in st.session_state:
                 del st.session_state[key]
-        st.sidebar.success("Déconnecté avec succès.")
-        st.experimental_rerun()
+        st.sidebar.success("Déconnecté avec succès")
+        st.rerun()
 
-# =============================================
-# ZONE COMMENTAIRES
-# =============================================
-st.title("💬 Espace Commentaires")
+# ------------------ UTILISATION ------------------
+st.title("💬 Zone Commentaires")
 
-# Chargement des commentaires
-if os.path.exists(COMMENTS_FILE):
-    comments_df = pd.read_csv(COMMENTS_FILE)
+if not st.session_state.user_logged_in:
+    st.warning("⚠️ Connectez-vous pour laisser un commentaire.")
 else:
+    st.success(f"Connecté en tant que **{st.session_state.user_name}**")
+
+# ------------------ COMMENTAIRE FORMULAIRE ------------------
+st.subheader("📝 Laisser un commentaire")
+
+try:
+    comments_df = pd.read_csv(COMMENTS_FILE) if os.path.exists(COMMENTS_FILE) else pd.DataFrame(columns=["id", "user", "comment", "timestamp"])
+except Exception as e:
+    st.error(f"Erreur de lecture des commentaires: {str(e)}")
     comments_df = pd.DataFrame(columns=["id", "user", "comment", "timestamp"])
 
-# Verrouillage si pas connecté
-if not st.session_state.user_logged_in:
-    st.info("🔒 Connectez-vous pour pouvoir laisser un commentaire.")
-else:
-    # Formulaire d'ajout de commentaire
-    with st.form(key="comment_form", clear_on_submit=True):
-        comment_text = st.text_area("Votre commentaire")
-        submit_comment = st.form_submit_button("📤 Envoyer")
+with st.form("comment_form", clear_on_submit=True):
+    user_name = st.text_input("Votre nom", max_chars=20)
+    user_comment = st.text_area("Votre commentaire")
+    submitted = st.form_submit_button("📤 Envoyer")
 
-        if submit_comment:
-            if not comment_text:
-                st.warning("Merci de remplir votre commentaire.")
-            else:
-                new_comment = {
-                    "id": str(uuid.uuid4()),
-                    "user": st.session_state.user_name,
-                    "comment": comment_text.strip(),
-                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                }
-                comments_df = pd.concat([comments_df, pd.DataFrame([new_comment])], ignore_index=True)
+    if submitted:
+        if not user_comment:
+            st.warning("Merci de remplir votre commentaire")
+        else:
+            comment_id = str(uuid.uuid4())
+            new_comment = {
+                "id": comment_id,
+                "user": user_name.strip() or "Anonyme",
+                "comment": user_comment.strip(),
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            comments_df = pd.concat([comments_df, pd.DataFrame([new_comment])], ignore_index=True)
+            try:
                 comments_df.to_csv(COMMENTS_FILE, index=False)
-                st.success("Commentaire envoyé !")
-                st.experimental_rerun()
+                st.success("✅ Merci pour votre commentaire !")
+            except Exception as e:
+                st.error(f"Erreur d'enregistrement: {str(e)}")
 
-# =============================================
-# AFFICHAGE DES COMMENTAIRES
-# =============================================
-st.subheader("📝 Derniers commentaires")
+# ------------------ AFFICHAGE COMMENTAIRES ------------------
+st.subheader("📜 Derniers commentaires")
 
 if comments_df.empty:
-    st.info("Aucun commentaire pour le moment.")
+    st.info("Aucun commentaire pour le moment. Soyez le premier !")
 else:
     comments_display = comments_df.sort_values('timestamp', ascending=False).head(10)
     for idx, row in comments_display.iterrows():
         with st.container(border=True):
             st.markdown(f"**{row['user']}** - *{row['timestamp']}*")
             st.markdown(f"> {row['comment']}")
-            if st.session_state.user_logged_in and (st.session_state.user_name == row['user'] or st.session_state.is_admin):
+
+            # DROIT DE SUPPRESSION : Admin OU Auteur du commentaire
+            if st.session_state.is_admin or (st.session_state.user_logged_in and st.session_state.pseudo == row['user']):
                 if st.button("🗑️ Supprimer", key=f"delete_{idx}"):
-                    with st.modal("⚠️ Confirmation suppression"):
+                    with st.modal("⚠️ Confirmation"):
                         st.warning("Voulez-vous vraiment supprimer ce commentaire ?")
                         if st.button("✅ Oui, supprimer", key=f"confirm_delete_{idx}"):
                             comments_df = comments_df.drop(index=idx)
                             comments_df.to_csv(COMMENTS_FILE, index=False)
-                            st.success("Commentaire supprimé.")
-                            st.experimental_rerun()
+                            st.success("Commentaire supprimé")
+                            st.rerun()
+
+# ------------------ ADMIN OPTIONS ------------------
+if st.session_state.is_admin:
+    st.markdown("### 🛠️ Options Administrateur")
+    
+    if st.button("💣 Vider tous les commentaires", type="primary"):
+        with st.modal("⚠️ Confirmation Vider"):
+            st.error("Cette action est irréversible !")
+            if st.button("✅ Confirmer la suppression totale"):
+                try:
+                    empty_df = pd.DataFrame(columns=["id", "user", "comment", "timestamp"])
+                    empty_df.to_csv(COMMENTS_FILE, index=False)
+                    st.success("Tous les commentaires ont été supprimés.")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Erreur: {str(e)}")
+
+    if os.path.exists(VISITORS_FILE):
+        st.markdown("### 📈 Statistiques de Visite")
+        visitors_df = pd.read_csv(VISITORS_FILE)
+        st.dataframe(visitors_df)
+        st.info(f"Total visiteurs : {len(visitors_df)}")
 
 # =============================================
 # ONGLETS EN CONSTRUCTION - MESSAGE EDITEUR
