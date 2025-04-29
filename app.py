@@ -706,7 +706,7 @@ with st.expander("💬 Commentaires & Historique", expanded=False):
 
 
 # =============================================
-# ONGLETS EN CONSTRUCTION
+# ONGLETS EN CONSTRUCTION - MESSAGE EDITEUR
 # =============================================
 with tab3:
     st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSE")
