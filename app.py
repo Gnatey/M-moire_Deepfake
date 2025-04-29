@@ -595,24 +595,6 @@ with tab2:
             except Exception as e:
                 st.error(f"Erreur lors de la génération du graphique : {str(e)}")
                 st.warning("Veuillez sélectionner des combinaisons de variables compatibles")
-    
-# Authentification admin (en dehors des expanders)
-if 'is_admin' not in st.session_state:
-    st.session_state.is_admin = False
-
-st.sidebar.markdown("## 🔒 Accès Administrateur")
-admin_password = st.sidebar.text_input("Mot de passe admin", type="password")
-if st.sidebar.button("Se connecter"):
-    if admin_password == st.secrets.get("ADMIN_PASSWORD", "admin123"):
-        st.session_state.is_admin = True
-        st.sidebar.success("Connecté en tant qu'administrateur")
-    else:
-        st.sidebar.error("Mot de passe incorrect")
-
-if st.session_state.is_admin:
-    if st.sidebar.button("Se déconnecter"):
-        st.session_state.is_admin = False
-        st.sidebar.success("Déconnexion réussie")
 
 
 # =============================================
