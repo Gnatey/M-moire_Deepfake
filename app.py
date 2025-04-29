@@ -607,6 +607,14 @@ with tab2:
 USERS_FILE = "users.csv"
 
 # =============================================
+# INITIALISATION SESSION
+# =============================================
+if 'user_logged_in' not in st.session_state:
+    st.session_state.user_logged_in = False
+if 'is_admin' not in st.session_state:
+    st.session_state.is_admin = False
+
+# =============================================
 # FONCTIONS UTILES
 # =============================================
 def hash_password(password):
