@@ -615,9 +615,12 @@ if 'is_admin' not in st.session_state:
     st.session_state.is_admin = False
 if 'comments_by_tab' not in st.session_state:
     st.session_state.comments_by_tab = {
-        "dashboard": [],
-        "exploration": [],
-        # ajoute ici d'autres onglets si besoin
+        "tab1": [],
+        "tab2": [],
+        "tab3": [],
+        "tab4": [],
+        "tab5": [],
+        # ajoute ici autant de tabs que tu veux
     }
 
 # =============================================
@@ -740,19 +743,31 @@ if st.session_state.user_logged_in:
         st.experimental_rerun()
 
 # =============================================
-# UTILISATION PAR ONGLET
+# ONGLET AVEC st.tabs()
 # =============================================
+st.title("📊 Mon Application avec Commentaires par Onglet")
 
-# Exemple simple ici pour simuler des onglets
-tab_choice = st.radio("📑 Choisissez un onglet :", ["🏠 Tableau de Bord", "🔬 Exploration Avancée"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["🏠 Tableau de Bord", "🔬 Exploration Avancée", "En cours 1", "En cours 2", "En cours 3"])
 
-if tab_choice == "🏠 Tableau de Bord":
+with tab1:
     st.header("🏠 Tableau de Bord")
-    afficher_commentaires_onglet("dashboard")
+    afficher_commentaires_onglet("tab1")
 
-elif tab_choice == "🔬 Exploration Avancée":
+with tab2:
     st.header("🔬 Exploration Avancée")
-    afficher_commentaires_onglet("exploration")
+    afficher_commentaires_onglet("tab2")
+
+with tab3:
+    st.header("🚧 En cours 1")
+    afficher_commentaires_onglet("tab3")
+
+with tab4:
+    st.header("🚧 En cours 2")
+    afficher_commentaires_onglet("tab4")
+
+with tab5:
+    st.header("🚧 En cours 3")
+    afficher_commentaires_onglet("tab5")
 
 # =============================================
 # ONGLETS EN CONSTRUCTION - MESSAGE EDITEUR
