@@ -603,8 +603,6 @@ with tab2:
 # =============================================
 # CONFIGURATION
 # =============================================
-st.set_page_config(page_title="💬 Commentaires et Connexion", page_icon="💬")
-
 COMMENTS_FILE = "comments_advanced.csv"
 USERS_FILE = "users.csv"
 
