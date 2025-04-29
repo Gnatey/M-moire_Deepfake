@@ -706,18 +706,12 @@ with st.expander("💬 Commentaires & Historique", expanded=False):
 
 
 # =============================================
-# ONGLETS EN CONSTRUCTION (CORRIGÉ)
+# ONGLETS EN CONSTRUCTION
 # =============================================
-with tab3:
+with tab3,tab4,tab5:
     st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSE")
     col_img, col_msg = st.columns([1, 4])
     with col_img:
         st.image("images.jpeg", width=100)
     with col_msg:
         st.info("Cet onglet est en cours de rédaction. Vous verrez des visualisations sous peu.")
-
-with tab4:
-    st.info("Onglet en cours de développement")
-
-with tab5:
-    st.info("Onglet en cours de développement")
