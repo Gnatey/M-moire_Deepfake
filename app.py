@@ -743,33 +743,6 @@ if st.session_state.user_logged_in:
         st.experimental_rerun()
 
 # =============================================
-# ONGLET AVEC st.tabs()
-# =============================================
-st.title("📊 Mon Application avec Commentaires par Onglet")
-
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["🏠 Tableau de Bord", "🔬 Exploration Avancée", "En cours 1", "En cours 2", "En cours 3"])
-
-with tab1:
-    st.header("🏠 Tableau de Bord")
-    afficher_commentaires_onglet("tab1")
-
-with tab2:
-    st.header("🔬 Exploration Avancée")
-    afficher_commentaires_onglet("tab2")
-
-with tab3:
-    st.header("🚧 En cours 1")
-    afficher_commentaires_onglet("tab3")
-
-with tab4:
-    st.header("🚧 En cours 2")
-    afficher_commentaires_onglet("tab4")
-
-with tab5:
-    st.header("🚧 En cours 3")
-    afficher_commentaires_onglet("tab5")
-
-# =============================================
 # ONGLETS EN CONSTRUCTION - MESSAGE EDITEUR
 # =============================================
 with tab3:
