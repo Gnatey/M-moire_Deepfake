@@ -670,8 +670,8 @@ with st.expander("💬 Commentaires", expanded=False):
             col1, col2 = st.columns([1, 3])
             with col1:
                 user_name = st.text_input("Votre nom", max_chars=20, help="20 caractères max")
-        with col2:
-            user_comment = st.text_area("Votre commentaire", help="Partagez vos observations")
+            with col2:
+                user_comment = st.text_area("Votre commentaire", help="Partagez vos observations")
             
             submitted = st.form_submit_button("📤 Envoyer")
             
@@ -687,6 +687,7 @@ with st.expander("💬 Commentaires", expanded=False):
                     comments_df = pd.concat([comments_df, pd.DataFrame([new_comment])], ignore_index=True)
                     try:
                         comments_df.to_csv(COMMENTS_FILE, index=False)
+                        st.success("✅ Merci pour votre commentaire ! ")
                         st.success("✅ Commentaire enregistré!")
                     except Exception as e:
                         st.error(f"Erreur d'enregistrement: {str(e)}")
