@@ -615,7 +615,7 @@ if st.session_state.is_admin:
 # [Tout le code précédent jusqu'à la section commentaires reste identique...]
 
 # =============================================
-# SECTION COMMENTAIRES ET HISTORIQUE (CORRIGÉE)
+# SECTION COMMENTAIRES
 # =============================================
 
 import streamlit as st
@@ -638,7 +638,7 @@ if login_button:
 
 # --- Section Commentaires ---
 with st.expander("💬 Commentaires", expanded=False):
-    tab_comments = st.tabs(["Commentaires"])
+    tab_comments, = st.tabs(["Commentaires"])
     
     with tab_comments:
         COMMENTS_FILE = "comments_advanced.csv"
