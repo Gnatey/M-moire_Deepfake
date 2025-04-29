@@ -734,21 +734,23 @@ else:
         with st.container(border=True):
             st.markdown(f"**{row['user']}** - *{row['timestamp']}*")
             st.markdown(f"> {row['comment']}")
-           # Bouton de suppression + confirmation
-delete_key = f"delete_{idx}"
-confirm_key = f"confirm_delete_{idx}"
 
-if st.button("🗑️ Supprimer", key=delete_key):
-    st.session_state[confirm_key] = True  # active la confirmation
+            # Bouton de suppression + confirmation
+            delete_key = f"delete_{idx}"
+            confirm_key = f"confirm_delete_{idx}"
 
-if st.session_state.get(confirm_key, False):
-    st.warning("⚠️ Confirmation suppression")
-    if st.button("✅ Oui, supprimer", key=f"confirmed_{idx}"):
-        comments_df = comments_df.drop(index=idx)
-        comments_df.to_csv(COMMENTS_FILE, index=False)
-        st.success("Commentaire supprimé.")
-        st.session_state[confirm_key] = False  # reset
-        st.experimental_rerun()
+            if st.button("🗑️ Supprimer", key=delete_key):
+                st.session_state[confirm_key] = True  # active la confirmation
+
+            if st.session_state.get(confirm_key, False):
+                st.warning("⚠️ Confirmation suppression")
+                if st.button("✅ Oui, supprimer", key=f"confirmed_{idx}"):
+                    comments_df = comments_df.drop(index=idx)
+                    comments_df.to_csv(COMMENTS_FILE, index=False)
+                    st.success("Commentaire supprimé.")
+                    st.session_state[confirm_key] = False  # reset
+                    st.experimental_rerun()
+
 
 
 # =============================================
