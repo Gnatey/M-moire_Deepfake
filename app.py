@@ -650,9 +650,9 @@ else:
             st.session_state.login_attempts += 1
             st.sidebar.error("Mot de passe incorrect ❌")
 
-# --- Section Principale Commentaires & Historique ---
-with st.expander("💬 Commentaires & Historique", expanded=False):
-    tab_comments, tab_history = st.tabs(["📝 Commentaires", "🕰️ Historique"])
+# --- Section Principale Commentaires ---
+with st.expander("💬 Commentaires", expanded=False):
+    tab_comments, = st.tabs(["📝 Commentaires"])
     
     # ---- Onglet Commentaires ----
     with tab_comments:
@@ -734,39 +734,6 @@ with st.expander("💬 Commentaires & Historique", expanded=False):
                             st.rerun()
                         except Exception as e:
                             st.error(f"Erreur: {str(e)}")
-    
-    # ---- Onglet Historique ----
-    with tab_history:
-        # Initialisation de l'historique
-        if 'exploration_history' not in st.session_state:
-            st.session_state.exploration_history = []
-        
-        # Sauvegarde de l'exploration actuelle
-        current_exploration = {
-            "date": datetime.now().strftime("%Y-%m-%d"),
-            "heure": datetime.now().strftime("%H:%M:%S"),
-            "visualisation": chart_type if 'chart_type' in locals() else "Non spécifié",
-            "parametres": {
-                "x_axis": x_axis if 'x_axis' in locals() else "Non spécifié",
-                "y_axis": y_axis if 'y_axis' in locals() else "Non spécifié",
-                "color": color_by if 'color_by' in locals() else "Non spécifié"
-            }
-        }
-        
-        # Bouton de sauvegarde
-        if st.button("💾 Sauvegarder cette exploration"):
-            st.session_state.exploration_history.append(current_exploration)
-            st.toast("Exploration sauvegardée!", icon="✅")
-        
-        # Affichage de l'historique
-        st.subheader("📜 Historique des explorations")
-        
-        if not st.session_state.exploration_history:
-            st.info("Aucune exploration sauvegardée")
-        else:
-            for i, exploration in enumerate(reversed(st.session_state.exploration_history[-5:]), 1):
-                with st.expander(f"Exploration #{len(st.session_state.exploration_history)-i+1} - {exploration['date']}"):
-                    st.json(exploration)
                     
                     # Bouton de suppression (admin seulement)
                     if st.session_state.is_admin:
