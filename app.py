@@ -612,7 +612,6 @@ if st.session_state.is_admin:
         st.session_state.is_admin = False
         st.sidebar.success("Déconnexion réussie")
 
-# [Tout le code précédent jusqu'à la section commentaires reste identique...]
 
 # =============================================
 # SECTION COMMENTAIRES & HISTORIQUE
