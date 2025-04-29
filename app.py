@@ -600,6 +600,7 @@ with tab2:
 # SECTION COMMENTAIRES - ADMIN
 # =============================================
 
+
 COMMENTS_FILE = "comments_advanced.csv"
 VISITORS_FILE = "visitors_log.csv"
 
