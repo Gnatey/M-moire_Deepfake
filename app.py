@@ -614,15 +614,12 @@ if st.session_state.is_admin:
 
 # [Tout le code précédent jusqu'à la section commentaires reste identique...]
 
-# =============================================
-# SECTION COMMENTAIRES
-# =============================================
+# SECTION COMMENTAIRES (placé DANS chaque onglet)
+# Exemple pour tab1 : "Tableau de Bord"
 with st.expander("💬 Commentaires", expanded=False):
     COMMENTS_FILE = "comments_advanced.csv"
+    current_tab_name = "Tableau de Bord"  # ← Nom unique pour cet onglet
 
-    current_tab_name = "Tableau de Bord"  # 🔁 À adapter pour chaque onglet : "Exploration Avancée", etc.
-
-    # Charger les commentaires existants
     if os.path.exists(COMMENTS_FILE):
         comments_df = pd.read_csv(COMMENTS_FILE)
         if "tab" not in comments_df.columns:
@@ -630,10 +627,9 @@ with st.expander("💬 Commentaires", expanded=False):
     else:
         comments_df = pd.DataFrame(columns=["user", "comment", "timestamp", "tab"])
 
-    # Formulaire pour écrire un commentaire
     with st.form(f"comment_form_{current_tab_name}"):
-        user_name = st.text_input("Votre nom", max_chars=20, key=f"name_input_{current_tab_name}")
-        user_comment = st.text_area("Votre commentaire", key=f"comment_input_{current_tab_name}")
+        user_name = st.text_input("Votre nom", key=f"name_{current_tab_name}")
+        user_comment = st.text_area("Votre commentaire", key=f"comment_{current_tab_name}")
         submitted = st.form_submit_button("Envoyer")
 
         if submitted and user_comment:
@@ -647,16 +643,13 @@ with st.expander("💬 Commentaires", expanded=False):
             comments_df.to_csv(COMMENTS_FILE, index=False)
             st.success("Commentaire enregistré!")
 
-    # Affichage des commentaires filtrés pour cet onglet
-    st.subheader(f"Derniers commentaires pour : {current_tab_name}")
+    st.subheader(f"Commentaires pour : {current_tab_name}")
     filtered_comments = comments_df[comments_df["tab"] == current_tab_name]
 
     for idx, row in filtered_comments.tail(5).iterrows():
         col1, col2 = st.columns([0.9, 0.1])
-
         with col1:
             st.markdown(f"**{row['user']}** ({row['timestamp']}):  \n{row['comment']}")
-
         with col2:
             if st.session_state.get('is_admin', False) or (user_name and user_name == row['user']):
                 if st.button("❌", key=f"delete_{current_tab_name}_{idx}"):
@@ -664,12 +657,10 @@ with st.expander("💬 Commentaires", expanded=False):
                     comments_df.to_csv(COMMENTS_FILE, index=False)
                     st.rerun()
 
-    # Admin : Vider tous les commentaires de cet onglet
     if st.session_state.get('is_admin', False):
-        if st.button(f"🗑️ Vider les commentaires de « {current_tab_name} »"):
+        if st.button(f"🗑️ Vider les commentaires de « {current_tab_name} »"):
             comments_df = comments_df[comments_df["tab"] != current_tab_name]
             comments_df.to_csv(COMMENTS_FILE, index=False)
-            st.success("Commentaires supprimés.")
             st.rerun()
 
 
