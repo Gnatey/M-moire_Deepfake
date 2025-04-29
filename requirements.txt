@@ -26,3 +26,5 @@ networkx==3.2.1
 
 # Export d'images Plotly
 kaleido==0.2.1
+
+pip install --upgrade streamlit
