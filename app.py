@@ -15,6 +15,7 @@ import kaleido
 import uuid
 import hashlib
 
+
 # =============================================
 # INITIALISATION ET CONFIGURATION DE BASE
 # =============================================
@@ -735,7 +736,7 @@ else:
             st.markdown(f"> {row['comment']}")
             if st.session_state.user_logged_in and (st.session_state.user_name == row['user'] or st.session_state.is_admin):
                 if st.button("🗑️ Supprimer", key=f"delete_{idx}"):
-                    with st.modal("⚠️ Confirmation suppression"):
+                    with st.checkbox("⚠️ Confirmation suppression"):
                         st.warning("Voulez-vous vraiment supprimer ce commentaire ?")
                         if st.button("✅ Oui, supprimer", key=f"confirm_delete_{idx}"):
                             comments_df = comments_df.drop(index=idx)
