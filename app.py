@@ -604,6 +604,7 @@ with tab2:
 # =============================================
 # CONFIGURATION
 # =============================================
+COMMENTS_FILE = "comments_advanced.csv"
 USERS_FILE = "users.csv"
 
 # =============================================
@@ -628,54 +629,6 @@ def load_users():
 
 def save_users(users_df):
     users_df.to_csv(USERS_FILE, index=False)
-
-def afficher_commentaires_onglet(tab_name: str):
-    st.subheader("💬 Commentaires")
-
-    commentaires = st.session_state.comments_by_tab.get(tab_name, [])
-
-    # Formulaire pour ajouter un commentaire
-    if st.session_state.get("user_logged_in", False):
-        with st.form(f"form_{tab_name}", clear_on_submit=True):
-            comment_text = st.text_area("Votre commentaire", key=f"input_{tab_name}")
-            if st.form_submit_button("📤 Envoyer"):
-                if comment_text.strip():
-                    st.session_state.comments_by_tab[tab_name].append({
-                        "id": str(uuid.uuid4()),
-                        "user": st.session_state["user_name"],
-                        "comment": comment_text.strip(),
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    })
-                    st.success("Commentaire ajouté.")
-                    st.experimental_rerun()
-                else:
-                    st.warning("Le commentaire est vide.")
-    else:
-        st.info("🔒 Connectez-vous pour pouvoir laisser un commentaire.")
-
-    # Affichage des commentaires existants
-    st.subheader("📝 Derniers commentaires")
-    if not commentaires:
-        st.info("Aucun commentaire.")
-    else:
-        for idx, row in enumerate(reversed(commentaires[-10:])):
-            with st.container(border=True):
-                st.markdown(f"**{row['user']}** - *{row['timestamp']}*")
-                st.markdown(f"> {row['comment']}")
-                if st.session_state.get("user_logged_in", False) and (
-                    st.session_state["user_name"] == row["user"] or st.session_state.get("is_admin", False)
-                ):
-                    delete_key = f"delete_{tab_name}_{idx}"
-                    confirm_key = f"confirm_{tab_name}_{idx}"
-                    if st.button("🗑️ Supprimer", key=delete_key):
-                        st.session_state[confirm_key] = True
-                    if st.session_state.get(confirm_key, False):
-                        st.warning("⚠️ Confirmer la suppression ?")
-                        if st.button("✅ Oui", key=f"confirm_btn_{tab_name}_{idx}"):
-                            del st.session_state.comments_by_tab[tab_name][len(commentaires) - 1 - idx]
-                            st.success("Commentaire supprimé.")
-                            st.session_state[confirm_key] = False
-                            st.experimental_rerun()
 
 # =============================================
 # SIDEBAR : CONNEXION / INSCRIPTION
@@ -732,6 +685,73 @@ if st.session_state.user_logged_in:
                 del st.session_state[key]
         st.sidebar.success("Déconnecté avec succès.")
         st.experimental_rerun()
+
+# =============================================
+# ZONE COMMENTAIRES
+# =============================================
+st.title("💬 Espace Commentaires")
+
+# Chargement des commentaires
+if os.path.exists(COMMENTS_FILE):
+    comments_df = pd.read_csv(COMMENTS_FILE)
+else:
+    comments_df = pd.DataFrame(columns=["id", "user", "comment", "timestamp"])
+
+# Verrouillage si pas connecté
+if not st.session_state.user_logged_in:
+    st.info("🔒 Connectez-vous pour pouvoir laisser un commentaire.")
+else:
+    # Formulaire d'ajout de commentaire
+    with st.form(key="comment_form", clear_on_submit=True):
+        comment_text = st.text_area("Votre commentaire")
+        submit_comment = st.form_submit_button("📤 Envoyer")
+
+        if submit_comment:
+            if not comment_text:
+                st.warning("Merci de remplir votre commentaire.")
+            else:
+                new_comment = {
+                    "id": str(uuid.uuid4()),
+                    "user": st.session_state.user_name,
+                    "comment": comment_text.strip(),
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                }
+                comments_df = pd.concat([comments_df, pd.DataFrame([new_comment])], ignore_index=True)
+                comments_df.to_csv(COMMENTS_FILE, index=False)
+                st.success("Commentaire envoyé !")
+                st.experimental_rerun()
+
+# =============================================
+# AFFICHAGE DES COMMENTAIRES
+# =============================================
+st.subheader("📝 Derniers commentaires")
+
+if comments_df.empty:
+    st.info("Aucun commentaire pour le moment.")
+else:
+    comments_display = comments_df.sort_values('timestamp', ascending=False).head(10)
+    for idx, row in comments_display.iterrows():
+        with st.container(border=True):
+            st.markdown(f"**{row['user']}** - *{row['timestamp']}*")
+            st.markdown(f"> {row['comment']}")
+
+            # Bouton de suppression + confirmation
+            delete_key = f"delete_{idx}"
+            confirm_key = f"confirm_delete_{idx}"
+
+            if st.button("🗑️ Supprimer", key=delete_key):
+                st.session_state[confirm_key] = True  # active la confirmation
+
+            if st.session_state.get(confirm_key, False):
+                st.warning("⚠️ Confirmation suppression")
+                if st.button("✅ Oui, supprimer", key=f"confirmed_{idx}"):
+                    comments_df = comments_df.drop(index=idx)
+                    comments_df.to_csv(COMMENTS_FILE, index=False)
+                    st.success("Commentaire supprimé.")
+                    st.session_state[confirm_key] = False  # reset
+                    st.experimental_rerun()
+
+
 
 # =============================================
 # ONGLETS EN CONSTRUCTION - MESSAGE EDITEUR
