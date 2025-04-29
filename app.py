@@ -617,68 +617,61 @@ if st.session_state.is_admin:
 # =============================================
 # SECTION COMMENTAIRES
 # =============================================
-
-import streamlit as st
-import pandas as pd
-import os
-from datetime import datetime
-
-# --- Section Connexion Admin ---
-st.sidebar.subheader("🔒 Accès Administrateur")
-password_input = st.sidebar.text_input("Mot de passe admin", type="password", key="admin_password_input")
-login_button = st.sidebar.button("Se connecter", key="login_button")
-
-if login_button:
-    if password_input == st.secrets["ADMIN_PASSWORD"]:
-        st.session_state['is_admin'] = True
-        st.sidebar.success("Connecté ✅")
-    else:
-        st.session_state['is_admin'] = False
-        st.sidebar.error("Mot de passe incorrect ❌")
-
-# --- Section Commentaires ---
 with st.expander("💬 Commentaires", expanded=False):
-    tab_comments, = st.tabs(["Commentaires"])
-    
-    with tab_comments:
-        COMMENTS_FILE = "comments_advanced.csv"
-        
-        if os.path.exists(COMMENTS_FILE):
-            comments_df = pd.read_csv(COMMENTS_FILE)
-        else:
-            comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
-        
-        # Formulaire de commentaire
-        with st.form("comment_form"):
-            user_name = st.text_input("Votre nom", max_chars=20)
-            user_comment = st.text_area("Votre commentaire")
-            submitted = st.form_submit_button("Envoyer")
-            
-            if submitted and user_comment:
-                new_comment = {
-                    "user": user_name,
-                    "comment": user_comment,
-                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
-                }
-                comments_df = pd.concat([comments_df, pd.DataFrame([new_comment])], ignore_index=True)
-                comments_df.to_csv(COMMENTS_FILE, index=False)
-                st.success("Commentaire enregistré!")
-        
-        # Affichage des commentaires
-        st.subheader("Derniers commentaires")
-        
-        for idx, row in comments_df.tail(5).iterrows():
-            col1, col2 = st.columns([0.9, 0.1])
-            
-            with col1:
-                st.markdown(f"**{row['user']}** ({row['timestamp']}):  \n{row['comment']}")
-            
-            with col2:
-                if st.session_state.get('is_admin', False) or (user_name and user_name == row['user']):
-                    if st.button("❌", key=f"delete_{idx}"):
-                        comments_df = comments_df.drop(index=idx)
-                        comments_df.to_csv(COMMENTS_FILE, index=False)
-                        st.rerun()
+    COMMENTS_FILE = "comments_advanced.csv"
+
+    current_tab_name = "Tableau de Bord"  # 🔁 À adapter pour chaque onglet : "Exploration Avancée", etc.
+
+    # Charger les commentaires existants
+    if os.path.exists(COMMENTS_FILE):
+        comments_df = pd.read_csv(COMMENTS_FILE)
+        if "tab" not in comments_df.columns:
+            comments_df["tab"] = "Inconnu"
+    else:
+        comments_df = pd.DataFrame(columns=["user", "comment", "timestamp", "tab"])
+
+    # Formulaire pour écrire un commentaire
+    with st.form(f"comment_form_{current_tab_name}"):
+        user_name = st.text_input("Votre nom", max_chars=20, key=f"name_input_{current_tab_name}")
+        user_comment = st.text_area("Votre commentaire", key=f"comment_input_{current_tab_name}")
+        submitted = st.form_submit_button("Envoyer")
+
+        if submitted and user_comment:
+            new_comment = {
+                "user": user_name,
+                "comment": user_comment,
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "tab": current_tab_name
+            }
+            comments_df = pd.concat([comments_df, pd.DataFrame([new_comment])], ignore_index=True)
+            comments_df.to_csv(COMMENTS_FILE, index=False)
+            st.success("Commentaire enregistré!")
+
+    # Affichage des commentaires filtrés pour cet onglet
+    st.subheader(f"Derniers commentaires pour : {current_tab_name}")
+    filtered_comments = comments_df[comments_df["tab"] == current_tab_name]
+
+    for idx, row in filtered_comments.tail(5).iterrows():
+        col1, col2 = st.columns([0.9, 0.1])
+
+        with col1:
+            st.markdown(f"**{row['user']}** ({row['timestamp']}):  \n{row['comment']}")
+
+        with col2:
+            if st.session_state.get('is_admin', False) or (user_name and user_name == row['user']):
+                if st.button("❌", key=f"delete_{current_tab_name}_{idx}"):
+                    comments_df = comments_df.drop(index=idx)
+                    comments_df.to_csv(COMMENTS_FILE, index=False)
+                    st.rerun()
+
+    # Admin : Vider tous les commentaires de cet onglet
+    if st.session_state.get('is_admin', False):
+        if st.button(f"🗑️ Vider les commentaires de « {current_tab_name} »"):
+            comments_df = comments_df[comments_df["tab"] != current_tab_name]
+            comments_df.to_csv(COMMENTS_FILE, index=False)
+            st.success("Commentaires supprimés.")
+            st.rerun()
+
 
 # =============================================
 # ONGLETS EN CONSTRUCTION - MESSAGE EDITEUR
