@@ -597,32 +597,34 @@ with tab2:
                 st.warning("Veuillez sélectionner des combinaisons de variables compatibles")
 
 # =============================================
-# SECTION COMMENTAIRES - ADMIN
+# SECTION COMMENTAIRES
 # =============================================
 
-
+# ------------------ CONFIG ------------------
 COMMENTS_FILE = "comments_advanced.csv"
 VISITORS_FILE = "visitors_log.csv"
 
-# ------------------ INITIALISATION SESSION ------------------
+# ------------------ INITIALISATION ------------------
+st.set_page_config(page_title="💬 Commentaires et Connexion", page_icon="💬")
+st.title("💬 Système de Commentaires et Connexion Sécurisée")
+
+# ------------------ SESSIONS INIT ------------------
 if 'is_admin' not in st.session_state:
     st.session_state.is_admin = False
 if 'user_logged_in' not in st.session_state:
     st.session_state.user_logged_in = False
 
-st.title("💬 Système de Commentaires et Connexion Sécurisée")
+# ------------------ VISITOR LOGIN ------------------
+with st.sidebar.expander("👤 Se connecter (facultatif)"):
+    pseudo = st.text_input("Votre prénom ou pseudo")
+    email = st.text_input("Votre email (optionnel)")
 
-# ------------------ VISITOR LOGIN (facultatif) ------------------
-with st.sidebar.expander("👤 Se connecter (Visiteur)"):
-    pseudo = st.text_input("Votre prénom ou pseudo", key="visitor_name")
-    email = st.text_input("Votre email (optionnel)", key="visitor_email")
-
-    if st.button("Se connecter (Visiteur)", key="visitor_login_btn"):
+    if st.button("Se connecter", key="visitor_login"):
         if pseudo:
             st.session_state.user_logged_in = True
             st.session_state.pseudo = pseudo
             st.success(f"Bienvenue {pseudo} !")
-
+            # Log visitor
             visitor_entry = {
                 "pseudo": pseudo,
                 "email": email,
@@ -635,14 +637,14 @@ with st.sidebar.expander("👤 Se connecter (Visiteur)"):
                 visitors_df = pd.DataFrame([visitor_entry])
             visitors_df.to_csv(VISITORS_FILE, index=False)
 
-# ------------------ ADMIN LOGIN (strict) ------------------
+# ------------------ ADMIN LOGIN ------------------
 st.sidebar.subheader("🔒 Connexion administrateur")
 
-first_name = st.sidebar.text_input("Prénom (admin)", key="admin_firstname")
-last_name = st.sidebar.text_input("Nom (admin)", key="admin_lastname")
-admin_password = st.sidebar.text_input("Mot de passe admin", type="password", key="admin_password")
+first_name = st.sidebar.text_input("Prénom (admin)")
+last_name = st.sidebar.text_input("Nom (admin)")
+admin_password = st.sidebar.text_input("Mot de passe", type="password")
 
-if st.sidebar.button("Se connecter (Admin)", key="admin_login_btn"):
+if st.sidebar.button("Se connecter", key="admin_login"):
     if first_name.lower() == "admin" and last_name.lower() == "principal" and admin_password == st.secrets.get("ADMIN_PASSWORD", "admin123"):
         st.session_state.is_admin = True
         st.sidebar.success(f"Bienvenue Administrateur {first_name} {last_name}")
@@ -650,7 +652,7 @@ if st.sidebar.button("Se connecter (Admin)", key="admin_login_btn"):
         st.sidebar.error("Identifiants incorrects")
 
 if st.session_state.is_admin:
-    if st.sidebar.button("Se déconnecter (Admin)", key="admin_logout_btn"):
+    if st.sidebar.button("Se déconnecter Admin"):
         st.session_state.is_admin = False
         st.sidebar.success("Déconnecté avec succès")
         st.rerun()
@@ -698,8 +700,6 @@ else:
         with st.container(border=True):
             st.markdown(f"**{row['user']}** - *{row['timestamp']}*")
             st.markdown(f"> {row['comment']}")
-
-            # DROIT DE SUPPRESSION : Admin OU Auteur du commentaire
             if st.session_state.is_admin or (st.session_state.user_logged_in and st.session_state.pseudo == row['user']):
                 if st.button("🗑️ Supprimer", key=f"delete_{idx}"):
                     with st.modal("⚠️ Confirmation"):
@@ -713,7 +713,6 @@ else:
 # ------------------ ADMIN OPTIONS ------------------
 if st.session_state.is_admin:
     st.markdown("### 🛠️ Options Administrateur")
-    
     if st.button("💣 Vider tous les commentaires", type="primary"):
         with st.modal("⚠️ Confirmation Vider"):
             st.error("Cette action est irréversible !")
