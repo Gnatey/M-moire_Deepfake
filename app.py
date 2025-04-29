@@ -615,70 +615,165 @@ if st.session_state.is_admin:
 # [Tout le code précédent jusqu'à la section commentaires reste identique...]
 
 # =============================================
-# SECTION COMMENTAIRES
+# SECTION COMMENTAIRES & HISTORIQUE
 # =============================================
 
-import streamlit as st
-import pandas as pd
-import os
-from datetime import datetime
+# Initialisation des états de session
+if 'is_admin' not in st.session_state:
+    st.session_state.is_admin = False
+if 'login_attempts' not in st.session_state:
+    st.session_state.login_attempts = 0
 
-# --- Section Connexion Admin ---
+# --- Section Authentification Admin ---
 st.sidebar.subheader("🔒 Accès Administrateur")
-password_input = st.sidebar.text_input("Mot de passe admin", type="password", key="admin_password_input")
-login_button = st.sidebar.button("Se connecter", key="login_button")
 
-if login_button:
-    if password_input == st.secrets["ADMIN_PASSWORD"]:
-        st.session_state['is_admin'] = True
-        st.sidebar.success("Connecté ✅")
-    else:
-        st.session_state['is_admin'] = False
-        st.sidebar.error("Mot de passe incorrect ❌")
+if st.session_state.is_admin:
+    if st.sidebar.button("Se déconnecter"):
+        st.session_state.is_admin = False
+        st.sidebar.success("Déconnecté avec succès")
+        st.rerun()
+else:
+    password_input = st.sidebar.text_input("Mot de passe admin", 
+                                         type="password", 
+                                         key="admin_password_input")
+    login_button = st.sidebar.button("Se connecter", key="login_button")
 
-# --- Section Commentaires ---
-with st.expander("💬 Commentaires", expanded=False):
-    tab_comments, = st.tabs(["Commentaires"])
+    if login_button:
+        if st.session_state.login_attempts >= 3:
+            st.sidebar.error("Trop de tentatives. Veuillez réessayer plus tard.")
+        elif password_input == st.secrets.get("ADMIN_PASSWORD", ""):
+            st.session_state.is_admin = True
+            st.session_state.login_attempts = 0
+            st.sidebar.success("Connecté ✅")
+            st.rerun()
+        else:
+            st.session_state.is_admin = False
+            st.session_state.login_attempts += 1
+            st.sidebar.error("Mot de passe incorrect ❌")
+
+# --- Section Principale Commentaires & Historique ---
+with st.expander("💬 Commentaires & Historique", expanded=False):
+    tab_comments, tab_history = st.tabs(["📝 Commentaires", "🕰️ Historique"])
     
+    # ---- Onglet Commentaires ----
     with tab_comments:
         COMMENTS_FILE = "comments_advanced.csv"
         
-        if os.path.exists(COMMENTS_FILE):
-            comments_df = pd.read_csv(COMMENTS_FILE)
-        else:
+        # Chargement des commentaires avec gestion d'erreur
+        try:
+            comments_df = pd.read_csv(COMMENTS_FILE) if os.path.exists(COMMENTS_FILE) else pd.DataFrame(columns=["user", "comment", "timestamp"])
+        except Exception as e:
+            st.error(f"Erreur de lecture des commentaires: {str(e)}")
             comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
         
         # Formulaire de commentaire
-        with st.form("comment_form"):
-            user_name = st.text_input("Votre nom", max_chars=20)
-            user_comment = st.text_area("Votre commentaire")
-            submitted = st.form_submit_button("Envoyer")
-            
-            if submitted and user_comment:
-                new_comment = {
-                    "user": user_name,
-                    "comment": user_comment,
-                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
-                }
-                comments_df = pd.concat([comments_df, pd.DataFrame([new_comment])], ignore_index=True)
-                comments_df.to_csv(COMMENTS_FILE, index=False)
-                st.success("Commentaire enregistré!")
-        
-        # Affichage des commentaires
-        st.subheader("Derniers commentaires")
-        
-        for idx, row in comments_df.tail(5).iterrows():
-            col1, col2 = st.columns([0.9, 0.1])
-            
+        with st.form("comment_form", clear_on_submit=True):
+            col1, col2 = st.columns([1, 3])
             with col1:
-                st.markdown(f"**{row['user']}** ({row['timestamp']}):  \n{row['comment']}")
-            
+                user_name = st.text_input("Votre nom", max_chars=20, help="20 caractères max")
             with col2:
-                if st.session_state.get('is_admin', False) or (user_name and user_name == row['user']):
-                    if st.button("❌", key=f"delete_{idx}"):
-                        comments_df = comments_df.drop(index=idx)
+                user_comment = st.text_area("Votre commentaire", help="Partagez vos observations")
+            
+            submitted = st.form_submit_button("📤 Envoyer")
+            
+            if submitted:
+                if not user_comment:
+                    st.warning("Veuillez écrire un commentaire")
+                else:
+                    new_comment = {
+                        "user": user_name.strip() or "Anonyme",
+                        "comment": user_comment.strip(),
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    }
+                    comments_df = pd.concat([comments_df, pd.DataFrame([new_comment])], ignore_index=True)
+                    try:
                         comments_df.to_csv(COMMENTS_FILE, index=False)
-                        st.rerun()
+                        st.success("✅ Commentaire enregistré!")
+                    except Exception as e:
+                        st.error(f"Erreur d'enregistrement: {str(e)}")
+        
+        # Affichage et gestion des commentaires
+        st.subheader("💬 Derniers commentaires")
+        
+        if comments_df.empty:
+            st.info("Aucun commentaire pour le moment. Soyez le premier à commenter!")
+        else:
+            # Tri par date décroissante
+            comments_display = comments_df.sort_values('timestamp', ascending=False).head(5)
+            
+            for idx, row in comments_display.iterrows():
+                with st.container(border=True):
+                    col1, col2 = st.columns([4, 1])
+                    
+                    with col1:
+                        st.markdown(f"**{row['user']}** - *{row['timestamp']}*")
+                        st.markdown(f"> {row['comment']}")
+                    
+                    with col2:
+                        # Bouton suppression seulement pour admin ou auteur
+                        if st.session_state.is_admin or ('user_name' in locals() and user_name == row['user']):
+                            if st.button("🗑️", key=f"delete_{idx}"):
+                                if st.session_state.is_admin or st.checkbox("Confirmer la suppression de votre commentaire?"):
+                                    comments_df = comments_df.drop(index=idx)
+                                    try:
+                                        comments_df.to_csv(COMMENTS_FILE, index=False)
+                                        st.success("Commentaire supprimé")
+                                        st.rerun()
+                                    except Exception as e:
+                                        st.error(f"Erreur: {str(e)}")
+        
+        # Bouton de réinitialisation (admin seulement)
+        if st.session_state.is_admin and not comments_df.empty:
+            if st.button("💣 Vider tous les commentaires", type="primary"):
+                with st.popover("⚠️ Confirmation requise"):
+                    st.warning("Cette action est irréversible!")
+                    if st.button("Confirmer la suppression totale"):
+                        try:
+                            empty_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
+                            empty_df.to_csv(COMMENTS_FILE, index=False)
+                            st.success("Tous les commentaires ont été supprimés")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erreur: {str(e)}")
+    
+    # ---- Onglet Historique ----
+    with tab_history:
+        # Initialisation de l'historique
+        if 'exploration_history' not in st.session_state:
+            st.session_state.exploration_history = []
+        
+        # Sauvegarde de l'exploration actuelle
+        current_exploration = {
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "heure": datetime.now().strftime("%H:%M:%S"),
+            "visualisation": chart_type if 'chart_type' in locals() else "Non spécifié",
+            "parametres": {
+                "x_axis": x_axis if 'x_axis' in locals() else "Non spécifié",
+                "y_axis": y_axis if 'y_axis' in locals() else "Non spécifié",
+                "color": color_by if 'color_by' in locals() else "Non spécifié"
+            }
+        }
+        
+        # Bouton de sauvegarde
+        if st.button("💾 Sauvegarder cette exploration"):
+            st.session_state.exploration_history.append(current_exploration)
+            st.toast("Exploration sauvegardée!", icon="✅")
+        
+        # Affichage de l'historique
+        st.subheader("📜 Historique des explorations")
+        
+        if not st.session_state.exploration_history:
+            st.info("Aucune exploration sauvegardée")
+        else:
+            for i, exploration in enumerate(reversed(st.session_state.exploration_history[-5:]), 1):
+                with st.expander(f"Exploration #{len(st.session_state.exploration_history)-i+1} - {exploration['date']}"):
+                    st.json(exploration)
+                    
+                    # Bouton de suppression (admin seulement)
+                    if st.session_state.is_admin:
+                        if st.button(f"Supprimer cette exploration", key=f"del_exp_{i}"):
+                            st.session_state.exploration_history.pop(len(st.session_state.exploration_history)-i)
+                            st.rerun()
 
 # =============================================
 # ONGLETS EN CONSTRUCTION - MESSAGE EDITEUR
