@@ -710,7 +710,7 @@ with st.expander("💬 Commentaires & Historique", expanded=False):
 # =============================================
 with tab3:
     st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSE")
-    col_img, col_msg = st.columns([1, 8])
+    col_img, col_msg = st.columns([1, 10])
     with col_img:
         st.image("images.jpeg", width=100)
     with col_msg:
