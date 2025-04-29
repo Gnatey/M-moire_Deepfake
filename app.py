@@ -607,180 +607,87 @@ with tab2:
 COMMENTS_FILE = "comments_advanced.csv"
 USERS_FILE = "users.csv"
 
-# =============================================
-# INITIALISATION DES FICHIERS
-# =============================================
-def init_files():
-    # Fichier des commentaires
-    if not os.path.exists(COMMENTS_FILE):
-        pd.DataFrame(columns=["id", "user", "comment", "timestamp", "tab"]).to_csv(COMMENTS_FILE, index=False)
-    
-    # Fichier des utilisateurs
-    if not os.path.exists(USERS_FILE):
-        pd.DataFrame(columns=["pseudo", "password"]).to_csv(USERS_FILE, index=False)
-
-init_files()
+# Initialisation des fichiers
+if not os.path.exists(COMMENTS_FILE):
+    pd.DataFrame(columns=["id", "user", "comment", "timestamp", "tab"]).to_csv(COMMENTS_FILE, index=False)
 
 # =============================================
-# FONCTIONS UTILES
+# FONCTIONS UTILES (à garder identiques)
 # =============================================
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
 def load_users():
-    return pd.read_csv(USERS_FILE)
+    if os.path.exists(USERS_FILE):
+        return pd.read_csv(USERS_FILE)
+    return pd.DataFrame(columns=["pseudo", "password"])
 
 def save_users(users_df):
     users_df.to_csv(USERS_FILE, index=False)
 
 def load_comments():
-    return pd.read_csv(COMMENTS_FILE)
+    if os.path.exists(COMMENTS_FILE):
+        return pd.read_csv(COMMENTS_FILE)
+    return pd.DataFrame(columns=["id", "user", "comment", "timestamp", "tab"])
 
 def save_comments(comments_df):
     comments_df.to_csv(COMMENTS_FILE, index=False)
 
-# =============================================
-# INITIALISATION SESSION
-# =============================================
-if 'user_logged_in' not in st.session_state:
-    st.session_state.user_logged_in = False
-if 'is_admin' not in st.session_state:
-    st.session_state.is_admin = False
+def add_comment(comment_text, tab_name):
+    comments_df = load_comments()
+    new_comment = {
+        "id": str(uuid.uuid4()),
+        "user": st.session_state.user_name,
+        "comment": comment_text.strip(),
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "tab": tab_name
+    }
+    updated_comments = pd.concat([comments_df, pd.DataFrame([new_comment])], ignore_index=True)
+    save_comments(updated_comments)
+
+def get_comments_for_tab(tab_name):
+    comments_df = load_comments()
+    return comments_df[comments_df["tab"] == tab_name]
 
 # =============================================
-# SIDEBAR : CONNEXION / INSCRIPTION
+# SYSTEME DE COMMENTAIRES PAR ONGLET 
 # =============================================
-st.sidebar.header("🔐 Connexion rapide")
-
-mode = st.sidebar.radio("Choisissez une option :", ["Se connecter", "S'inscrire"])
-
-with st.sidebar.form(key="auth_form"):
-    pseudo = st.text_input("Votre pseudo")
-    password = st.text_input("Mot de passe", type="password")
-    submit = st.form_submit_button("Valider")
-
-    if submit:
-        if not pseudo or not password:
-            st.sidebar.error("Veuillez remplir tous les champs.")
-        else:
-            users_df = load_users()
-
-            if mode == "Se connecter":
-                hashed_pwd = hash_password(password)
-                if (users_df['pseudo'] == pseudo).any():
-                    user_row = users_df.loc[users_df['pseudo'] == pseudo].iloc[0]
-                    if user_row['password'] == hashed_pwd:
-                        st.session_state.user_logged_in = True
-                        st.session_state.user_name = pseudo
-                        if pseudo.lower() == "admin":
-                            st.session_state.is_admin = True
-                        st.sidebar.success(f"Bienvenue {pseudo} !")
+def comment_system(tab_name):
+    """À appeler dans chaque onglet"""
+    st.subheader(f"💬 Commentaires ({tab_name})")
+    
+    # Charger seulement les commentaires de cet onglet
+    tab_comments = get_comments_for_tab(tab_name)
+    
+    # Ajout de commentaire
+    if st.session_state.user_logged_in:
+        with st.form(key=f"comment_form_{tab_name}", clear_on_submit=True):
+            comment_text = st.text_area("Votre commentaire")
+            if st.form_submit_button("Envoyer") and comment_text:
+                add_comment(comment_text, tab_name)
+                st.experimental_rerun()
+    else:
+        st.info("Connectez-vous pour commenter")
+    
+    # Affichage des commentaires
+    if tab_comments.empty:
+        st.info("Aucun commentaire")
+    else:
+        for _, row in tab_comments.sort_values("timestamp", ascending=False).iterrows():
+            with st.container(border=True):
+                st.markdown(f"**{row['user']}** - *{row['timestamp']}*")
+                st.markdown(row["comment"])
+                
+                # Suppression (auteur ou admin)
+                if st.session_state.user_logged_in and (
+                    st.session_state.user_name == row["user"] or 
+                    st.session_state.is_admin
+                ):
+                    if st.button("Supprimer", key=f"del_{row['id']}"):
+                        comments_df = load_comments()
+                        comments_df = comments_df[comments_df["id"] != row["id"]]
+                        save_comments(comments_df)
                         st.experimental_rerun()
-                    else:
-                        st.sidebar.error("Mot de passe incorrect.")
-                else:
-                    st.sidebar.error("Utilisateur inconnu.")
-            elif mode == "S'inscrire":
-                if (users_df['pseudo'] == pseudo).any():
-                    st.sidebar.error("Ce pseudo est déjà utilisé.")
-                else:
-                    new_user = pd.DataFrame([{"pseudo": pseudo, "password": hash_password(password)}])
-                    users_df = pd.concat([users_df, new_user], ignore_index=True)
-                    save_users(users_df)
-                    st.sidebar.success("Inscription réussie, vous êtes connecté.")
-                    st.session_state.user_logged_in = True
-                    st.session_state.user_name = pseudo
-                    st.experimental_rerun()
-
-# =============================================
-# DECONNEXION
-# =============================================
-if st.session_state.user_logged_in:
-    if st.sidebar.button("Se déconnecter"):
-        for key in ["user_logged_in", "is_admin", "user_name"]:
-            if key in st.session_state:
-                del st.session_state[key]
-        st.sidebar.success("Déconnecté avec succès.")
-        st.experimental_rerun()
-
-# =============================================
-# INTERFACE PRINCIPALE
-# =============================================
-st.title("💬 Application avec Commentaires par Onglet")
-
-# Création des onglets
-tab1, tab2, tab3 = st.tabs(["Onglet 1", "Onglet 2", "Onglet 3"])
-
-def display_tab_comment_system(tab, tab_name):
-    """Fonction générique pour afficher le système de commentaires dans un onglet"""
-    with tab:
-        st.header(f"📝 {tab_name} - Commentaires")
-        
-        # Chargement des commentaires
-        comments_df = load_comments()
-        tab_comments = comments_df[comments_df["tab"] == tab_name.lower()]
-        
-        # Section commentaires - seulement si connecté
-        if not st.session_state.user_logged_in:
-            st.info("🔒 Connectez-vous pour pouvoir laisser un commentaire.")
-        else:
-            # Formulaire d'ajout de commentaire
-            with st.form(key=f"comment_form_{tab_name}", clear_on_submit=True):
-                comment_text = st.text_area("Votre commentaire")
-                submit_comment = st.form_submit_button("📤 Envoyer")
-
-                if submit_comment and comment_text:
-                    new_comment = {
-                        "id": str(uuid.uuid4()),
-                        "user": st.session_state.user_name,
-                        "comment": comment_text.strip(),
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "tab": tab_name.lower()
-                    }
-                    updated_comments = pd.concat([comments_df, pd.DataFrame([new_comment])], ignore_index=True)
-                    save_comments(updated_comments)
-                    st.success("Commentaire envoyé !")
-                    st.experimental_rerun()
-        
-        # Affichage des commentaires
-        if tab_comments.empty:
-            st.info("Aucun commentaire pour le moment dans cet onglet.")
-        else:
-            st.subheader("Derniers commentaires")
-            for _, row in tab_comments.sort_values('timestamp', ascending=False).iterrows():
-                with st.container(border=True):
-                    st.markdown(f"**{row['user']}** - *{row['timestamp']}*")
-                    st.markdown(f"> {row['comment']}")
-                    
-                    # Bouton de suppression (visible seulement pour l'admin ou l'auteur du commentaire)
-                    if st.session_state.user_logged_in and (
-                        st.session_state.is_admin or 
-                        st.session_state.user_name == row['user']
-                    ):
-                        delete_key = f"delete_{row['id']}"
-                        confirm_key = f"confirm_delete_{row['id']}"
-                        
-                        if st.button("🗑️ Supprimer", key=delete_key):
-                            st.session_state[confirm_key] = True
-                        
-                        if st.session_state.get(confirm_key, False):
-                            st.warning("⚠️ Voulez-vous vraiment supprimer ce commentaire ?")
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                if st.button("✅ Oui", key=f"yes_{delete_key}"):
-                                    updated_comments = comments_df[comments_df["id"] != row['id']]
-                                    save_comments(updated_comments)
-                                    st.session_state[confirm_key] = False
-                                    st.experimental_rerun()
-                            with col2:
-                                if st.button("❌ Non", key=f"no_{delete_key}"):
-                                    st.session_state[confirm_key] = False
-                                    st.experimental_rerun()
-
-# Affichage des onglets avec leur système de commentaires
-display_tab_comment_system(tab1, "Onglet 1")
-display_tab_comment_system(tab2, "Onglet 2")
-display_tab_comment_system(tab3, "Onglet 3")
 
 
 
