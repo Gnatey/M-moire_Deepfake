@@ -636,9 +636,9 @@ if login_button:
         st.session_state['is_admin'] = False
         st.sidebar.error("Mot de passe incorrect ❌")
 
-# --- Section Commentaires & Historique ---
+# --- Section Commentaires ---
 with st.expander("💬 Commentaires", expanded=False):
-    tab_comments, tab_history = st.tabs(["Commentaires", "Historique"])
+    tab_comments, tab_history = st.tabs(["Commentaires"])
     
     with tab_comments:
         COMMENTS_FILE = "comments_advanced.csv"
