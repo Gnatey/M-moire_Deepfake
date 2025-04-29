@@ -718,7 +718,7 @@ with tab3:
 
 with tab4:
     st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSE")
-    col_img, col_msg = st.columns([1, 4])
+    col_img, col_msg = st.columns([1, 10])
     with col_img:
         st.image("images.jpeg", width=100)
     with col_msg:
@@ -726,7 +726,7 @@ with tab4:
 
 with tab5:
     st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSE")
-    col_img, col_msg = st.columns([1, 4])
+    col_img, col_msg = st.columns([1, 10])
     with col_img:
         st.image("images.jpeg", width=100)
     with col_msg:
