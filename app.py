@@ -718,8 +718,56 @@ else:
                 }
                 comments_df = pd.concat([comments_df, pd.DataFrame([new_comment])], ignore_index=True)
                 comments_df.to_csv(COMMENTS_FILE, index=False)
-                st.success("Commentaire envoyé !")
-                st.experimental_rerun()
+
+                st.success("Commentaire enregistré!")
+        
+        # Affichage des commentaires
+        st.subheader("Derniers commentaires")
+        
+        for idx, row in comments_df.tail(5).iterrows():
+            col1, col2 = st.columns([0.9, 0.1])
+            
+            with col1:
+                st.markdown(f"**{row['user']}** ({row['timestamp']}):  \n{row['comment']}")
+            
+            with col2:
+                if st.session_state.get('is_admin', False) or (user_name and user_name == row['user']):
+                    if st.button("❌", key=f"delete_{idx}"):
+                        comments_df = comments_df.drop(index=idx)
+                        comments_df.to_csv(COMMENTS_FILE, index=False)
+                        st.rerun()
+        
+        if st.session_state.get('is_admin', False):
+            if st.button("🗑️ Vider tous les commentaires"):
+                comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
+                comments_df.to_csv(COMMENTS_FILE, index=False)
+                st.rerun()
+    
+    with tab_history:
+        if 'exploration_history' not in st.session_state:
+            st.session_state.exploration_history = []
+        
+        current_exploration = {
+            "x_axis": "X",
+            "y_axis": "Y",
+            "color_by": "Couleur",
+            "chart_type": "Type",
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
+        }
+        
+        if st.button("💾 Sauvegarder cette exploration"):
+            st.session_state.exploration_history.append(current_exploration)
+            st.success("Exploration sauvegardée dans l'historique!")
+        
+        st.subheader("Historique des explorations")
+        for i, exploration in enumerate(st.session_state.exploration_history[-5:]):
+            st.markdown(
+                f"{i+1}. **{exploration['x_axis']}** × **{exploration['y_axis']}** "
+                f"(couleur: {exploration['color_by']}) - {exploration['chart_type']} "
+                f"({exploration['timestamp']})"
+            )
+        st.success("Commentaire envoyé !")
+        st.experimental_rerun()
 
 # =============================================
 # AFFICHAGE DES COMMENTAIRES
