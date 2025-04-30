@@ -729,7 +729,7 @@ else:
                 st.markdown(f"**{row['user']}** ({row['timestamp']}):  \n{row['comment']}")
             
             with col2:
-                if st.session_state.get('is_admin', False) or (user_name and user_name == row['user']):
+                if st.session_state.get('is_admin', False) or (st.session_state.get("user_name") == row['user']):
                     if st.button("❌", key=f"delete_{idx}"):
                         comments_df = comments_df.drop(index=idx)
                         comments_df.to_csv(COMMENTS_FILE, index=False)
@@ -740,16 +740,7 @@ else:
                 comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
                 comments_df.to_csv(COMMENTS_FILE, index=False)
                 st.rerun()
-        
-        current_exploration = {
-            "x_axis": "X",
-            "y_axis": "Y",
-            "color_by": "Couleur",
-            "chart_type": "Type",
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
-        }
-        
-        
+                
     with st.expander("💾 Sauvegarder cette exploration"):
         current_exploration = {
             "x_axis": x_axis,
@@ -788,8 +779,6 @@ else:
                     st.success("Commentaire supprimé.")
                     st.session_state[confirm_key] = False  # reset
                     st.experimental_rerun()
-
-
 
 # =============================================
 # ONGLETS EN CONSTRUCTION - MESSAGE EDITEUR
