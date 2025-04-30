@@ -722,8 +722,6 @@ else:
                 st.success("Commentaire enregistré!")
         
         # Affichage des commentaires
-        st.subheader("Derniers commentaires")
-        
         for idx, row in comments_df.tail(5).iterrows():
             col1, col2 = st.columns([0.9, 0.1])
             
