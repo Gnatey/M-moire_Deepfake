@@ -687,9 +687,42 @@ if st.session_state.user_logged_in:
         st.experimental_rerun()
 
 # =============================================
-# INITIALISATION COMMENTAIRES
+# ZONE COMMENTAIRES
 # =============================================
-if "comments" not in st.session_state:
+st.title("💬 Espace Commentaires")
+
+# Chargement des commentaires
+if os.path.exists(COMMENTS_FILE):
+    comments_df = pd.read_csv(COMMENTS_FILE)
+else:
+    comments_df = pd.DataFrame(columns=["id", "user", "comment", "timestamp"])
+
+# Verrouillage si pas connecté
+if not st.session_state.user_logged_in:
+    st.info("🔒 Connectez-vous pour pouvoir laisser un commentaire.")
+else:
+    # Formulaire d'ajout de commentaire
+    with st.form(key="comment_form", clear_on_submit=True):
+        comment_text = st.text_area("Votre commentaire")
+        submit_comment = st.form_submit_button("📤 Envoyer")
+
+        if submit_comment:
+            if not comment_text:
+                st.warning("Merci de remplir votre commentaire.")
+            else:
+                new_comment = {
+                    "id": str(uuid.uuid4()),
+                    "user": st.session_state.user_name,
+                    "comment": comment_text.strip(),
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                }
+                comments_df = pd.concat([comments_df, pd.DataFrame([new_comment])], ignore_index=True)
+                comments_df.to_csv(COMMENTS_FILE, index=False)
+
+                st.success("Commentaire enregistré!")
+        
+# Ajout au début de ton script
+if 'comments' not in st.session_state:
     st.session_state.comments = {
         "tab1": [],
         "tab2": [],
@@ -698,21 +731,19 @@ if "comments" not in st.session_state:
         "tab5": []
     }
 
-# =============================================
-# FONCTION COMMENTAIRES PAR ONGLET
-# =============================================
+
 def espace_commentaires(tab_name):
     st.subheader("💬 Espace Commentaires")
 
     if not st.session_state.user_logged_in:
-        st.info("🔐 Connectez-vous pour laisser un commentaire.")
+        st.info("🔐 Connectez-vous pour pouvoir laisser un commentaire.")
         return
 
     with st.form(f"form_{tab_name}", clear_on_submit=True):
         comment_text = st.text_area("Votre commentaire", key=f"input_{tab_name}")
-        submit = st.form_submit_button("📤 Envoyer")
+        submit_comment = st.form_submit_button("📤 Envoyer")
 
-        if submit:
+        if submit_comment:
             if not comment_text.strip():
                 st.warning("Merci d'écrire un commentaire.")
             else:
@@ -723,7 +754,7 @@ def espace_commentaires(tab_name):
                     "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 }
                 st.session_state.comments[tab_name].append(new_comment)
-                st.success("💬 Commentaire envoyé !")
+                st.success("Commentaire ajouté.")
                 st.experimental_rerun()
 
     st.subheader("🖍️ Derniers Commentaires")
@@ -741,7 +772,7 @@ def espace_commentaires(tab_name):
                     delete_key = f"delete_{tab_name}_{idx}"
                     confirm_key = f"confirm_{tab_name}_{idx}"
 
-                    if st.button("🗑️ Supprimer", key=delete_key):
+                    if st.button("🔚 Supprimer", key=delete_key):
                         st.session_state[confirm_key] = True
 
                     if st.session_state.get(confirm_key, False):
