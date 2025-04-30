@@ -761,22 +761,6 @@ else:
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
         }
 
-        if st.button("Sauvegarder dans l'historique"):
-            if "exploration_history" not in st.session_state:
-                st.session_state.exploration_history = []
-
-            st.session_state.exploration_history.append(current_exploration)
-            st.success("Exploration sauvegardée !")
-
-        if "exploration_history" in st.session_state:
-            st.subheader("📚 Historique des explorations")
-            for i, exploration in enumerate(st.session_state.exploration_history[-5:]):
-                st.markdown(
-                    f"{i+1}. **{exploration['x_axis']}** × **{exploration['y_axis']}** "
-                    f"(couleur : {exploration['color_by']}) - {exploration['chart_type']} "
-                    f"({exploration['timestamp']})"
-                )
-
 # =============================================
 # AFFICHAGE DES COMMENTAIRES
 # =============================================
