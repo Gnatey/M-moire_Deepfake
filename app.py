@@ -721,53 +721,67 @@ else:
 
                 st.success("Commentaire enregistré!")
         
-        # Affichage des commentaires
-        st.subheader("Derniers commentaires")
-        
-        for idx, row in comments_df.tail(5).iterrows():
-            col1, col2 = st.columns([0.9, 0.1])
-            
-            with col1:
-                st.markdown(f"**{row['user']}** ({row['timestamp']}):  \n{row['comment']}")
-            
-            with col2:
-                if st.session_state.get('is_admin', False) or (user_name and user_name == row['user']):
-                    if st.button("❌", key=f"delete_{idx}"):
-                        comments_df = comments_df.drop(index=idx)
-                        comments_df.to_csv(COMMENTS_FILE, index=False)
-                        st.rerun()
-        
-        if st.session_state.get('is_admin', False):
-            if st.button("🗑️ Vider tous les commentaires"):
-                comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
-                comments_df.to_csv(COMMENTS_FILE, index=False)
-                st.rerun()
-    
-    with tab_history:
-        if 'exploration_history' not in st.session_state:
-            st.session_state.exploration_history = []
-        
-        current_exploration = {
-            "x_axis": "X",
-            "y_axis": "Y",
-            "color_by": "Couleur",
-            "chart_type": "Type",
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
-        }
-        
-        if st.button("💾 Sauvegarder cette exploration"):
-            st.session_state.exploration_history.append(current_exploration)
-            st.success("Exploration sauvegardée dans l'historique!")
-        
-        st.subheader("Historique des explorations")
-        for i, exploration in enumerate(st.session_state.exploration_history[-5:]):
-            st.markdown(
-                f"{i+1}. **{exploration['x_axis']}** × **{exploration['y_axis']}** "
-                f"(couleur: {exploration['color_by']}) - {exploration['chart_type']} "
-                f"({exploration['timestamp']})"
-            )
-        st.success("Commentaire envoyé !")
-        st.experimental_rerun()
+# Ajout au début de ton script
+if 'comments' not in st.session_state:
+    st.session_state.comments = {
+        "tab1": [],
+        "tab2": [],
+        "tab3": [],
+        "tab4": [],
+        "tab5": []
+    }
+
+
+def espace_commentaires(tab_name):
+    st.subheader("💬 Espace Commentaires")
+
+    if not st.session_state.user_logged_in:
+        st.info("🔐 Connectez-vous pour pouvoir laisser un commentaire.")
+        return
+
+    with st.form(f"form_{tab_name}", clear_on_submit=True):
+        comment_text = st.text_area("Votre commentaire", key=f"input_{tab_name}")
+        submit_comment = st.form_submit_button("📤 Envoyer")
+
+        if submit_comment:
+            if not comment_text.strip():
+                st.warning("Merci d'écrire un commentaire.")
+            else:
+                new_comment = {
+                    "id": str(uuid.uuid4()),
+                    "user": st.session_state.user_name,
+                    "comment": comment_text.strip(),
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                }
+                st.session_state.comments[tab_name].append(new_comment)
+                st.success("Commentaire ajouté.")
+                st.experimental_rerun()
+
+    st.subheader("🖍️ Derniers Commentaires")
+    commentaires = st.session_state.comments[tab_name]
+
+    if not commentaires:
+        st.info("Aucun commentaire pour cet onglet.")
+    else:
+        for idx, row in enumerate(reversed(commentaires[-10:])):
+            with st.container(border=True):
+                st.markdown(f"**{row['user']}** - *{row['timestamp']}*")
+                st.markdown(f"> {row['comment']}")
+
+                if st.session_state.user_name == row['user'] or st.session_state.get("is_admin", False):
+                    delete_key = f"delete_{tab_name}_{idx}"
+                    confirm_key = f"confirm_{tab_name}_{idx}"
+
+                    if st.button("🔚 Supprimer", key=delete_key):
+                        st.session_state[confirm_key] = True
+
+                    if st.session_state.get(confirm_key, False):
+                        st.warning("⚠️ Confirmation suppression")
+                        if st.button("✅ Oui, supprimer", key=f"confirm_btn_{tab_name}_{idx}"):
+                            del st.session_state.comments[tab_name][len(commentaires) - 1 - idx]
+                            st.success("Commentaire supprimé.")
+                            st.session_state[confirm_key] = False
+                            st.experimental_rerun()
 
 # =============================================
 # AFFICHAGE DES COMMENTAIRES
