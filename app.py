@@ -743,9 +743,9 @@ else:
                 comments_df.to_csv(COMMENTS_FILE, index=False)
                 st.rerun()
     
-    with tab_history:
-        if 'exploration_history' not in st.session_state:
-            st.session_state.exploration_history = []
+            with tab_history:
+                if 'exploration_history' not in st.session_state:
+                    st.session_state.exploration_history = []
         
         current_exploration = {
             "x_axis": "X",
