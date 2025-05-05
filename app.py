@@ -785,7 +785,7 @@ else:
 # =============================================
 with tab3:
     st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSE")
-    col_img, col_msg = st.columns([1, 10])
+    col_img, col_msg = st.columns([1, 20])
     with col_img:
         st.image("images.jpeg", width=100)
     with col_msg:
