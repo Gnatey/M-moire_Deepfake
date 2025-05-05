@@ -783,7 +783,7 @@ else:
 # =============================================
 # ONGLETS EN CONSTRUCTION - MESSAGE EDITEUR
 # =============================================
-with tab3,tab4,tab5:
+with [tab3,tab4,tab5]:
     st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSE")
     col_img, col_msg = st.columns([1, 5])
     with col_img:
