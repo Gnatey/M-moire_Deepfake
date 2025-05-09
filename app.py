@@ -28,7 +28,7 @@ def connect_to_gsheet():
     creds_dict = json.loads(st.secrets["GSHEET_CREDS"])
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
-    sheet = client.open("users_data").sheet1
+    sheet = client.open("user").worksheet("user_data")
     return sheet
 
 def load_users():
