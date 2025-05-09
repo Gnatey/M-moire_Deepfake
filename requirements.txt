@@ -9,22 +9,26 @@ seaborn==0.13.2
 plotly==5.20.0
 altair==5.3.0
 
-# Machine Learning / Clustering
+# Machine Learning / Statistiques
 scikit-learn==1.4.2
+scipy==1.12.0  # nécessaire pour chi2_contingency
 
-# PDF Report (optionnel)
-reportlab==4.1.0
+# PDF Report / Export d’images Plotly
+kaleido==0.2.1
+reportlab==4.1.0  # facultatif
 
-# Interactive DataTables (optionnel)
+# Google Sheets API
+gspread==5.12.4
+google-auth==2.29.0  # ou >=2.0.0 si tu préfères
+
+# Interactive tables
 streamlit-aggrid==0.3.4.post3
 
-# Composants supplémentaires
+# Extras Streamlit
 streamlit-extras>=0.2.7
 
-# Graphes de Réseau
+# Réseaux
 networkx==3.2.1
 
-# Export d'images Plotly
-kaleido==0.2.1
-
-pip install google-auth
+# Images
+Pillow==10.3.0
