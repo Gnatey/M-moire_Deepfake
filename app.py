@@ -19,28 +19,6 @@ from oauth2client.service_account import ServiceAccountCredentials
 import gspread
 
 # =============================================
-# API GOOGLE
-# =============================================
-
-@st.cache_resource
-def connect_to_gsheet():
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds_dict = json.loads(st.secrets["GSHEET_CREDS"])
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-    client = gspread.authorize(creds)
-    sheet = client.open("user").worksheet("user_data")
-    return sheet
-
-def load_users():
-    sheet = connect_to_gsheet()
-    data = sheet.get_all_records()
-    return pd.DataFrame(data)
-
-def save_user(pseudo, password):
-    sheet = connect_to_gsheet()
-    sheet.append_row([pseudo, password])
-
-# =============================================
 # INITIALISATION ET CONFIGURATION DE BASE
 # =============================================
 st.set_page_config(
@@ -632,27 +610,34 @@ COMMENTS_FILE = "comments_advanced.csv"
 USERS_FILE = "users.csv"
 
 # =============================================
+# API GOOGLE
+# =============================================
+
+@st.cache_resource
+def connect_to_gsheet():
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    creds_dict = json.loads(st.secrets["GSHEET_CREDS"])
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    client = gspread.authorize(creds)
+    sheet = client.open("user").worksheet("user_data")
+    return sheet
+
+def load_users():
+    sheet = connect_to_gsheet()
+    data = sheet.get_all_records()
+    return pd.DataFrame(data)
+
+def save_user(pseudo, password):
+    sheet = connect_to_gsheet()
+    sheet.append_row([pseudo, password])
+
+# =============================================
 # INITIALISATION SESSION
 # =============================================
 if 'user_logged_in' not in st.session_state:
     st.session_state.user_logged_in = False
 if 'is_admin' not in st.session_state:
     st.session_state.is_admin = False
-
-# =============================================
-# FONCTIONS UTILES
-# =============================================
-def hash_password(password):
-    return hashlib.sha256(password.encode()).hexdigest()
-
-def load_users():
-    if os.path.exists(USERS_FILE):
-        return pd.read_csv(USERS_FILE)
-    else:
-        return pd.DataFrame(columns=["pseudo", "password"])
-
-def save_users(users_df):
-    users_df.to_csv(USERS_FILE, index=False)
 
 # =============================================
 # SIDEBAR : CONNEXION / INSCRIPTION
@@ -687,13 +672,13 @@ with st.sidebar.form(key="auth_form"):
                         st.sidebar.error("Mot de passe incorrect.")
                 else:
                     st.sidebar.error("Utilisateur inconnu.")
+            
             elif mode == "S'inscrire":
                 if (users_df['pseudo'] == pseudo).any():
                     st.sidebar.error("Ce pseudo est déjà utilisé.")
                 else:
-                    new_user = pd.DataFrame([{"pseudo": pseudo, "password": hash_password(password)}])
-                    users_df = pd.concat([users_df, new_user], ignore_index=True)
-                    save_users(users_df)
+                    hashed_pwd = hash_password(password)
+                    save_user(pseudo, hashed_pwd)  # ⬅️ sauvegarde directe dans Google Sheets
                     st.success("Inscription réussie, vous êtes connecté.")
                     st.session_state.user_logged_in = True
                     st.session_state.user_name = pseudo
