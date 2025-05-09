@@ -15,7 +15,7 @@ import kaleido
 import uuid
 import hashlib
 import json
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials
 import gspread
 
 # =============================================
@@ -613,11 +613,10 @@ USERS_FILE = "users.csv"
 # API GOOGLE
 # =============================================
 
-@st.cache_resource
 def connect_to_gsheet():
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
     creds_dict = json.loads(st.secrets["GSHEET_CREDS"])
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
     client = gspread.authorize(creds)
     sheet = client.open("user").worksheet("user_data")
     return sheet
@@ -630,6 +629,20 @@ def load_users():
 def save_user(pseudo, password):
     sheet = connect_to_gsheet()
     sheet.append_row([pseudo, password])
+
+def get_comments_sheet():
+    sheet = connect_to_gsheet()
+    return sheet.spreadsheet.worksheet("comments_data")
+
+def load_comments():
+    sheet = get_comments_sheet()
+    data = sheet.get_all_records()
+    return pd.DataFrame(data)
+
+def save_comment(user, comment):
+    sheet = get_comments_sheet()
+    new_row = [str(uuid.uuid4()), user, comment, datetime.now().strftime("%Y-%m-%d %H:%M:%S")]
+    sheet.append_row(new_row)
 
 # =============================================
 # INITIALISATION SESSION
@@ -678,7 +691,7 @@ with st.sidebar.form(key="auth_form"):
                     st.sidebar.error("Ce pseudo est déjà utilisé.")
                 else:
                     hashed_pwd = hash_password(password)
-                    save_user(pseudo, hashed_pwd)  # ⬅️ sauvegarde directe dans Google Sheets
+                    save_user(pseudo, hashed_pwd)
                     st.success("Inscription réussie, vous êtes connecté.")
                     st.session_state.user_logged_in = True
                     st.session_state.user_name = pseudo
@@ -701,10 +714,7 @@ if st.session_state.user_logged_in:
 st.title("💬 Espace Commentaires")
 
 # Chargement des commentaires
-if os.path.exists(COMMENTS_FILE):
-    comments_df = pd.read_csv(COMMENTS_FILE)
-else:
-    comments_df = pd.DataFrame(columns=["id", "user", "comment", "timestamp"])
+comments_df = load_comments()
 
 # Verrouillage si pas connecté
 if not st.session_state.user_logged_in:
@@ -725,8 +735,7 @@ else:
                     "comment": comment_text.strip(),
                     "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 }
-                comments_df = pd.concat([comments_df, pd.DataFrame([new_comment])], ignore_index=True)
-                comments_df.to_csv(COMMENTS_FILE, index=False)
+                save_comment(new_comment["user"], new_comment["comment"])
 
                 st.success("Commentaire enregistré!")
         
