@@ -80,7 +80,7 @@ def load_data():
             "_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)": "Plateformes",
             "Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?": "Niveau connaissance",
             "Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?": "Confiance réseaux sociaux",
-            "Selon vous, quel est l’impact global des Deep Fakes sur la société ?": "Impact société"
+            "Selon vous, quel est l'impact global des Deep Fakes sur la société ?": "Impact société"
         }
         
         return df.rename(columns=column_rename)
@@ -94,7 +94,109 @@ df = load_data()
 local_css("style.css")
 
 # =============================================
-# SIDEBAR FILTRES (version améliorée)
+# CONFIGURATION GOOGLE SHEETS
+# =============================================
+def connect_to_gsheet():
+    """Connecte à Google Sheets en utilisant le fichier JSON d'authentification"""
+    try:
+        # Chemin vers votre fichier JSON
+        creds_file = "data-459319-45b9cf341081.json"
+        
+        if not os.path.exists(creds_file):
+            st.error(f"Fichier d'authentification Google Sheets introuvable: {creds_file}")
+            return None
+            
+        scope = ["https://www.googleapis.com/auth/spreadsheets", 
+                "https://www.googleapis.com/auth/drive"]
+        
+        creds = Credentials.from_service_account_file(creds_file, scopes=scope)
+        return gspread.authorize(creds)
+    except Exception as e:
+        st.error(f"Erreur de connexion à Google Sheets: {str(e)}")
+        return None
+
+def load_users():
+    """Charge les utilisateurs depuis Google Sheets"""
+    try:
+        gc = connect_to_gsheet()
+        if not gc:
+            return pd.DataFrame(columns=["pseudo", "password"])
+        sheet = gc.open("user").worksheet("user_data")
+        return pd.DataFrame(sheet.get_all_records())
+    except Exception as e:
+        st.error(f"Erreur lors du chargement des utilisateurs: {str(e)}")
+        return pd.DataFrame(columns=["pseudo", "password"])
+
+def save_user(pseudo, password):
+    """Enregistre un nouvel utilisateur dans Google Sheets"""
+    try:
+        gc = connect_to_gsheet()
+        if not gc:
+            return False
+        sheet = gc.open("user").worksheet("user_data")
+        sheet.append_row([pseudo, password])
+        return True
+    except Exception as e:
+        st.error(f"Erreur lors de l'enregistrement de l'utilisateur: {str(e)}")
+        return False
+
+def get_comments_sheet():
+    """Récupère la feuille de commentaires"""
+    try:
+        gc = connect_to_gsheet()
+        if not gc:
+            return None
+        return gc.open("user").worksheet("comments_data")
+    except gspread.WorksheetNotFound:
+        try:
+            # Crée la feuille si elle n'existe pas
+            sh = gc.open("user")
+            return sh.add_worksheet(title="comments_data", rows=100, cols=4)
+        except Exception as e:
+            st.error(f"Erreur lors de la création de la feuille de commentaires: {str(e)}")
+            return None
+    except Exception as e:
+        st.error(f"Erreur lors de l'accès aux commentaires: {str(e)}")
+        return None
+
+def load_comments():
+    """Charge les commentaires depuis Google Sheets"""
+    try:
+        sheet = get_comments_sheet()
+        if not sheet:
+            return pd.DataFrame(columns=["id", "user", "comment", "timestamp"])
+        return pd.DataFrame(sheet.get_all_records())
+    except Exception as e:
+        st.error(f"Erreur lors du chargement des commentaires: {str(e)}")
+        return pd.DataFrame(columns=["id", "user", "comment", "timestamp"])
+
+def save_comment(user, comment):
+    """Enregistre un commentaire dans Google Sheets"""
+    try:
+        sheet = get_comments_sheet()
+        if sheet:
+            new_row = [str(uuid.uuid4()), user, comment, datetime.now().strftime("%Y-%m-%d %H:%M:%S")]
+            sheet.append_row(new_row)
+            return True
+        return False
+    except Exception as e:
+        st.error(f"Erreur lors de l'enregistrement du commentaire: {str(e)}")
+        return False
+
+def hash_password(password):
+    """Hash sécurisé du mot de passe avec SHA256"""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+# =============================================
+# INITIALISATION SESSION
+# =============================================
+if 'user_logged_in' not in st.session_state:
+    st.session_state.user_logged_in = False
+if 'is_admin' not in st.session_state:
+    st.session_state.is_admin = False
+
+# =============================================
+# SIDEBAR FILTRES
 # =============================================
 with st.sidebar:
     st.header("🎛️ Filtres Principaux")
@@ -122,6 +224,58 @@ with st.sidebar:
         selected_ages = []
         selected_genres = []
 
+    # Section Connexion
+    st.header("🔐 Connexion")
+    mode = st.radio("Choisissez une option :", ["Se connecter", "S'inscrire"], key="auth_mode")
+
+    with st.form(key="auth_form"):
+        pseudo = st.text_input("Votre pseudo")
+        password = st.text_input("Mot de passe", type="password")
+        submit = st.form_submit_button("Valider")
+
+        if submit:
+            if not pseudo or not password:
+                st.error("Veuillez remplir tous les champs.")
+            else:
+                users_df = load_users()
+
+                if mode == "Se connecter":
+                    hashed_pwd = hash_password(password)
+                    if (users_df['pseudo'] == pseudo).any():
+                        user_row = users_df.loc[users_df['pseudo'] == pseudo].iloc[0]
+                        if user_row['password'] == hashed_pwd:
+                            st.session_state.user_logged_in = True
+                            st.session_state.user_name = pseudo
+                            if pseudo.lower() == "admin":
+                                st.session_state.is_admin = True
+                            st.success(f"Bienvenue {pseudo} !")
+                            st.experimental_rerun()
+                        else:
+                            st.error("Mot de passe incorrect.")
+                    else:
+                        st.error("Utilisateur inconnu.")
+                
+                elif mode == "S'inscrire":
+                    if (users_df['pseudo'] == pseudo).any():
+                        st.error("Ce pseudo est déjà utilisé.")
+                    else:
+                        hashed_pwd = hash_password(password)
+                        if save_user(pseudo, hashed_pwd):
+                            st.success("Inscription réussie, vous êtes connecté.")
+                            st.session_state.user_logged_in = True
+                            st.session_state.user_name = pseudo
+                            st.experimental_rerun()
+                        else:
+                            st.error("Erreur lors de l'inscription")
+
+    if st.session_state.user_logged_in:
+        if st.button("Se déconnecter"):
+            for key in ["user_logged_in", "is_admin", "user_name"]:
+                if key in st.session_state:
+                    del st.session_state[key]
+            st.success("Déconnecté avec succès.")
+            st.experimental_rerun()
+
 # Application des filtres
 if not df.empty:
     filtered_df = df[
@@ -135,7 +289,7 @@ else:
 # ONGLETS PRINCIPAUX
 # =============================================
 st.title("📊 Dashboard Analyse des DeepFakes")
-tab1, tab2,tab3,tab4,tab5 = st.tabs(["🏠 Tableau de Bord", "🔬 Exploration Avancée", "En cours", "En cours", "En cours"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["🏠 Tableau de Bord", "🔬 Exploration Avancée", "📝 Commentaires", "En cours", "En cours"])
 
 # =============================================
 # ONGLET 1 - TABLEAU DE BORD PRINCIPAL
@@ -222,25 +376,19 @@ with tab1:
         )
         st.plotly_chart(fig_trust_age, use_container_width=True)
         
-        # =============================================
-        # VISUALISATION GENRE VS PLATEFORMES (ONGLET 1 SEULEMENT)
-        # =============================================
-        st.header("👥 Genre vs Plateformes (Amélioré)")
-        
+        # Genre vs Plateformes
+        st.header("👥 Genre vs Plateformes")
         if "Plateformes" in filtered_df.columns:
-            # Expansion des plateformes
             platform_series = filtered_df[["Plateformes", "Genre"]].dropna()
             platform_series["Plateformes"] = platform_series["Plateformes"].str.split(';')
             platform_exploded = platform_series.explode("Plateformes").dropna()
             platform_exploded["Plateformes"] = platform_exploded["Plateformes"].str.strip()
             
-            # Table de contingence
             cross_tab = pd.crosstab(
                 platform_exploded["Genre"],
                 platform_exploded["Plateformes"]
             )
             
-            # Heatmap améliorée
             fig = px.imshow(
                 cross_tab,
                 text_auto=True,
@@ -258,12 +406,8 @@ with tab1:
         else:
             st.warning("La colonne 'Plateformes' n'est pas disponible")
 
-        # =============================================
-        # MATRICE DE CORRELATION (ONGLET 1 SEULEMENT)
-        # =============================================
+        # Matrice de corrélation
         st.header("🔗 Matrice de Corrélation")
-        
-        # Sélection des colonnes pertinentes
         selected_cols = [
             "Connaissance DeepFakes",
             "Niveau connaissance", 
@@ -273,18 +417,14 @@ with tab1:
             "Genre"
         ]
         
-        # Vérification que les colonnes existent
         if all(col in filtered_df.columns for col in selected_cols):
             df_corr = filtered_df[selected_cols].copy()
             
-            # Conversion des catégories en codes numériques
             for col in df_corr.columns:
                 df_corr[col] = df_corr[col].astype('category').cat.codes
             
-            # Calcul de la matrice de corrélation
             corr_matrix = df_corr.corr()
             
-            # Labels courts pour les axes
             short_labels = {
                 "Connaissance DeepFakes": "Connaissance DF",
                 "Niveau connaissance": "Niveau Connaissance",
@@ -294,7 +434,6 @@ with tab1:
                 "Genre": "Genre"
             }
             
-            # Visualisation avec Plotly
             fig_corr = px.imshow(
                 corr_matrix,
                 text_auto=True,
@@ -326,82 +465,68 @@ with tab1:
 with tab2:
     st.header("🔍 Exploration Avancée")
     
-    # Section de configuration avancée
-    with st.expander("⚙️ Paramètres Avancés", expanded=True):
-        col_config1, col_config2, col_config3 = st.columns(3)
-        
-        # Colonnes catégorielles disponibles
-        categorical_columns = [col for col in df.select_dtypes(include='object').columns 
-                             if df[col].nunique() <= 15 and col in df.columns]
-        
-        with col_config1:
-            x_axis = st.selectbox(
-                "Axe X (Catégorie principale)", 
-                options=categorical_columns, 
-                index=categorical_columns.index("Connaissance DeepFakes") if "Connaissance DeepFakes" in categorical_columns else 0,
-                help="Variable pour l'axe horizontal"
-            )
-        
-        with col_config2:
-            y_axis = st.selectbox(
-                "Axe Y (Sous-catégorie)", 
-                options=categorical_columns, 
-                index=categorical_columns.index("Exposition DeepFakes") if "Exposition DeepFakes" in categorical_columns else 1,
-                help="Variable pour segmenter les données"
-            )
-        
-        with col_config3:
-            color_by = st.selectbox(
-                "Couleur (Détail)", 
-                options=categorical_columns, 
-                index=categorical_columns.index("Genre") if "Genre" in categorical_columns else 2,
-                help="Variable pour le codage couleur"
-            )
-        
-        # Options supplémentaires
-        st.markdown("---")
-        col_opt1, col_opt2, col_opt3 = st.columns(3)
-        
-        with col_opt1:
-            chart_type = st.selectbox(
-                "Type de visualisation :",
-                options=["Barres", "Sunburst", "Treemap", "Heatmap", "Réseau"],
-                index=0,
-                help="Choisissez le type de graphique"
-            )
+    if filtered_df.empty:
+        st.warning("Aucune donnée disponible avec les filtres sélectionnés.")
+    else:
+        with st.expander("⚙️ Paramètres Avancés", expanded=True):
+            col_config1, col_config2, col_config3 = st.columns(3)
             
-        with col_opt2:
-            show_percentage = st.checkbox(
-                "Afficher les pourcentages", 
-                True,
-                help="Convertir les counts en pourcentages"
-            )
+            categorical_columns = [col for col in filtered_df.select_dtypes(include='object').columns 
+                                 if filtered_df[col].nunique() <= 15 and col in filtered_df.columns]
             
-        with col_opt3:
-            min_count = st.slider(
-                "Filtre count minimum", 
-                min_value=1, 
-                max_value=50, 
-                value=5,
-                help="Exclure les catégories trop petites"
-            )
-    
-    # Préparation des données
-    if not filtered_df.empty:
-        filtered_data = filtered_df[[x_axis, y_axis, color_by]].dropna()
-        cross_data = filtered_data.groupby([x_axis, y_axis, color_by]).size().reset_index(name='Count')
+            with col_config1:
+                x_axis = st.selectbox(
+                    "Axe X (Catégorie principale)", 
+                    options=categorical_columns, 
+                    index=categorical_columns.index("Connaissance DeepFakes") if "Connaissance DeepFakes" in categorical_columns else 0,
+                    help="Variable pour l'axe horizontal"
+                )
+            
+            with col_config2:
+                y_axis = st.selectbox(
+                    "Axe Y (Sous-catégorie)", 
+                    options=categorical_columns, 
+                    index=categorical_columns.index("Exposition DeepFakes") if "Exposition DeepFakes" in categorical_columns else 1,
+                    help="Variable pour segmenter les données"
+                )
+            
+            with col_config3:
+                color_by = st.selectbox(
+                    "Couleur (Détail)", 
+                    options=categorical_columns, 
+                    index=categorical_columns.index("Genre") if "Genre" in categorical_columns else 2,
+                    help="Variable pour le codage couleur"
+                )
+            
+            st.markdown("---")
+            col_opt1, col_opt2, col_opt3 = st.columns(3)
+            
+            with col_opt1:
+                chart_type = st.selectbox(
+                    "Type de visualisation :",
+                    options=["Barres", "Sunburst", "Treemap", "Heatmap", "Réseau"],
+                    index=0,
+                    help="Choisissez le type de graphique"
+                )
+                
+            with col_opt2:
+                show_percentage = st.checkbox(
+                    "Afficher les pourcentages", 
+                    True,
+                    help="Convertir les counts en pourcentages"
+                )
+                
+            with col_opt3:
+                min_count = st.slider(
+                    "Filtre count minimum", 
+                    min_value=1, 
+                    max_value=50, 
+                    value=5,
+                    help="Exclure les catégories trop petites"
+                )
         
-        # Application du filtre minimum
-        cross_data = cross_data[cross_data['Count'] >= min_count]
-        
-        # Conversion en pourcentages si demandé
-        if show_percentage:
-            total = cross_data['Count'].sum()
-            cross_data['Count'] = (cross_data['Count'] / total * 100).round(1)
-    
-    # Section d'analyse statistique
-    with st.expander("📊 Analyse Statistique", expanded=False):
-        if not filtered_df.empty:
+        # Analyse statistique
+        with st.expander("📊 Analyse Statistique", expanded=False):
             contingency_table = pd.crosstab(filtered_df[x_axis], filtered_df[y_axis])
             
             if contingency_table.size > 0:
@@ -417,15 +542,19 @@ with tab2:
                 """)
             else:
                 st.warning("Table de contingence trop petite pour l'analyse")
-        else:
-            st.warning("Aucune donnée disponible pour l'analyse")
-    
-    # Visualisation dynamique
-    if not filtered_df.empty:
+        
+        # Visualisation dynamique
         with st.spinner("Génération de la visualisation..."):
             try:
+                filtered_data = filtered_df[[x_axis, y_axis, color_by]].dropna()
+                cross_data = filtered_data.groupby([x_axis, y_axis, color_by]).size().reset_index(name='Count')
+                cross_data = cross_data[cross_data['Count'] >= min_count]
+                
+                if show_percentage:
+                    total = cross_data['Count'].sum()
+                    cross_data['Count'] = (cross_data['Count'] / total * 100).round(1)
+                
                 if chart_type == "Barres":
-                    # Préparation des libellés
                     cross_data[x_axis] = cross_data[x_axis].apply(truncate_label)
                     cross_data[y_axis] = cross_data[y_axis].apply(truncate_label)
                     cross_data[color_by] = cross_data[color_by].apply(truncate_label)
@@ -508,7 +637,6 @@ with tab2:
                     )
                 
                 elif chart_type == "Réseau":
-                    # Création du graphique réseau
                     G = nx.from_pandas_edgelist(
                         cross_data, 
                         source=x_axis, 
@@ -568,24 +696,22 @@ with tab2:
                         )
                     )
                 
-                # Affichage du graphique
                 st.plotly_chart(fig, use_container_width=True)
-                pdf_buffer = io.BytesIO()
-                fig.write_image(pdf_buffer, format="pdf")
-                pdf_buffer.seek(0)
                 
-                # Options d'export
+                # Export
                 st.markdown("---")
                 col_export1, col_export2 = st.columns(2)
                 
                 with col_export1:
+                    pdf_buffer = io.BytesIO()
+                    fig.write_image(pdf_buffer, format="pdf")
+                    pdf_buffer.seek(0)
                     st.download_button(
                         label="💾 Télécharger le graphique en PDF",
                         data=pdf_buffer,
                         file_name="graphique_plotly.pdf",
                         mime="application/pdf"
                     )
-
                 
                 with col_export2:
                     st.download_button(
@@ -600,220 +726,58 @@ with tab2:
                 st.warning("Veuillez sélectionner des combinaisons de variables compatibles")
 
 # =============================================
-# SECTION COMMENTAIRES
-# =============================================
-
-# =============================================
-# CONFIGURATION
-# =============================================
-COMMENTS_FILE = "comments_advanced.csv"
-USERS_FILE = "users.csv"
-
-# =============================================
-# API GOOGLE
-# =============================================
-
-def connect_to_gsheet():
-    scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-    creds_dict = json.loads(st.secrets["GSHEET_CREDS"])
-    creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
-    client = gspread.authorize(creds)
-    sheet = client.open("user").worksheet("user_data")
-    return sheet
-
-def load_users():
-    sheet = connect_to_gsheet()
-    data = sheet.get_all_records()
-    return pd.DataFrame(data)
-
-def save_user(pseudo, password):
-    sheet = connect_to_gsheet()
-    sheet.append_row([pseudo, password])
-
-def get_comments_sheet():
-    sheet = connect_to_gsheet()
-    return sheet.spreadsheet.worksheet("comments_data")
-
-def load_comments():
-    sheet = get_comments_sheet()
-    data = sheet.get_all_records()
-    return pd.DataFrame(data)
-
-def save_comment(user, comment):
-    sheet = get_comments_sheet()
-    new_row = [str(uuid.uuid4()), user, comment, datetime.now().strftime("%Y-%m-%d %H:%M:%S")]
-    sheet.append_row(new_row)
-
-def hash_password(password):
-    """Hash sécurisé du mot de passe avec SHA256"""
-    return hashlib.sha256(password.encode()).hexdigest()
-
-
-# =============================================
-# INITIALISATION SESSION
-# =============================================
-if 'user_logged_in' not in st.session_state:
-    st.session_state.user_logged_in = False
-if 'is_admin' not in st.session_state:
-    st.session_state.is_admin = False
-
-# =============================================
-# SIDEBAR : CONNEXION / INSCRIPTION
-# =============================================
-st.sidebar.header("🔐 Connexion rapide")
-
-mode = st.sidebar.radio("Choisissez une option :", ["Se connecter", "S'inscrire"])
-
-with st.sidebar.form(key="auth_form"):
-    pseudo = st.text_input("Votre pseudo")
-    password = st.text_input("Mot de passe", type="password")
-    submit = st.form_submit_button("Valider")
-
-    if submit:
-        if not pseudo or not password:
-            st.sidebar.error("Veuillez remplir tous les champs.")
-        else:
-            users_df = load_users()
-
-            if mode == "Se connecter":
-                hashed_pwd = hash_password(password)
-                if (users_df['pseudo'] == pseudo).any():
-                    user_row = users_df.loc[users_df['pseudo'] == pseudo].iloc[0]
-                    if user_row['password'] == hashed_pwd:
-                        st.session_state.user_logged_in = True
-                        st.session_state.user_name = pseudo
-                        if pseudo.lower() == "admin":
-                            st.session_state.is_admin = True
-                        st.success(f"Bienvenue {pseudo} !")
-                        st.experimental_rerun()
-                    else:
-                        st.sidebar.error("Mot de passe incorrect.")
-                else:
-                    st.sidebar.error("Utilisateur inconnu.")
-            
-            elif mode == "S'inscrire":
-                if (users_df['pseudo'] == pseudo).any():
-                    st.sidebar.error("Ce pseudo est déjà utilisé.")
-                else:
-                    hashed_pwd = hash_password(password)
-                    save_user(pseudo, hashed_pwd)
-                    st.success("Inscription réussie, vous êtes connecté.")
-                    st.session_state.user_logged_in = True
-                    st.session_state.user_name = pseudo
-                    st.experimental_rerun()
-
-# =============================================
-# DECONNEXION
-# =============================================
-if st.session_state.user_logged_in:
-    if st.sidebar.button("Se déconnecter"):
-        for key in ["user_logged_in", "is_admin", "user_name"]:
-            if key in st.session_state:
-                del st.session_state[key]
-        st.sidebar.success("Déconnecté avec succès.")
-        st.experimental_rerun()
-
-# =============================================
-# ZONE COMMENTAIRES
-# =============================================
-st.title("💬 Espace Commentaires")
-
-# Chargement des commentaires
-comments_df = load_comments()
-
-# Verrouillage si pas connecté
-if not st.session_state.user_logged_in:
-    st.info("🔒 Connectez-vous pour pouvoir laisser un commentaire.")
-else:
-    # Formulaire d'ajout de commentaire
-    with st.form(key="comment_form", clear_on_submit=True):
-        comment_text = st.text_area("Votre commentaire")
-        submit_comment = st.form_submit_button("📤 Envoyer")
-
-        if submit_comment:
-            if not comment_text:
-                st.warning("Merci de remplir votre commentaire.")
-            else:
-                new_comment = {
-                    "id": str(uuid.uuid4()),
-                    "user": st.session_state.user_name,
-                    "comment": comment_text.strip(),
-                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                }
-                save_comment(new_comment["user"], new_comment["comment"])
-
-                st.success("Commentaire enregistré!")
-        
-        # Affichage des commentaires
-        for idx, row in comments_df.tail(5).iterrows():
-            col1, col2 = st.columns([0.9, 0.1])
-            
-            with col1:
-                st.markdown(f"**{row['user']}** ({row['timestamp']}):  \n{row['comment']}")
-            
-            with col2:
-                if st.session_state.get('is_admin', False) or (st.session_state.get("user_name") == row['user']):
-                    if st.button("❌", key=f"delete_{idx}"):
-                        comments_df = comments_df.drop(index=idx)
-                        comments_df.to_csv(COMMENTS_FILE, index=False)
-                        st.rerun()
-        
-        if st.session_state.get('is_admin', False):
-            if st.button("🗑️ Vider tous les commentaires"):
-                comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
-                comments_df.to_csv(COMMENTS_FILE, index=False)
-                st.rerun()
-                
-    with st.expander("💾 Sauvegarder cette exploration"):
-        current_exploration = {
-            "x_axis": x_axis,
-            "y_axis": y_axis,
-            "color_by": color_by,
-            "chart_type": chart_type,
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
-        }
-
-# =============================================
-# AFFICHAGE DES COMMENTAIRES
-# =============================================
-st.subheader("📝 Derniers commentaires")
-
-if comments_df.empty:
-    st.info("Aucun commentaire pour le moment.")
-else:
-    comments_display = comments_df.sort_values('timestamp', ascending=False).head(10)
-    for idx, row in comments_display.iterrows():
-        with st.container(border=True):
-            st.markdown(f"**{row['user']}** - *{row['timestamp']}*")
-            st.markdown(f"> {row['comment']}")
-
-            # Bouton de suppression + confirmation
-            delete_key = f"delete_{idx}"
-            confirm_key = f"confirm_delete_{idx}"
-
-            if st.button("🗑️ Supprimer", key=delete_key):
-                st.session_state[confirm_key] = True  # active la confirmation
-
-            if st.session_state.get(confirm_key, False):
-                st.warning("⚠️ Confirmation suppression")
-                if st.button("✅ Oui, supprimer", key=f"confirmed_{idx}"):
-                    comments_df = comments_df.drop(index=idx)
-                    comments_df.to_csv(COMMENTS_FILE, index=False)
-                    st.success("Commentaire supprimé.")
-                    st.session_state[confirm_key] = False  # reset
-                    st.experimental_rerun()
-
-# =============================================
-# ONGLETS EN CONSTRUCTION - MESSAGE EDITEUR
+# ONGLET 3 - COMMENTAIRES
 # =============================================
 with tab3:
-    st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSE")
-    col_img, col_msg = st.columns([1, 5])
-    with col_img:
-        st.image("images.jpeg", width=100)
-    with col_msg:
-        st.info("Cet onglet est en cours de rédaction. Vous verrez des visualisations sous peu.")
+    st.header("💬 Espace Commentaires")
+    
+    if not st.session_state.user_logged_in:
+        st.info("🔒 Connectez-vous pour pouvoir laisser un commentaire.")
+    else:
+        with st.form(key="comment_form", clear_on_submit=True):
+            comment_text = st.text_area("Votre commentaire")
+            submit_comment = st.form_submit_button("📤 Envoyer")
 
+            if submit_comment:
+                if not comment_text:
+                    st.warning("Merci de remplir votre commentaire.")
+                else:
+                    if save_comment(st.session_state.user_name, comment_text.strip()):
+                        st.success("Commentaire enregistré!")
+                    else:
+                        st.error("Erreur lors de l'enregistrement du commentaire")
+    
+    # Affichage des commentaires
+    st.subheader("📝 Derniers commentaires")
+    comments_df = load_comments()
+    
+    if comments_df.empty:
+        st.info("Aucun commentaire pour le moment.")
+    else:
+        comments_display = comments_df.sort_values('timestamp', ascending=False).head(10)
+        for idx, row in comments_display.iterrows():
+            with st.container(border=True):
+                st.markdown(f"**{row['user']}** - *{row['timestamp']}*")
+                st.markdown(f"> {row['comment']}")
+
+                # Bouton de suppression
+                if st.session_state.get('is_admin', False) or (st.session_state.get("user_name") == row['user']):
+                    if st.button("🗑️ Supprimer", key=f"delete_{idx}"):
+                        try:
+                            sheet = get_comments_sheet()
+                            if sheet:
+                                # Trouver la ligne correspondante
+                                cell = sheet.find(row['id'])
+                                if cell:
+                                    sheet.delete_rows(cell.row)
+                                    st.success("Commentaire supprimé.")
+                                    st.experimental_rerun()
+                        except Exception as e:
+                            st.error(f"Erreur lors de la suppression: {str(e)}")
+
+# =============================================
+# ONGLETS EN CONSTRUCTION
+# =============================================
 with tab4:
     st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSE")
     col_img, col_msg = st.columns([1, 5])
