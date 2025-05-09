@@ -644,6 +644,11 @@ def save_comment(user, comment):
     new_row = [str(uuid.uuid4()), user, comment, datetime.now().strftime("%Y-%m-%d %H:%M:%S")]
     sheet.append_row(new_row)
 
+def hash_password(password):
+    """Hash sécurisé du mot de passe avec SHA256"""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+
 # =============================================
 # INITIALISATION SESSION
 # =============================================
