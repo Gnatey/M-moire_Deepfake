@@ -14,7 +14,31 @@ import io
 import kaleido
 import uuid
 import hashlib
+import json
+from oauth2client.service_account import ServiceAccountCredentials
+import gspread
 
+# =============================================
+# API GOOGLE
+# =============================================
+
+@st.cache_resource
+def connect_to_gsheet():
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    creds_dict = json.loads(st.secrets["GSHEET_CREDS"])
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    client = gspread.authorize(creds)
+    sheet = client.open("users_data").sheet1
+    return sheet
+
+def load_users():
+    sheet = connect_to_gsheet()
+    data = sheet.get_all_records()
+    return pd.DataFrame(data)
+
+def save_user(pseudo, password):
+    sheet = connect_to_gsheet()
+    sheet.append_row([pseudo, password])
 
 # =============================================
 # INITIALISATION ET CONFIGURATION DE BASE
