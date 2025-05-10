@@ -623,9 +623,13 @@ def connect_to_gsheet():
 def load_users():
     sheet = connect_to_gsheet()
     data = sheet.get_all_records()
-    df = pd.DataFrame(data)
-    st.write("Colonnes utilisateurs chargées :", df.columns.tolist())  # debug
+    if not data:
+        # Si la feuille est vide, on crée un DataFrame avec les bonnes colonnes
+        df = pd.DataFrame(columns=["pseudo", "password"])
+    else:
+        df = pd.DataFrame(data)
     return df
+
 
 def save_user(pseudo, password):
     sheet = connect_to_gsheet()
