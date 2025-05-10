@@ -607,7 +607,6 @@ with tab2:
 # CONFIGURATION
 # =============================================
 COMMENTS_FILE = "comments_advanced.csv"
-USERS_FILE = "users.csv"
 
 # =============================================
 # API GOOGLE
