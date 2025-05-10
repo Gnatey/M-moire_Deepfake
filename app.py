@@ -771,16 +771,15 @@ else:
                 if st.button("🗑️ Supprimer", key=delete_key):
                     st.session_state[confirm_key] = True  # active la confirmation
 
-            if st.session_state.get(confirm_key, False):
+                if st.session_state.get(confirm_key, False):
                     st.warning("⚠️ Confirmation suppression")
-            if st.button("✅ Oui, supprimer", key=f"confirmed_{idx}"):
+                    if st.button("✅ Oui, supprimer", key=f"confirmed_{idx}"):
             # Suppression depuis Google Sheets
-                sheet = get_comments_sheet()
-            sheet.delete_rows(idx + 2)  # +2 car Google Sheets commence à 1 et il y a l'en-tête
-            st.success("Commentaire supprimé.")
-            st.session_state[confirm_key] = False  # reset
-            st.experimental_rerun()
-
+                        sheet = get_comments_sheet()
+                        sheet.delete_rows(idx + 2)  # +2 car Google Sheets commence à 1 et il y a l'en-tête
+                        st.success("Commentaire supprimé.")
+                        st.session_state[confirm_key] = False  # reset
+                        st.experimental_rerun()
 
 # =============================================
 # ONGLETS EN CONSTRUCTION - MESSAGE EDITEUR
