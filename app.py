@@ -623,6 +623,7 @@ def connect_to_gsheet():
 def load_users():
     sheet = connect_to_gsheet()
     data = sheet.get_all_records()
+    df = pd.DataFrame(data)
     st.write("Colonnes utilisateurs chargées :", df.columns.tolist())  # debug
     return df
 
