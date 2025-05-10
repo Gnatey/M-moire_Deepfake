@@ -659,8 +659,6 @@ def hash_password(password):
 # =============================================
 if 'user_logged_in' not in st.session_state:
     st.session_state.user_logged_in = False
-if 'is_admin' not in st.session_state:
-    st.session_state.is_admin = False
 
 # =============================================
 # SIDEBAR : CONNEXION / INSCRIPTION
@@ -712,7 +710,7 @@ with st.sidebar.form(key="auth_form"):
 # =============================================
 if st.session_state.user_logged_in:
     if st.sidebar.button("Se déconnecter"):
-        for key in ["user_logged_in", "is_admin", "user_name"]:
+        for key in ["user_logged_in", "user_name"]:
             if key in st.session_state:
                 del st.session_state[key]
         st.sidebar.success("Déconnecté avec succès.")
@@ -766,9 +764,6 @@ else:
             st.markdown(f"> {row['comment']}")
 
             # Bouton de suppression + confirmation
-            delete_key = f"delete_{idx}"
-            confirm_key = f"confirm_delete_{idx}"
-
             if st.button("🗑️ Supprimer", key=delete_key):
                 st.session_state[confirm_key] = True  # active la confirmation
 
