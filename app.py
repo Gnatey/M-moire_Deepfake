@@ -767,8 +767,9 @@ else:
             delete_key = f"delete_{idx}"
             confirm_key = f"confirm_delete_{idx}"
 
-            if st.button("🗑️ Supprimer", key=delete_key):
-                st.session_state[confirm_key] = True  # active la confirmation
+            if st.session_state.get("user_logged_in") and st.session_state.user_name == row["user"]:
+                if st.button("🗑️ Supprimer", key=delete_key):
+                    st.session_state[confirm_key] = True  # active la confirmation
 
             if st.session_state.get(confirm_key, False):
                 st.warning("⚠️ Confirmation suppression")
