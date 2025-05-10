@@ -18,8 +18,6 @@ import json
 from google.oauth2.service_account import Credentials
 import gspread
 
-st.write(st.secrets["GSHEET_CREDS"])  # temporairement, pour debug
-
 # =============================================
 # INITIALISATION ET CONFIGURATION DE BASE
 # =============================================
