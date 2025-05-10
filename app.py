@@ -726,7 +726,6 @@ st.title("💬 Espace Commentaires")
 # Chargement des commentaires
 comments_df = load_comments()
 
-# Verrouillage si pas connecté
 if not st.session_state.user_logged_in:
     st.info("🔒 Connectez-vous pour pouvoir laisser un commentaire.")
 else:
@@ -739,39 +738,43 @@ else:
             if not comment_text:
                 st.warning("Merci de remplir votre commentaire.")
             else:
-                new_comment = {
-                    "id": str(uuid.uuid4()),
-                    "user": st.session_state.user_name,
-                    "comment": comment_text.strip(),
-                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                }
-                save_comment(new_comment["user"], new_comment["comment"])
-
+                save_comment(st.session_state.user_name, comment_text.strip())
                 st.success("Commentaire enregistré!")
-        
-        # Affichage des commentaires
-for i, (_, row) in enumerate(comments_df.tail(5).iterrows()):
-    col1, col2 = st.columns([0.9, 0.1])
+                st.experimental_rerun()
 
-    with col1:
-        st.markdown(f"**{row['user']}** ({row['timestamp']}):  \n{row['comment']}")
+    st.subheader("📝 Derniers commentaires")
+    for i, (_, row) in enumerate(comments_df.tail(5).iterrows()):
+        col1, col2 = st.columns([0.9, 0.1])
 
-    with col2:
-        if st.session_state.get('is_admin', False) or (st.session_state.get("user_name") == row['user']):
-            delete_key = f"delete_{i}"
-            confirm_key = f"confirm_delete_{i}"
+        with col1:
+            st.markdown(f"**{row['user']}** ({row['timestamp']}):  \n{row['comment']}")
 
-            if st.button("❌", key=delete_key):
-                st.session_state[confirm_key] = True
+        with col2:
+            # Autoriser la suppression uniquement pour l'auteur ou un admin
+            if st.session_state.get("user_name") == row['user'] or st.session_state.get("is_admin"):
+                delete_key = f"delete_{i}"
+                confirm_key = f"confirm_delete_{i}"
 
-            if st.session_state.get(confirm_key, False):
-                st.warning("⚠️ Confirmation suppression")
-                if st.button("✅ Oui, supprimer", key=f"confirmed_{i}"):
-                    comments_df = comments_df.drop(index=row.name)
-                    comments_df.to_csv(COMMENTS_FILE, index=False)
-                    st.success("Commentaire supprimé.")
-                    st.session_state[confirm_key] = False
-                    st.experimental_rerun()
+                if st.button("❌", key=delete_key):
+                    st.session_state[confirm_key] = True
+
+                if st.session_state.get(confirm_key, False):
+                    st.warning("⚠️ Confirmation suppression")
+                    if st.button("✅ Oui, supprimer", key=f"confirmed_{i}"):
+                        comments_df = comments_df.drop(index=row.name)
+                        # Sauvegarde côté Google Sheet impossible directement ici, donc uniquement local
+                        comments_df.to_csv(COMMENTS_FILE, index=False)
+                        st.success("Commentaire supprimé.")
+                        st.session_state[confirm_key] = False
+                        st.experimental_rerun()
+
+    # Bouton pour admin uniquement
+    if st.session_state.get('is_admin', False):
+        if st.button("🗑️ Vider tous les commentaires"):
+            comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
+            comments_df.to_csv(COMMENTS_FILE, index=False)
+            st.success("Tous les commentaires ont été supprimés.")
+            st.experimental_rerun()
         
         if st.session_state.get('is_admin', False):
             if st.button("🗑️ Vider tous les commentaires"):
