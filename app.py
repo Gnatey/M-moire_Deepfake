@@ -615,8 +615,7 @@ USERS_FILE = "users.csv"
 
 def connect_to_gsheet():
     scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-    creds_dict = dict(st.secrets["GSHEET_CREDS"])  # faire une copie modifiable
-    creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+    creds_dict = st.secrets["GSHEET_CREDS"]
     creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
     client = gspread.authorize(creds)
     sheet = client.open("user").worksheet("user_data")
