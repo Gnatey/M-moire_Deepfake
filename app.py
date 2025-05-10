@@ -764,6 +764,9 @@ else:
             st.markdown(f"> {row['comment']}")
 
             # Bouton de suppression + confirmation
+            delete_key = f"delete_{idx}"
+            confirm_key = f"confirm_delete_{idx}"
+
             if st.button("🗑️ Supprimer", key=delete_key):
                 st.session_state[confirm_key] = True  # active la confirmation
 
