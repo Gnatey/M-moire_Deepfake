@@ -622,6 +622,8 @@ def connect_to_gsheet():
     return sheet
 
 def load_users():
+    users_df = load_users()
+    st.write(users_df.columns)
     sheet = connect_to_gsheet()
     data = sheet.get_all_records()
     return pd.DataFrame(data)
