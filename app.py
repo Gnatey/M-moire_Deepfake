@@ -741,15 +741,6 @@ else:
                 save_comment(st.session_state.user_name, comment_text.strip())
                 st.success("Commentaire enregistré!")
                 st.experimental_rerun()
-
-    # Bouton pour admin uniquement
-    if st.session_state.get('is_admin', False):
-        if st.button("🗑️ Vider tous les commentaires"):
-            comments_df = pd.DataFrame(columns=["user", "comment", "timestamp"])
-            comments_df.to_csv(COMMENTS_FILE, index=False)
-            st.success("Tous les commentaires ont été supprimés.")
-            st.experimental_rerun()
-
                 
     with st.expander("💾 Sauvegarder cette exploration"):
         current_exploration = {
