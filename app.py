@@ -619,6 +619,12 @@ def connect_to_gsheet():
     client = gspread.authorize(creds)
     sheet = client.open("user").worksheet("user_data")
     return sheet
+    
+def save_user(pseudo, password):
+    sheet = connect_to_gsheet()
+    existing_users = sheet.get_all_records()
+    next_id = len(existing_users) + 1  # ID auto-incrémenté
+    sheet.append_row([next_id, pseudo, password])
 
 def load_users():
     sheet = connect_to_gsheet()
@@ -633,7 +639,9 @@ def load_users():
 
 def save_user(pseudo, password):
     sheet = connect_to_gsheet()
-    sheet.append_row([pseudo, password])
+    existing_users = sheet.get_all_records()
+    next_id = len(existing_users) + 1  # ID auto-incrémenté
+    sheet.append_row([next_id, pseudo, password])
 
 def get_comments_sheet():
     sheet = connect_to_gsheet()
