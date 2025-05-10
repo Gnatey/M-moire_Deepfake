@@ -619,23 +619,15 @@ def connect_to_gsheet():
     client = gspread.authorize(creds)
     sheet = client.open("user").worksheet("user_data")
     return sheet
-    
-def save_user(pseudo, password):
-    sheet = connect_to_gsheet()
-    existing_users = sheet.get_all_records()
-    next_id = len(existing_users) + 1  # ID auto-incrémenté
-    sheet.append_row([next_id, pseudo, password])
 
 def load_users():
     sheet = connect_to_gsheet()
     data = sheet.get_all_records()
     if not data:
-        # Si la feuille est vide, on crée un DataFrame avec les bonnes colonnes
-        df = pd.DataFrame(columns=["pseudo", "password"])
+        df = pd.DataFrame(columns=["id", "pseudo", "password"])
     else:
         df = pd.DataFrame(data)
     return df
-
 
 def save_user(pseudo, password):
     sheet = connect_to_gsheet()
