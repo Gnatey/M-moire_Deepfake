@@ -621,11 +621,11 @@ def connect_to_gsheet():
     return sheet
 
 def load_users():
-    users_df = load_users()
-    st.write(users_df.columns)
     sheet = connect_to_gsheet()
     data = sheet.get_all_records()
-    return pd.DataFrame(data)
+    df = pd.DataFrame(data)
+    st.write("Colonnes utilisateurs chargées :", df.columns.tolist())  # debug
+    return df
 
 def save_user(pseudo, password):
     sheet = connect_to_gsheet()
