@@ -750,7 +750,7 @@ else:
                 st.success("Commentaire enregistré!")
         
         # Affichage des commentaires
-        for idx, row in comments_df.tail(5).iterrows():
+        for i, (_, row) in enumerate(comments_df.tail(5).iterrows()):
             col1, col2 = st.columns([0.9, 0.1])
             
             with col1:
@@ -758,10 +758,11 @@ else:
             
             with col2:
                 if st.session_state.get('is_admin', False) or (st.session_state.get("user_name") == row['user']):
-                    if st.button("❌", key=f"delete_{idx}"):
-                        comments_df = comments_df.drop(index=idx)
-                        comments_df.to_csv(COMMENTS_FILE, index=False)
-                        st.rerun()
+                    delete_key = f"delete_{i}"
+                    confirm_key = f"confirm_delete_{i}"
+                    comments_df = comments_df.drop(index=idx)
+                    comments_df.to_csv(COMMENTS_FILE, index=False)
+                    st.rerun()
         
         if st.session_state.get('is_admin', False):
             if st.button("🗑️ Vider tous les commentaires"):
