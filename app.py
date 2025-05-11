@@ -680,7 +680,7 @@ with st.sidebar.form(key="auth_form"):
 
             if mode == "Se connecter":
                 hashed_pwd = hash_password(password)
-                if (users_df['pseudo'] == pseudo).any():
+                if pseudo.lower() in users_df['pseudo'].str.lower().values:
                     user_row = users_df.loc[users_df['pseudo'] == pseudo].iloc[0]
                     if user_row['password'] == hashed_pwd:
                         st.session_state.user_logged_in = True
