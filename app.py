@@ -611,7 +611,6 @@ COMMENTS_FILE = "comments_advanced.csv"
 # =============================================
 # API GOOGLE
 # =============================================
-
 def connect_to_gsheet():
     scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
     creds_dict = st.secrets["GSHEET_CREDS"]
@@ -623,16 +622,12 @@ def connect_to_gsheet():
 def load_users():
     sheet = connect_to_gsheet()
     data = sheet.get_all_records()
-    if not data:
-        df = pd.DataFrame(columns=["id", "pseudo", "password"])
-    else:
-        df = pd.DataFrame(data)
-    return df
+    return pd.DataFrame(data) if data else pd.DataFrame(columns=["id", "pseudo", "password"])
 
 def save_user(pseudo, password):
     sheet = connect_to_gsheet()
     existing_users = sheet.get_all_records()
-    next_id = len(existing_users) + 1  # ID auto-incrémenté
+    next_id = len(existing_users) + 1
     sheet.append_row([next_id, pseudo, password])
 
 def get_comments_sheet():
@@ -650,9 +645,7 @@ def save_comment(user, comment):
     sheet.append_row(new_row)
 
 def hash_password(password):
-    """Hash sécurisé du mot de passe avec SHA256"""
     return hashlib.sha256(password.encode()).hexdigest()
-
 
 # =============================================
 # INITIALISATION SESSION
@@ -663,71 +656,76 @@ if 'user_logged_in' not in st.session_state:
 # =============================================
 # SIDEBAR : CONNEXION / INSCRIPTION
 # =============================================
-st.sidebar.header("🔐 Connexion rapide")
+def handle_auth():
+    st.sidebar.header("🔐 Connexion rapide")
+    mode = st.sidebar.radio("Choisissez une option :", ["Se connecter", "S'inscrire"])
 
-mode = st.sidebar.radio("Choisissez une option :", ["Se connecter", "S'inscrire"])
+    with st.sidebar.form(key="auth_form"):
+        pseudo = st.text_input("Votre pseudo").strip()
+        password = st.text_input("Mot de passe", type="password")
+        submit = st.form_submit_button("Valider")
 
-with st.sidebar.form(key="auth_form"):
-    pseudo = st.text_input("Votre pseudo")
-    password = st.text_input("Mot de passe", type="password")
-    submit = st.form_submit_button("Valider")
+        forbidden_pseudos = {"admin", "root", "support", "moderator"}
 
-    if submit:
-        if not pseudo or not password:
-            st.sidebar.error("Veuillez remplir tous les champs.")
-        else:
-            users_df = load_users()
-
-            if mode == "Se connecter":
+        if submit:
+            if not pseudo or not password:
+                st.sidebar.error("Veuillez remplir tous les champs.")
+            elif not pseudo.isalnum():
+                st.sidebar.error("Le pseudo ne doit contenir que des lettres et des chiffres.")
+            elif len(pseudo) < 3 or len(pseudo) > 20:
+                st.sidebar.error("Le pseudo doit contenir entre 3 et 20 caractères.")
+            elif pseudo.lower() in forbidden_pseudos:
+                st.sidebar.error("Ce pseudo est réservé.")
+            elif len(password) < 7:
+                st.sidebar.error("Le mot de passe doit contenir au moins 7 caractères.")
+            else:
+                users_df = load_users()
+                existing_pseudos_lower = users_df['pseudo'].str.lower()
                 hashed_pwd = hash_password(password)
-                if (users_df['pseudo'] == pseudo).any():
-                    user_row = users_df.loc[users_df['pseudo'] == pseudo].iloc[0]
-                    if user_row['password'] == hashed_pwd:
+
+                if mode == "Se connecter":
+                    if pseudo.lower() in existing_pseudos_lower.values:
+                        user_row = users_df.loc[existing_pseudos_lower == pseudo.lower()].iloc[0]
+                        if user_row['password'] == hashed_pwd:
+                            st.session_state.user_logged_in = True
+                            st.session_state.user_name = user_row['pseudo']
+                            st.success(f"Bienvenue {user_row['pseudo']} !")
+                            st.experimental_rerun()
+                        else:
+                            st.sidebar.error("Mot de passe incorrect.")
+                    else:
+                        st.sidebar.error("Utilisateur inconnu.")
+
+                elif mode == "S'inscrire":
+                    if pseudo.lower() in existing_pseudos_lower.values:
+                        st.sidebar.error("Ce pseudo est déjà utilisé.")
+                    else:
+                        save_user(pseudo, hashed_pwd)
+                        st.success("Inscription réussie, vous êtes connecté.")
                         st.session_state.user_logged_in = True
                         st.session_state.user_name = pseudo
-                        if pseudo.lower() == "admin":
-                            st.session_state.is_admin = True
-                        st.success(f"Bienvenue {pseudo} !")
                         st.experimental_rerun()
-                    else:
-                        st.sidebar.error("Mot de passe incorrect.")
-                else:
-                    st.sidebar.error("Utilisateur inconnu.")
-            
-            elif mode == "S'inscrire":
-                if (users_df['pseudo'] == pseudo).any():
-                    st.sidebar.error("Ce pseudo est déjà utilisé.")
-                else:
-                    hashed_pwd = hash_password(password)
-                    save_user(pseudo, hashed_pwd)
-                    st.success("Inscription réussie, vous êtes connecté.")
-                    st.session_state.user_logged_in = True
-                    st.session_state.user_name = pseudo
-                    st.experimental_rerun()
+
+    if st.session_state.user_logged_in:
+        if st.sidebar.button("Se déconnecter"):
+            for key in ["user_logged_in", "user_name"]:
+                if key in st.session_state:
+                    del st.session_state[key]
+            st.sidebar.success("Déconnecté avec succès.")
+            st.experimental_rerun()
 
 # =============================================
-# DECONNEXION
+# APPEL CONNEXION
 # =============================================
-if st.session_state.user_logged_in:
-    if st.sidebar.button("Se déconnecter"):
-        for key in ["user_logged_in", "user_name"]:
-            if key in st.session_state:
-                del st.session_state[key]
-        st.sidebar.success("Déconnecté avec succès.")
-        st.experimental_rerun()
+handle_auth()
 
 # =============================================
-# ZONE COMMENTAIRES
+# SECTION COMMENTAIRES
 # =============================================
 st.title("💬 Espace Commentaires")
-
-# Chargement des commentaires
 comments_df = load_comments()
 
-if not st.session_state.user_logged_in:
-    st.info("🔒 Connectez-vous pour pouvoir laisser un commentaire.")
-else:
-    # Formulaire d'ajout de commentaire
+if st.session_state.get("user_logged_in", False):
     with st.form(key="comment_form", clear_on_submit=True):
         comment_text = st.text_area("Votre commentaire")
         submit_comment = st.form_submit_button("📤 Envoyer")
@@ -739,46 +737,34 @@ else:
                 save_comment(st.session_state.user_name, comment_text.strip())
                 st.success("Commentaire enregistré!")
                 st.experimental_rerun()
-                
-    with st.expander("💾 Sauvegarder cette exploration"):
-        current_exploration = {
-            "x_axis": x_axis,
-            "y_axis": y_axis,
-            "color_by": color_by,
-            "chart_type": chart_type,
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
-        }
+else:
+    st.info("🔒 Connectez-vous pour pouvoir laisser un commentaire.")
 
-# =============================================
-# AFFICHAGE DES COMMENTAIRES
-# =============================================
 st.subheader("📝 Derniers commentaires")
 
 if comments_df.empty:
     st.info("Aucun commentaire pour le moment.")
 else:
-    comments_display = comments_df.sort_values('timestamp', ascending=False).head(10)
+    comments_display = comments_df.sort_values("timestamp", ascending=False).head(10)
     for idx, row in comments_display.iterrows():
         with st.container(border=True):
             st.markdown(f"**{row['user']}** - *{row['timestamp']}*")
             st.markdown(f"> {row['comment']}")
 
-            # Bouton de suppression + confirmation
-            delete_key = f"delete_{idx}"
-            confirm_key = f"confirm_delete_{idx}"
+            if st.session_state.get("user_logged_in", False) and st.session_state.get("user_name") == row["user"]:
+                delete_key = f"delete_{idx}"
+                confirm_key = f"confirm_delete_{idx}"
 
-            if st.session_state.get("user_logged_in") and st.session_state.user_name == row["user"]:
                 if st.button("🗑️ Supprimer", key=delete_key):
-                    st.session_state[confirm_key] = True  # active la confirmation
+                    st.session_state[confirm_key] = True
 
                 if st.session_state.get(confirm_key, False):
                     st.warning("⚠️ Confirmation suppression")
                     if st.button("✅ Oui, supprimer", key=f"confirmed_{idx}"):
-            # Suppression depuis Google Sheets
-                        sheet = get_comments_sheet()
-                        sheet.delete_rows(idx + 2)  # +2 car Google Sheets commence à 1 et il y a l'en-tête
+                        comments_df = comments_df.drop(index=idx)
+                        comments_df.to_csv(COMMENTS_FILE, index=False)
                         st.success("Commentaire supprimé.")
-                        st.session_state[confirm_key] = False  # reset
+                        st.session_state[confirm_key] = False
                         st.experimental_rerun()
 
 # =============================================
