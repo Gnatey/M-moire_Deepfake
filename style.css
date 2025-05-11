@@ -191,3 +191,21 @@ footer {
 .stExpander .st-expanderContent {
     padding: 1rem;
 }
+/* ===== IMPACT COLORS FOR BIAIS TABLE ===== */
+td[data-impact="Faible"] {
+    background-color: #2ecc71 !important;  /* vert plus soutenu */
+    color: white !important;
+    font-weight: bold;
+}
+
+td[data-impact="Modéré"] {
+    background-color: #f1c40f !important;  /* jaune plus vif */
+    color: black !important;
+    font-weight: bold;
+}
+
+td[data-impact="Élevé"] {
+    background-color: #e74c3c !important;  /* rouge soutenu */
+    color: white !important;
+    font-weight: bold;
+}
