@@ -798,7 +798,7 @@ with tab3:
 # =============================================
 
 with tab4:
-    st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSEE")
+    st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSE")
     col_img, col_msg = st.columns([1, 5])
     with col_img:
         st.image("images.jpeg", width=100)
@@ -806,9 +806,11 @@ with tab4:
         st.info("Cet onglet est en cours de rédaction. Vous verrez des visualisations sous peu.")
 
 with tab5:
-    st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSEE")
+    st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSE")
     col_img, col_msg = st.columns([1, 5])
     with col_img:
         st.image("images.jpeg", width=100)
     with col_msg:
         st.info("Cet onglet est en cours de rédaction. Vous verrez des visualisations sous peu.")
+
+streamlit cache clear
