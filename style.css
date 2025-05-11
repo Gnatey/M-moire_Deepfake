@@ -191,21 +191,22 @@ footer {
 .stExpander .st-expanderContent {
     padding: 1rem;
 }
+
 /* ===== IMPACT COLORS FOR BIAIS TABLE ===== */
 td[data-impact="Faible"] {
-    background-color: #2ecc71 !important;  /* vert plus soutenu */
+    background-color: #27ae60 !important;  /* Vert soutenu */
     color: white !important;
     font-weight: bold;
 }
 
 td[data-impact="Modéré"] {
-    background-color: #f1c40f !important;  /* jaune plus vif */
+    background-color: #f39c12 !important;  /* Jaune foncé */
     color: black !important;
     font-weight: bold;
 }
 
 td[data-impact="Élevé"] {
-    background-color: #e74c3c !important;  /* rouge soutenu */
+    background-color: #c0392b !important;  /* Rouge vif */
     color: white !important;
     font-weight: bold;
 }
