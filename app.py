@@ -819,8 +819,7 @@ with st.expander("⚠️ Diagnostic des biais", expanded=True):
             linecolor="#999999"
         )
     ),
-    plot_bgcolor="#1e1e1e",         # Fond extérieur (cohérent avec dark mode)
-    paper_bgcolor="#1e1e1e",
+    
     font=dict(color="#2c3e50"),     # Texte (valeurs & labels) plus lisible sur fond blanc
     title=dict(
         text="Cartographie des biais par niveau d'impact",
