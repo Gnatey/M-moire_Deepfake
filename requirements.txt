@@ -32,3 +32,5 @@ networkx==3.2.1
 
 # Images
 Pillow==10.3.0
+
+statsmodels==0.14.4
