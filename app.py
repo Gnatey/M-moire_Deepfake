@@ -616,7 +616,7 @@ with tab2:
     }
     .stat-test {
         font-family: monospace;
-        background: #f0f2f6;
+        background: "green";
         padding: 10px;
         border-radius: 5px;
     }
