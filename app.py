@@ -673,56 +673,58 @@ with st.sidebar.form(key="auth_form"):
     submit = st.form_submit_button("Valider")
 
     has_error = False
-    # Vérifications initiales
+
     if submit:
         forbidden_pseudos = {"admin", "root", "support", "moderator"}
 
         if not pseudo or not password:
             st.sidebar.error("Veuillez remplir tous les champs.")
-            st.stop()
+            has_error = True
 
-        if not pseudo.isalnum():
+        elif not pseudo.isalnum():
             st.sidebar.error("Le pseudo ne doit contenir que des lettres et des chiffres.")
-            st.stop()
-        if len(pseudo) < 3 or len(pseudo) > 20:
+            has_error = True
+
+        elif len(pseudo) < 3 or len(pseudo) > 20:
             st.sidebar.error("Le pseudo doit contenir entre 3 et 20 caractères.")
-            st.stop()
-        if pseudo.lower() in forbidden_pseudos:
+            has_error = True
+
+        elif pseudo.lower() in forbidden_pseudos:
             st.sidebar.error("Ce pseudo est réservé.")
-            st.stop()
-        if len(password) < 7:
+            has_error = True
+
+        elif len(password) < 7:
             st.sidebar.error("Le mot de passe doit contenir au moins 7 caractères.")
-            st.stop()
+            has_error = True
 
-        users_df = load_users()
+        if not has_error:
+            users_df = load_users()
+            existing_pseudos_lower = users_df['pseudo'].str.lower()
 
-        # Vérification d'existence insensible à la casse
-        existing_pseudos_lower = users_df['pseudo'].str.lower()
-
-        if mode == "Se connecter":
-            hashed_pwd = hash_password(password)
-            if pseudo.lower() in existing_pseudos_lower.values:
-                user_row = users_df.loc[existing_pseudos_lower == pseudo.lower()].iloc[0]
-                if user_row['password'] == hashed_pwd:
-                    st.session_state.user_logged_in = True
-                    st.session_state.user_name = user_row['pseudo']  # garde le casing original
-                    st.success(f"Bienvenue {user_row['pseudo']} !")
-                    st.experimental_rerun()
-                else:
-                    st.sidebar.error("Mot de passe incorrect.")
-            else:
-                st.sidebar.error("Utilisateur inconnu.")
-
-        elif mode == "S'inscrire":
-            if pseudo.lower() in existing_pseudos_lower.values:
-                st.sidebar.error("Ce pseudo est déjà utilisé.")
-            else:
+            if mode == "Se connecter":
                 hashed_pwd = hash_password(password)
-                save_user(pseudo, hashed_pwd)
-                st.success("Inscription réussie, vous êtes connecté.")
-                st.session_state.user_logged_in = True
-                st.session_state.user_name = pseudo
-                st.experimental_rerun()
+                if pseudo.lower() in existing_pseudos_lower.values:
+                    user_row = users_df.loc[existing_pseudos_lower == pseudo.lower()].iloc[0]
+                    if user_row['password'] == hashed_pwd:
+                        st.session_state.user_logged_in = True
+                        st.session_state.user_name = user_row['pseudo']
+                        st.success(f"Bienvenue {user_row['pseudo']} !")
+                        st.experimental_rerun()
+                    else:
+                        st.sidebar.error("Mot de passe incorrect.")
+                else:
+                    st.sidebar.error("Utilisateur inconnu.")
+
+            elif mode == "S'inscrire":
+                if pseudo.lower() in existing_pseudos_lower.values:
+                    st.sidebar.error("Ce pseudo est déjà utilisé.")
+                else:
+                    hashed_pwd = hash_password(password)
+                    save_user(pseudo, hashed_pwd)
+                    st.success("Inscription réussie, vous êtes connecté.")
+                    st.session_state.user_logged_in = True
+                    st.session_state.user_name = pseudo
+                    st.experimental_rerun()
 
 # =============================================
 # DECONNEXION
