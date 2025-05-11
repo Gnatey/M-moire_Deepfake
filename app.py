@@ -605,23 +605,7 @@ with tab2:
                 st.error(f"Erreur lors de la génération du graphique : {str(e)}")
                 st.warning("Veuillez sélectionner des combinaisons de variables compatibles")
 
-    st.markdown("""
-    <style>
-    .metric-card {
-        background: "yellow";
-        border-radius: 10px;
-        padding: 15px;
-        margin-bottom: 15px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    .stat-test {
-        font-family: monospace;
-        background: "green";
-        padding: 10px;
-        border-radius: 5px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+
 
     # =============================================
     # SECTION 1 : DESCRIPTION DE L'ÉCHANTILLON
