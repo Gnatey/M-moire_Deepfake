@@ -804,9 +804,27 @@ with st.expander("⚠️ Diagnostic des biais", expanded=True):
         name='Impact des biais'
     ))
     fig_radar.update_layout(
-        polar=dict(radialaxis=dict(visible=True, range=[0, 3])),
-        title="Cartographie des biais par niveau d'impact"
-    )
+    polar=dict(
+        bgcolor="#1e1e1e",
+        radialaxis=dict(
+            visible=True,
+            range=[0, 3],
+            color="#bdc3c7",
+            gridcolor="#444",
+            linecolor="#888"
+        ),
+        angularaxis=dict(
+            color="#bdc3c7",
+            gridcolor="#444",
+            linecolor="#888"
+        )
+    ),
+    plot_bgcolor="#1e1e1e",
+    paper_bgcolor="#1e1e1e",
+    font=dict(color="#ecf0f1"),
+    title="Cartographie des biais par niveau d'impact"
+)
+
     st.plotly_chart(fig_radar, use_container_width=True)
 
     # =============================================
