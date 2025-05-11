@@ -819,16 +819,23 @@ with st.expander("⚠️ Diagnostic des biais", expanded=True):
         validity_score = 78  # Exemple de calcul composite
         
         st.markdown(f"""
-        <div style="background: linear-gradient(90deg, #f8f9fa {validity_score}%, #ffffff {validity_score}%);
-                    padding: 20px; border-radius: 10px;">
-            <h3>Validité scientifique globale : {validity_score}/100</h3>
-            <div style="margin-top: 10px;">
-                <p><b>Points forts :</b> Taille suffisante (n>{len(df)}), IC serrés, tests significatifs</p>
-                <p><b>Limites :</b> Biais de sélection, couverture géographique limitée</p>
-                <p><b>Généralisation :</b> Possible avec pondération pour les études descriptives</p>
-            </div>
+            <div style="
+            background-color: #ffffff10;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            color: #ecf0f1;
+                            ">
+            <h3 style="color: #ecf0f1;">Validité scientifique globale : {validity_score}/100</h3>
+        <div style="margin-top: 10px; font-size: 0.95rem;">
+            <p><b>Points forts :</b> Taille suffisante (n>{len(df)}), IC serrés, tests significatifs</p>
+            <p><b>Limites :</b> Biais de sélection, couverture géographique limitée</p>
+            <p><b>Généralisation :</b> Possible avec pondération pour les études descriptives</p>
         </div>
-        """, unsafe_allow_html=True)
+</div>
+""", unsafe_allow_html=True)
+
 # ===========================================
 # ONGLET 3 : Analyse Statistique Avancée
 # ===========================================
