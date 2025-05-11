@@ -673,41 +673,44 @@ with st.sidebar.form(key="auth_form"):
     submit = st.form_submit_button("Valider")
 
     if submit:
+        pseudo = pseudo.strip()
+
+        # Vérification de pseudo
         if not pseudo or not password:
             st.sidebar.error("Veuillez remplir tous les champs.")
-        else:
-            users_df = load_users()
+            st.stop()
 
-            if mode == "Se connecter":
-                hashed_pwd = hash_password(password)
-                if pseudo.lower() in users_df['pseudo'].str.lower().values:
-                    user_row = users_df.loc[users_df['pseudo'] == pseudo].iloc[0]
-                    if user_row['password'] == hashed_pwd:
-                        st.session_state.user_logged_in = True
-                        st.session_state.user_name = pseudo
-                        if pseudo.lower() == "admin":
-                            st.session_state.is_admin = True
-                        st.success(f"Bienvenue {pseudo} !")
-                        st.experimental_rerun()
-                    else:
-                        st.sidebar.error("Mot de passe incorrect.")
-                else:
-                    st.sidebar.error("Utilisateur inconnu.")
-            
-            elif mode == "S'inscrire":
-                if (users_df['pseudo'] == pseudo).any():
-                    st.sidebar.error("Ce pseudo est déjà utilisé.")
-                else:
-                    hashed_pwd = hash_password(password)
-                    save_user(pseudo, hashed_pwd)
-                    st.success("Inscription réussie, vous êtes connecté.")
+        if not pseudo.isalnum():
+            st.sidebar.error("Le pseudo ne doit contenir que des lettres et des chiffres.")
+            st.stop()
+
+        users_df = load_users()
+
+        if mode == "Se connecter":
+            hashed_pwd = hash_password(password)
+            if pseudo.lower() in users_df['pseudo'].str.lower().values:
+                user_row = users_df.loc[users_df['pseudo'].str.lower() == pseudo.lower()].iloc[0]
+                if user_row['password'] == hashed_pwd:
                     st.session_state.user_logged_in = True
-                    st.session_state.user_name = pseudo
+                    st.session_state.user_name = user_row['pseudo']  # garde le pseudo tel que stocké
+                    st.success(f"Bienvenue {user_row['pseudo']} !")
                     st.experimental_rerun()
-    pseudo = pseudo.strip()
-    if not pseudo.isalnum():
-        st.sidebar.error("Le pseudo ne doit contenir que des lettres et des chiffres.")
-        st.stop()
+                else:
+                    st.sidebar.error("Mot de passe incorrect.")
+            else:
+                st.sidebar.error("Utilisateur inconnu.")
+
+        elif mode == "S'inscrire":
+            if pseudo.lower() in users_df['pseudo'].str.lower().values:
+                st.sidebar.error("Ce pseudo est déjà utilisé.")
+            else:
+                hashed_pwd = hash_password(password)
+                save_user(pseudo, hashed_pwd)
+                st.success("Inscription réussie, vous êtes connecté.")
+                st.session_state.user_logged_in = True
+                st.session_state.user_name = pseudo
+                st.experimental_rerun()
+
 # =============================================
 # DECONNEXION
 # =============================================
