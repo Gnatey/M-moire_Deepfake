@@ -626,7 +626,7 @@ with tab2:
             
         with col3:
             duree_enquete = (pd.to_datetime(df['Date de saisie']).max() - 
-                            pd.to_datetime(df['Date de saisie']).min()).days
+                            pd.to_datetime(df['Date de saisie']).min()).days +1
             st.markdown("<div class='metric-card'>⏱ <b>Durée</b><br>"
                         f"<span style='font-size:24px'>{duree_enquete} jours</span></div>", 
                         unsafe_allow_html=True)
