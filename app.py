@@ -608,7 +608,7 @@ with tab2:
     st.markdown("""
     <style>
     .metric-card {
-        background: #f8f9fa;
+        background: "yellow";
         border-radius: 10px;
         padding: 15px;
         margin-bottom: 15px;
