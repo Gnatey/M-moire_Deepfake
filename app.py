@@ -778,7 +778,7 @@ features = ["Exposition DeepFakes", "Impact société", "Niveau connaissance", "
 df_model = filtered_df[[target_col] + features].dropna()
 
 if df_model.empty:
-    st.warning("Pas assez de données pour entraîner le modèle.")
+        st.warning("Pas assez de données pour entraîner le modèle.")
 else:
     df_model["Confiance_binaire"] = df_model[target_col].apply(lambda x: 1 if str(x).strip().lower() == "oui" else 0)
 
