@@ -672,6 +672,7 @@ with st.sidebar.form(key="auth_form"):
     password = st.text_input("Mot de passe", type="password")
     submit = st.form_submit_button("Valider")
 
+    has_error = False
     # Vérifications initiales
     if submit:
         forbidden_pseudos = {"admin", "root", "support", "moderator"}
