@@ -609,63 +609,58 @@ with tab2:
 # ONGLET 3 : Analyse Statistique Avancée
 # ===========================================
 with tab3:
-    st.header("📈 Analyse Statistique Avancée")
+    st.header("📉 Régression Logistique : Confiance vs DeepFakes")
 
-    # 1. Nettoyage des données utiles pour la régression
-    target_col = "Confiance réseaux sociaux"
-    features = ["Exposition DeepFakes", "Impact société", "Niveau connaissance", "Tranche d'âge", "Genre"]
+    # Renommage simplifié des colonnes
+    df_model = df.rename(columns={
+        "Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?": "Confiance_RS",
+        "Avez-vous déjà entendu parler des Deep Fakes ?": "Connaissance_DF",
+        "Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?": "Exposition_DF",
+        "Selon vous, quel est l’impact global des Deep Fakes sur la société ?": "Impact_Société",
+        "Quel est votre tranche d'âge ?": "Tranche_Age",
+        "Vous êtes ...?": "Genre",
+        "Quel est votre niveau d’éducation actuel ?": "Niveau_Education"
+    })
 
-    # Filtrage des lignes valides
-    df_model = filtered_df[[target_col] + features].dropna()
+    # Nettoyage
+    df_model = df_model[[
+        "Confiance_RS", "Connaissance_DF", "Exposition_DF", "Impact_Société", "Tranche_Age", "Genre", "Niveau_Education"
+    ]].dropna()
 
-    # Transformation binaire de la cible
-    df_model["Confiance_binaire"] = df_model[target_col].apply(lambda x: 1 if x.strip().lower() == "oui" else 0)
+    # Encodage
+    df_encoded = df_model.copy()
+    df_encoded["Confiance_RS"] = df_encoded["Confiance_RS"].map({"Oui": 1, "Non": 0})
+    for col in df_encoded.columns[1:]:
+        df_encoded[col] = df_encoded[col].astype("category").cat.codes
 
-        # 2. Séparation des features et de la cible
-    X = df_model[features]
-    y = df_model["Confiance_binaire"]
+    # Régression logistique
+    import statsmodels.api as sm
+    X = df_encoded.drop("Confiance_RS", axis=1)
+    X = sm.add_constant(X)
+    y = df_encoded["Confiance_RS"]
 
-    # Encodage des variables catégorielles avec OneHotEncoder
-    categorical_features = features
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ('cat', OneHotEncoder(drop='first'), categorical_features)
-        ]
-    )
+    model = sm.Logit(y, X).fit(disp=0)
 
-    # Pipeline avec prétraitement + modèle
-    model = Pipeline(steps=[
-        ('preprocessor', preprocessor),
-        ('classifier', LogisticRegression(max_iter=1000))
-    ])
+    st.subheader("📊 Résumé du Modèle")
+    st.text(model.summary())
 
-    # Split des données en train/test
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+    st.markdown("**🔍 Interprétation rapide :**")
+    st.markdown("""
+    - Les coefficients positifs indiquent un lien avec une plus grande probabilité de faire confiance aux RS.
+    - Les p-values < 0.05 indiquent des variables significativement liées à la confiance.
+    - Le pseudo R² (McFadden) donne une idée de la qualité du modèle (valeurs > 0.2 sont déjà acceptables en socio).
+    """)
 
-    # Entraînement du modèle
-    model.fit(X_train, y_train)
+    st.markdown("**⚠️ Limites possibles :**")
+    st.markdown("""
+    - Corrélation ≠ causalité.
+    - Les variables sont auto-déclarées.
+    - Il n'y a pas de prise en compte du temps ou de l'appareil.
+    - Possibles biais de sélection de l'échantillon.
+    """)
 
-    # Prédictions
-    y_pred = model.predict(X_test)
-    y_proba = model.predict_proba(X_test)[:, 1]
+    st.success("Ce modèle permet d’évaluer si l’exposition aux deepfakes et la perception de leur impact sont significativement liées à la confiance dans les réseaux sociaux.")
 
-    # Affichage des performances
-    st.subheader("📊 Évaluation du Modèle")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("**Matrice de Confusion**")
-        cm = confusion_matrix(y_test, y_pred)
-        st.dataframe(pd.DataFrame(cm, index=["Réel Non", "Réel Oui"], columns=["Prédit Non", "Prédit Oui"]))
-
-    with col2:
-        st.markdown("**Classification Report**")
-        report = classification_report(y_test, y_pred, output_dict=True)
-        st.dataframe(pd.DataFrame(report).transpose().round(2))
-
-    # AUC
-    auc_score = roc_auc_score(y_test, y_proba)
-    st.metric("Score AUC", f"{auc_score:.3f}")
 
 
 # =============================================
