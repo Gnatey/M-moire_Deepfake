@@ -704,10 +704,7 @@ with st.sidebar.form(key="auth_form"):
                     st.session_state.user_logged_in = True
                     st.session_state.user_name = pseudo
                     st.experimental_rerun()
-    pseudo = pseudo.strip()
-    if not pseudo.isalnum():
-        st.sidebar.error("Le pseudo ne doit contenir que des lettres et des chiffres.")
-        st.stop()
+
 # =============================================
 # DECONNEXION
 # =============================================
