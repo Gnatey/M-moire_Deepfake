@@ -663,65 +663,64 @@ if 'user_logged_in' not in st.session_state:
 # =============================================
 # SIDEBAR : CONNEXION / INSCRIPTION
 # =============================================
-def handle_auth():
-    st.sidebar.header("🔐 Connexion rapide")
-    mode = st.sidebar.radio("Choisissez une option :", ["Se connecter", "S'inscrire"])
+# =============================================
+# APPEL DE LA LOGIQUE D’AUTH
+# =============================================
+handle_auth()  # affiche la barre de connexion + erreurs
 
-    with st.sidebar.form(key="auth_form"):
-        pseudo = st.text_input("Votre pseudo").strip()
-        password = st.text_input("Mot de passe", type="password")
-        submit = st.form_submit_button("Valider")
+# =============================================
+# CHARGEMENT ET AFFICHAGE DES COMMENTAIRES
+# =============================================
+st.title("💬 Espace Commentaires")
 
-        forbidden_pseudos = {"admin", "root", "support", "moderator"}
+# Charger les commentaires même si on n'est pas connecté
+comments_df = load_comments()
 
-        if submit:
-            if not pseudo or not password:
-                st.sidebar.error("Veuillez remplir tous les champs.")
-                return
+# Formulaire si connecté
+if st.session_state.get("user_logged_in", False):
+    with st.form(key="comment_form", clear_on_submit=True):
+        comment_text = st.text_area("Votre commentaire")
+        submit_comment = st.form_submit_button("📤 Envoyer")
 
-            if not pseudo.isalnum():
-                st.sidebar.error("Le pseudo ne doit contenir que des lettres et des chiffres.")
-                return
+        if submit_comment:
+            if not comment_text:
+                st.warning("Merci de remplir votre commentaire.")
+            else:
+                save_comment(st.session_state.user_name, comment_text.strip())
+                st.success("Commentaire enregistré!")
+                st.experimental_rerun()
+else:
+    st.info("🔒 Connectez-vous pour pouvoir laisser un commentaire.")
 
-            if len(pseudo) < 3 or len(pseudo) > 20:
-                st.sidebar.error("Le pseudo doit contenir entre 3 et 20 caractères.")
-                return
+# Affichage des commentaires publics
+st.subheader("📝 Derniers commentaires")
 
-            if pseudo.lower() in forbidden_pseudos:
-                st.sidebar.error("Ce pseudo est réservé.")
-                return
+if comments_df.empty:
+    st.info("Aucun commentaire pour le moment.")
+else:
+    comments_display = comments_df.sort_values("timestamp", ascending=False).head(10)
 
-            if len(password) < 7:
-                st.sidebar.error("Le mot de passe doit contenir au moins 7 caractères.")
-                return
+    for idx, row in comments_display.iterrows():
+        with st.container(border=True):
+            st.markdown(f"**{row['user']}** - *{row['timestamp']}*")
+            st.markdown(f"> {row['comment']}")
 
-            users_df = load_users()
-            existing_pseudos_lower = users_df['pseudo'].str.lower()
+            # Suppression si auteur
+            if st.session_state.get("user_logged_in", False) and st.session_state.get("user_name") == row["user"]:
+                delete_key = f"delete_{idx}"
+                confirm_key = f"confirm_delete_{idx}"
 
-            if mode == "Se connecter":
-                hashed_pwd = hash_password(password)
-                if pseudo.lower() in existing_pseudos_lower.values:
-                    user_row = users_df.loc[existing_pseudos_lower == pseudo.lower()].iloc[0]
-                    if user_row['password'] == hashed_pwd:
-                        st.session_state.user_logged_in = True
-                        st.session_state.user_name = user_row['pseudo']
-                        st.success(f"Bienvenue {user_row['pseudo']} !")
+                if st.button("🗑️ Supprimer", key=delete_key):
+                    st.session_state[confirm_key] = True
+
+                if st.session_state.get(confirm_key, False):
+                    st.warning("⚠️ Confirmation suppression")
+                    if st.button("✅ Oui, supprimer", key=f"confirmed_{idx}"):
+                        comments_df = comments_df.drop(index=idx)
+                        comments_df.to_csv(COMMENTS_FILE, index=False)
+                        st.success("Commentaire supprimé.")
+                        st.session_state[confirm_key] = False
                         st.experimental_rerun()
-                    else:
-                        st.sidebar.error("Mot de passe incorrect.")
-                else:
-                    st.sidebar.error("Utilisateur inconnu.")
-
-            elif mode == "S'inscrire":
-                if pseudo.lower() in existing_pseudos_lower.values:
-                    st.sidebar.error("Ce pseudo est déjà utilisé.")
-                else:
-                    hashed_pwd = hash_password(password)
-                    save_user(pseudo, hashed_pwd)
-                    st.success("Inscription réussie, vous êtes connecté.")
-                    st.session_state.user_logged_in = True
-                    st.session_state.user_name = pseudo
-                    st.experimental_rerun()
 
 # =============================================
 # DECONNEXION
