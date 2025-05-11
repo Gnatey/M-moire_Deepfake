@@ -17,7 +17,6 @@ import hashlib
 import json
 from google.oauth2.service_account import Credentials
 import gspread
-import statsmodels.api as sm
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.metrics import confusion_matrix, classification_report, roc_curve, roc_auc_score
