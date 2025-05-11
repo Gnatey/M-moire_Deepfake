@@ -751,55 +751,63 @@ with tab2:
     # =============================================
     # SECTION 4 : ANALYSE DES BIAIS
     # =============================================
-    with st.expander("⚠️ Diagnostic des biais", expanded=True):
-        st.subheader("Carte des biais potentiels")
-        
-        biases = {
-            "Biais de sélection": {
-                "Description": "Sur-représentation des internautes avertis",
-                "Impact": "Modéré",
-                "Correctif": "Pondération par calage"
-            },
-            "Biais de non-réponse": {
-                "Description": "Abandon après visualisation des questions complexes",
-                "Impact": "Faible",
-                "Correctif": "Analyse des répondants partiels"
-            },
-            "Biais de désirabilité": {
-                "Description": "Sous-déclaration des comportements risqués",
-                "Impact": "Élevé",
-                "Correctif": "Données anonymisées"
-            }
+    # =============================================
+# SECTION 4 : ANALYSE DES BIAIS
+# =============================================
+with st.expander("⚠️ Diagnostic des biais", expanded=True):
+    st.subheader("Carte des biais potentiels")
+    
+    biases = {
+        "Biais de sélection": {
+            "Description": "Sur-représentation des internautes avertis",
+            "Impact": "Modéré",
+            "Correctif": "Pondération par calage"
+        },
+        "Biais de non-réponse": {
+            "Description": "Abandon après visualisation des questions complexes",
+            "Impact": "Faible",
+            "Correctif": "Analyse des répondants partiels"
+        },
+        "Biais de désirabilité": {
+            "Description": "Sous-déclaration des comportements risqués",
+            "Impact": "Élevé",
+            "Correctif": "Données anonymisées"
         }
-        
-        # Matrice d'évaluation
-        df_biases = pd.DataFrame(biases).T.reset_index()
-        df_biases.columns = ["Type de biais", "Description", "Impact", "Correctif"]
-        
-        # Visualisation interactive
-        st.dataframe(
-            df_biases.style.applymap(
-                lambda x: "background-color: #ffcccc" if x == "Élevé" else (
-                    "background-color: #ffffcc" if x == "Modéré" else "background-color: #ccffcc"
-                ), subset=["Impact"]
-            ),
-            hide_index=True,
-            use_container_width=True
-        )
-        
-        # Diagramme radar des risques
-        fig_radar = go.Figure()
-        fig_radar.add_trace(go.Scatterpolar(
-            r=[3, 2, 1],  # Scores d'impact
-            theta=list(biases.keys()),
-            fill='toself',
-            name='Impact des biais'
-        ))
-        fig_radar.update_layout(
-            polar=dict(radialaxis=dict(visible=True, range=[0, 3])),
-            title="Cartographie des biais par niveau d'impact"
-        )
-        st.plotly_chart(fig_radar, use_container_width=True)
+    }
+    
+    # Matrice d'évaluation
+    df_biases = pd.DataFrame(biases).T.reset_index()
+    df_biases.columns = ["Type de biais", "Description", "Impact", "Correctif"]
+
+    # Appliquer des attributs HTML personnalisés pour la colonne 'Impact'
+    def add_data_attr(val):
+        return f'data-impact="{val}"'
+
+    styled_biases = df_biases.style.set_td_classes(
+        df_biases[['Impact']].applymap(add_data_attr)
+    )
+
+    st.dataframe(
+        styled_biases,
+        hide_index=True,
+        use_container_width=True
+    )
+    
+    # Diagramme radar des risques
+    st.markdown("Cartographie des biais par niveau d'impact")
+
+    fig_radar = go.Figure()
+    fig_radar.add_trace(go.Scatterpolar(
+        r=[3, 2, 1],  # Scores d'impact fictifs
+        theta=list(biases.keys()),
+        fill='toself',
+        name='Impact des biais'
+    ))
+    fig_radar.update_layout(
+        polar=dict(radialaxis=dict(visible=True, range=[0, 3])),
+        title="Cartographie des biais par niveau d'impact"
+    )
+    st.plotly_chart(fig_radar, use_container_width=True)
 
     # =============================================
     # SECTION 5 : CONCLUSION MÉTHODOLOGIQUE
