@@ -17,7 +17,13 @@ import hashlib
 import json
 from google.oauth2.service_account import Credentials
 import gspread
-
+import statsmodels.api as sm
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.metrics import confusion_matrix, classification_report, roc_curve, roc_auc_score
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
 # =============================================
 # INITIALISATION ET CONFIGURATION DE BASE
 # =============================================
@@ -767,6 +773,26 @@ else:
                         st.session_state[confirm_key] = False
                         st.experimental_rerun()
 
+# ===========================================
+# ONGLET 3 : Analyse Statistique Avancée
+# ===========================================
+with tab3:
+    st.header("📈 Analyse Statistique Avancée")
+
+    # 1. Nettoyage des données utiles pour la régression
+    st.subheader("📋 Préparation des Données")
+
+    target_col = "Confiance réseaux sociaux"
+    features = ["Exposition DeepFakes", "Impact société", "Niveau connaissance", "Tranche d'âge", "Genre"]
+
+    # Filtrage des lignes valides
+    df_model = filtered_df[[target_col] + features].dropna()
+
+    # Transformation binaire de la cible
+    df_model["Confiance_binaire"] = df_model[target_col].apply(lambda x: 1 if x.strip().lower() == "oui" else 0)
+
+    st.markdown("Aperçu des données utilisées pour la régression :")
+    st.dataframe(df_model.head())
 # =============================================
 # ONGLETS EN CONSTRUCTION - MESSAGE EDITEUR
 # =============================================
