@@ -674,6 +674,7 @@ with st.sidebar.form(key="auth_form"):
 
     has_error = False
 
+    # Vérification initiale
     if submit:
         forbidden_pseudos = {"admin", "root", "support", "moderator"}
 
