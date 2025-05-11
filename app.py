@@ -809,22 +809,22 @@ with st.expander("⚠️ Diagnostic des biais", expanded=True):
         radialaxis=dict(
             visible=True,
             range=[0, 3],
-            color="#000000",        # Texte des axes en noir
-            gridcolor="#ccc",
-            linecolor="#666"
+            color="#2c3e50",        # Texte & lignes en gris foncé lisible
+            gridcolor="#d0d0d0",
+            linecolor="#999999"
         ),
         angularaxis=dict(
-            color="#000000",
-            gridcolor="#ccc",
-            linecolor="#666"
+            color="#2c3e50",
+            gridcolor="#d0d0d0",
+            linecolor="#999999"
         )
     ),
-    plot_bgcolor="#1e1e1e",         # Fond autour du graphique (dark)
+    plot_bgcolor="#1e1e1e",         # Fond extérieur (cohérent avec dark mode)
     paper_bgcolor="#1e1e1e",
-    font=dict(color="#000000"),     # Texte en noir
+    font=dict(color="#2c3e50"),     # Texte (valeurs & labels) plus lisible sur fond blanc
     title=dict(
         text="Cartographie des biais par niveau d'impact",
-        font=dict(color="#ffffff")  # Titre en blanc
+        font=dict(color="white", size=20)  # Titre blanc bien visible
     )
 )
 
