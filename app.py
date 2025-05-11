@@ -605,8 +605,6 @@ with tab3:
     st.header("📈 Analyse Statistique Avancée")
 
     # 1. Nettoyage des données utiles pour la régression
-    st.subheader("📋 Préparation des Données")
-
     target_col = "Confiance réseaux sociaux"
     features = ["Exposition DeepFakes", "Impact société", "Niveau connaissance", "Tranche d'âge", "Genre"]
 
@@ -616,7 +614,52 @@ with tab3:
     # Transformation binaire de la cible
     df_model["Confiance_binaire"] = df_model[target_col].apply(lambda x: 1 if x.strip().lower() == "oui" else 0)
 
-    st.markdown("Aperçu des données utilisées pour la régression :")
+        # 2. Séparation des features et de la cible
+    X = df_model[features]
+    y = df_model["Confiance_binaire"]
+
+    # Encodage des variables catégorielles avec OneHotEncoder
+    categorical_features = features
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('cat', OneHotEncoder(drop='first'), categorical_features)
+        ]
+    )
+
+    # Pipeline avec prétraitement + modèle
+    model = Pipeline(steps=[
+        ('preprocessor', preprocessor),
+        ('classifier', LogisticRegression(max_iter=1000))
+    ])
+
+    # Split des données en train/test
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+    # Entraînement du modèle
+    model.fit(X_train, y_train)
+
+    # Prédictions
+    y_pred = model.predict(X_test)
+    y_proba = model.predict_proba(X_test)[:, 1]
+
+    # Affichage des performances
+    st.subheader("📊 Évaluation du Modèle")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("**Matrice de Confusion**")
+        cm = confusion_matrix(y_test, y_pred)
+        st.dataframe(pd.DataFrame(cm, index=["Réel Non", "Réel Oui"], columns=["Prédit Non", "Prédit Oui"]))
+
+    with col2:
+        st.markdown("**Classification Report**")
+        report = classification_report(y_test, y_pred, output_dict=True)
+        st.dataframe(pd.DataFrame(report).transpose().round(2))
+
+    # AUC
+    auc_score = roc_auc_score(y_test, y_proba)
+    st.metric("Score AUC", f"{auc_score:.3f}")
+
 
 # =============================================
 # SECTION COMMENTAIRES
