@@ -669,11 +669,6 @@ mode = st.sidebar.radio("Choisissez une option :", ["Se connecter", "S'inscrire"
 
 with st.sidebar.form(key="auth_form"):
     pseudo = st.text_input("Votre pseudo")
-    pseudo = pseudo.strip()
-    if not pseudo.isalnum():
-        st.sidebar.error("Le pseudo ne doit contenir que des lettres et des chiffres.")
-        st.stop()
-
     password = st.text_input("Mot de passe", type="password")
     submit = st.form_submit_button("Valider")
 
@@ -709,7 +704,10 @@ with st.sidebar.form(key="auth_form"):
                     st.session_state.user_logged_in = True
                     st.session_state.user_name = pseudo
                     st.experimental_rerun()
-
+    pseudo = pseudo.strip()
+    if not pseudo.isalnum():
+        st.sidebar.error("Le pseudo ne doit contenir que des lettres et des chiffres.")
+        st.stop()
 # =============================================
 # DECONNEXION
 # =============================================
