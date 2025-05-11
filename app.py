@@ -598,6 +598,80 @@ with tab2:
                 st.error(f"Erreur lors de la génération du graphique : {str(e)}")
                 st.warning("Veuillez sélectionner des combinaisons de variables compatibles")
 
+# ===========================================
+# ONGLET 3 : Analyse Statistique Avancée
+# ===========================================
+# 1. Préparation des données
+st.subheader("📋 Préparation des Données")
+
+target_col = "Confiance réseaux sociaux"
+features = ["Exposition DeepFakes", "Impact société", "Niveau connaissance", "Tranche d'âge", "Genre"]
+
+df_model = filtered_df[[target_col] + features].dropna()
+
+if df_model.empty:
+        st.warning("Pas assez de données pour entraîner le modèle.")
+else:
+    df_model["Confiance_binaire"] = df_model[target_col].apply(lambda x: 1 if str(x).strip().lower() == "oui" else 0)
+
+    # 2. Encodage des variables catégorielles
+    st.subheader("🔁 Encodage des variables")
+
+    X = df_model[features]
+    y = df_model["Confiance_binaire"]
+
+    categorical_features = X.columns.tolist()
+    encoder = OneHotEncoder(drop='first')  # pour éviter la multicolinéarité
+
+    column_transformer = ColumnTransformer(
+        transformers=[
+            ("cat", encoder, categorical_features)
+        ]
+    )
+
+    # 3. Split et pipeline
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+    model = LogisticRegression(max_iter=1000)
+    pipeline = Pipeline(steps=[
+        ("encoder", column_transformer),
+        ("logreg", model)
+    ])
+
+    pipeline.fit(X_train, y_train)
+
+    # 4. Résultats
+    st.subheader("📊 Résultats du Modèle")
+
+    y_pred = pipeline.predict(X_test)
+    y_prob = pipeline.predict_proba(X_test)[:, 1]
+
+    st.markdown("**Classification Report :**")
+    report = classification_report(y_test, y_pred, output_dict=True)
+    st.dataframe(pd.DataFrame(report).transpose().round(2))
+
+    # 5. Courbe ROC
+    st.subheader("📈 Courbe ROC")
+    fpr, tpr, _ = roc_curve(y_test, y_prob)
+    auc_score = roc_auc_score(y_test, y_prob)
+
+    fig_roc = go.Figure()
+    fig_roc.add_trace(go.Scatter(x=fpr, y=tpr, mode='lines', name='ROC Curve'))
+    fig_roc.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode='lines', name='Random', line=dict(dash='dash')))
+    fig_roc.update_layout(title=f"ROC Curve (AUC = {auc_score:.2f})", xaxis_title="Faux Positifs", yaxis_title="Vrais Positifs")
+    st.plotly_chart(fig_roc, use_container_width=True)
+
+    # 6. Affichage des coefficients
+    st.subheader("📌 Coefficients du modèle")
+
+    feature_names = pipeline.named_steps["encoder"].get_feature_names_out()
+    coef_df = pd.DataFrame({
+        "Variable": feature_names,
+        "Coefficient": pipeline.named_steps["logreg"].coef_[0]
+    }).sort_values("Coefficient", key=np.abs, ascending=False)
+
+    st.dataframe(coef_df)
+
 # =============================================
 # SECTION COMMENTAIRES
 # =============================================
@@ -765,80 +839,6 @@ else:
                         st.success("Commentaire supprimé.")
                         st.session_state[confirm_key] = False
                         st.experimental_rerun()
-
-# ===========================================
-# ONGLET 3 : Analyse Statistique Avancée
-# ===========================================
-# 1. Préparation des données
-st.subheader("📋 Préparation des Données")
-
-target_col = "Confiance réseaux sociaux"
-features = ["Exposition DeepFakes", "Impact société", "Niveau connaissance", "Tranche d'âge", "Genre"]
-
-df_model = filtered_df[[target_col] + features].dropna()
-
-if df_model.empty:
-        st.warning("Pas assez de données pour entraîner le modèle.")
-else:
-    df_model["Confiance_binaire"] = df_model[target_col].apply(lambda x: 1 if str(x).strip().lower() == "oui" else 0)
-
-    # 2. Encodage des variables catégorielles
-    st.subheader("🔁 Encodage des variables")
-
-    X = df_model[features]
-    y = df_model["Confiance_binaire"]
-
-    categorical_features = X.columns.tolist()
-    encoder = OneHotEncoder(drop='first')  # pour éviter la multicolinéarité
-
-    column_transformer = ColumnTransformer(
-        transformers=[
-            ("cat", encoder, categorical_features)
-        ]
-    )
-
-    # 3. Split et pipeline
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-
-    model = LogisticRegression(max_iter=1000)
-    pipeline = Pipeline(steps=[
-        ("encoder", column_transformer),
-        ("logreg", model)
-    ])
-
-    pipeline.fit(X_train, y_train)
-
-    # 4. Résultats
-    st.subheader("📊 Résultats du Modèle")
-
-    y_pred = pipeline.predict(X_test)
-    y_prob = pipeline.predict_proba(X_test)[:, 1]
-
-    st.markdown("**Classification Report :**")
-    report = classification_report(y_test, y_pred, output_dict=True)
-    st.dataframe(pd.DataFrame(report).transpose().round(2))
-
-    # 5. Courbe ROC
-    st.subheader("📈 Courbe ROC")
-    fpr, tpr, _ = roc_curve(y_test, y_prob)
-    auc_score = roc_auc_score(y_test, y_prob)
-
-    fig_roc = go.Figure()
-    fig_roc.add_trace(go.Scatter(x=fpr, y=tpr, mode='lines', name='ROC Curve'))
-    fig_roc.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode='lines', name='Random', line=dict(dash='dash')))
-    fig_roc.update_layout(title=f"ROC Curve (AUC = {auc_score:.2f})", xaxis_title="Faux Positifs", yaxis_title="Vrais Positifs")
-    st.plotly_chart(fig_roc, use_container_width=True)
-
-    # 6. Affichage des coefficients
-    st.subheader("📌 Coefficients du modèle")
-
-    feature_names = pipeline.named_steps["encoder"].get_feature_names_out()
-    coef_df = pd.DataFrame({
-        "Variable": feature_names,
-        "Coefficient": pipeline.named_steps["logreg"].coef_[0]
-    }).sort_values("Coefficient", key=np.abs, ascending=False)
-
-    st.dataframe(coef_df)
 
 # =============================================
 # ONGLETS EN CONSTRUCTION - MESSAGE EDITEUR
