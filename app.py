@@ -777,7 +777,6 @@ else:
 # ONGLET 3 : Analyse Statistique Avancée
 # ===========================================
 with tab3:
-    st.header("📈 Analyse Statistique Avancée")
 
     # 1. Nettoyage des données utiles pour la régression
     st.subheader("📋 Préparation des Données")
