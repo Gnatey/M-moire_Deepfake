@@ -844,7 +844,7 @@ with tab2:
                             ">
             <h3 style="color: #ecf0f1;">Validité scientifique globale : {validity_score}/100</h3>
         <div style="margin-top: 10px; font-size: 0.95rem;">
-            <p><b>Points forts :</b> Taille suffisante (n>{len(df)}), IC serrés, tests significatifs</p>
+            <p><b>Points forts :</b> Taille suffisante (n>={len(df)}), IC serrés, tests significatifs</p>
             <p><b>Limites :</b> Biais de sélection, couverture géographique limitée</p>
             <p><b>Généralisation :</b> Possible avec pondération pour les études descriptives</p>
         </div>
