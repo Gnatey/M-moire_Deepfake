@@ -748,30 +748,30 @@ with tab2:
         Intervalle de confiance : **[{ci_low*100:.1f}% - {ci_high*100:.1f}%]**
         """)
 
-    # =============================================
+        # =============================================
     # SECTION 4 : ANALYSE DES BIAIS
     # =============================================
-        with st.expander("⚠️ Diagnostic des biais", expanded=True):
-            st.subheader("Carte des biais potentiels")
-    
+    with st.expander("⚠️ Diagnostic des biais", expanded=True):
+        st.subheader("Carte des biais potentiels")
+
         biases = {
-        "Biais de sélection": {
-            "Description": "Sur-représentation des internautes avertis",
-            "Impact": "Modéré",
-            "Correctif": "Pondération par calage"
-        },
-        "Biais de non-réponse": {
-            "Description": "Abandon après visualisation des questions complexes",
-            "Impact": "Faible",
-            "Correctif": "Analyse des répondants partiels"
-        },
-        "Biais de désirabilité": {
-            "Description": "Sous-déclaration des comportements risqués",
-            "Impact": "Élevé",
-            "Correctif": "Données anonymisées"
+            "Biais de sélection": {
+                "Description": "Sur-représentation des internautes avertis",
+                "Impact": "Modéré",
+                "Correctif": "Pondération par calage"
+            },
+            "Biais de non-réponse": {
+                "Description": "Abandon après visualisation des questions complexes",
+                "Impact": "Faible",
+                "Correctif": "Analyse des répondants partiels"
+            },
+            "Biais de désirabilité": {
+                "Description": "Sous-déclaration des comportements risqués",
+                "Impact": "Élevé",
+                "Correctif": "Données anonymisées"
+            }
         }
-    }
-    
+
         # Matrice d'évaluation
         df_biases = pd.DataFrame(biases).T.reset_index()
         df_biases.columns = ["Type de biais", "Description", "Impact", "Correctif"]
@@ -780,49 +780,48 @@ with tab2:
         def add_data_attr(val):
             return f'data-impact="{val}"'
 
-            styled_biases = df_biases.style.set_td_classes(
+        styled_biases = df_biases.style.set_td_classes(
             df_biases[['Impact']].applymap(add_data_attr)
         )
 
-            st.dataframe(
+        st.dataframe(
             styled_biases,
             hide_index=True,
             use_container_width=True
         )
-    
-        # Diagramme radar des risques
-            st.markdown("Cartographie des biais par niveau d'impact")
 
-            fig_radar = go.Figure()
-            fig_radar.add_trace(go.Scatterpolar(
-                r=[3, 2, 1],  # Scores d'impact fictifs
-                theta=list(biases.keys()),
-                fill='toself',
-                name='Impact des biais'
+        # Diagramme radar des risques
+        st.markdown("Cartographie des biais par niveau d'impact")
+
+        fig_radar = go.Figure()
+        fig_radar.add_trace(go.Scatterpolar(
+            r=[3, 2, 1],  # Scores d'impact fictifs
+            theta=list(biases.keys()),
+            fill='toself',
+            name='Impact des biais'
         ))
-            fig_radar.update_layout(
-                polar=dict(
+        fig_radar.update_layout(
+            polar=dict(
                 bgcolor="#ffffff",
                 radialaxis=dict(
                     visible=True,
                     range=[0, 3],
-                    color="#2c3e50",        # Texte & lignes en gris foncé lisible
+                    color="#2c3e50",
                     gridcolor="#d0d0d0",
                     linecolor="#999999"
-        ),
-            angularaxis=dict(
-                color="#2c3e50",
-                gridcolor="#d0d0d0",
-                linecolor="#999999"
+                ),
+                angularaxis=dict(
+                    color="#2c3e50",
+                    gridcolor="#d0d0d0",
+                    linecolor="#999999"
+                )
+            ),
+            font=dict(color="#2c3e50"),
+            title=dict(
+                text="Cartographie des biais par niveau d'impact",
+                font=dict(color="white", size=20)
             )
-        ),
-    
-        font=dict(color="#2c3e50"),     # Texte (valeurs & labels) plus lisible sur fond blanc
-        title=dict(
-            text="Cartographie des biais par niveau d'impact",
-            font=dict(color="white", size=20)  # Titre blanc bien visible
         )
-    )
 
         st.plotly_chart(fig_radar, use_container_width=True)
 
