@@ -791,7 +791,6 @@ with tab2:
         )
 
         # Diagramme radar des risques
-        st.markdown("Cartographie des biais par niveau d'impact")
 
         fig_radar = go.Figure()
         fig_radar.add_trace(go.Scatterpolar(
@@ -816,7 +815,11 @@ with tab2:
                     linecolor="#999999"
                 )
             ),
-            
+            font=dict(color="#2c3e50"),
+            title=dict(
+                text="Cartographie des biais par niveau d'impact",
+                font=dict(color="white", size=20)
+            )
         )
 
         st.plotly_chart(fig_radar, use_container_width=True)
