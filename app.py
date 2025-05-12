@@ -985,7 +985,7 @@ def handle_auth():
         password = st.text_input("Mot de passe", type="password")
         submit = st.form_submit_button("Valider")
 
-        forbidden_pseudos = {"admin", "root", "support", "moderator"}
+        forbidden_pseudos = {"admin", "root", "support", "moderator","cacaboudin"}
 
         if submit:
             if not pseudo or not password:
