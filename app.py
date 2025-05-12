@@ -1082,7 +1082,7 @@ else:
                     st.warning("⚠️ Confirmation suppression")
                     if st.button("✅ Oui, supprimer", key=f"confirmed_{idx}"):
                         comments_df = comments_df.drop(index=idx)
-                        comments_df.to_csv(COMMENTS_FILE, index=False)
+                        comments_df.to_csv(comments_data, index=False)
                         st.success("Commentaire supprimé.")
                         st.session_state[confirm_key] = False
                         st.experimental_rerun()
