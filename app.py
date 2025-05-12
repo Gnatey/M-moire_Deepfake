@@ -810,7 +810,7 @@ with tab2:
                     linecolor="#999999"
                 ),
                 angularaxis=dict(
-                    #color="#2c3e50",
+                    color="white",
                     gridcolor="#d0d0d0",
                     linecolor="#999999"
                 )
