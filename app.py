@@ -804,13 +804,13 @@ with tab2:
                 bgcolor="#ffffff",
                 radialaxis=dict(
                     visible=True,
-                    range=[0, 7],
-                    #color="#2c3e50",
+                    range=[0, 4],
+                    color="#2c3e50",
                     gridcolor="#d0d0d0",
                     linecolor="#999999"
                 ),
                 angularaxis=dict(
-                    color="#2c3e50",
+                    #color="#2c3e50",
                     gridcolor="#d0d0d0",
                     linecolor="#999999"
                 )
