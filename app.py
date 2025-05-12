@@ -1079,7 +1079,7 @@ st.subheader("📝 Derniers commentaires")
 if comments_df.empty:
     st.info("Aucun commentaire pour le moment.")
 else:
-    comments_display = comments_df.sort_values("timestamp", ascending=False).head(10)
+    comments_display = comments_df.sort_values("timestamp", ascending=False)
     for idx, row in comments_display.iterrows():
         with st.container(border=True):
             st.markdown(f"**{row['user']}** - *{row['timestamp']}*")
