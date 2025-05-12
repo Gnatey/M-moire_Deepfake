@@ -1042,6 +1042,24 @@ handle_auth()
 # =============================================
 # SECTION COMMENTAIRES
 # =============================================
+st.title("💬 Espace Commentaires")
+comments_df = load_comments()
+
+if st.session_state.get("user_logged_in", False):
+    with st.form(key="comment_form", clear_on_submit=True):
+        comment_text = st.text_area("Votre commentaire")
+        submit_comment = st.form_submit_button("📤 Envoyer")
+
+        if submit_comment:
+            if not comment_text:
+                st.warning("Merci de remplir votre commentaire.")
+            else:
+                save_comment(st.session_state.user_name, comment_text.strip())
+                st.success("Commentaire enregistré!")
+                st.experimental_rerun()
+else:
+    st.info("🔒 Connectez-vous pour pouvoir laisser un commentaire.")
+
 st.subheader("📝 Derniers commentaires")
 
 if comments_df.empty:
@@ -1053,10 +1071,7 @@ else:
             st.markdown(f"**{row['user']}** - *{row['timestamp']}*")
             st.markdown(f"> {row['comment']}")
 
-            # Affichage du bouton de suppression si l'utilisateur est l'auteur ou admin
-            is_author = st.session_state.get("user_name") == row["user"]
-            is_admin = st.session_state.get("user_role") == "admin"  # Ajoute ça si tu gères un rôle admin
-            if st.session_state.get("user_logged_in", False) and (is_author or is_admin):
+            if st.session_state.get("user_logged_in", False) and st.session_state.get("user_name") == row["user"]:
                 delete_key = f"delete_{idx}"
                 confirm_key = f"confirm_delete_{idx}"
 
@@ -1067,11 +1082,10 @@ else:
                     st.warning("⚠️ Confirmation suppression")
                     if st.button("✅ Oui, supprimer", key=f"confirmed_{idx}"):
                         comments_df = comments_df.drop(index=idx)
-                        save_comments(comments_df)  # Appelle ta fonction pour sauvegarder dans Google Sheets
+                        comments_df.to_csv(COMMENTS_FILE, index=False)
                         st.success("Commentaire supprimé.")
                         st.session_state[confirm_key] = False
                         st.experimental_rerun()
-
 
 # =============================================
 # ONGLETS EN CONSTRUCTION - MESSAGE EDITEUR
