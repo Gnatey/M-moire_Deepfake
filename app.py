@@ -1042,9 +1042,22 @@ handle_auth()
 # =============================================
 # SECTION COMMENTAIRES
 # =============================================
+
 st.title("💬 Espace Commentaires")
+
+# Chargement des commentaires
 comments_df = load_comments()
 
+# Fonction pour supprimer un commentaire par ID dans Google Sheets
+def delete_comment(comment_id):
+    sheet = get_comments_sheet()
+    records = sheet.get_all_records()
+    for i, row in enumerate(records, start=2):  # Ligne 2 car ligne 1 = en-têtes
+        if row["id"] == comment_id:
+            sheet.delete_rows(i)
+            break
+
+# Formulaire d'ajout de commentaire (si connecté)
 if st.session_state.get("user_logged_in", False):
     with st.form(key="comment_form", clear_on_submit=True):
         comment_text = st.text_area("Votre commentaire")
@@ -1060,6 +1073,7 @@ if st.session_state.get("user_logged_in", False):
 else:
     st.info("🔒 Connectez-vous pour pouvoir laisser un commentaire.")
 
+# Affichage des derniers commentaires
 st.subheader("📝 Derniers commentaires")
 
 if comments_df.empty:
@@ -1071,6 +1085,7 @@ else:
             st.markdown(f"**{row['user']}** - *{row['timestamp']}*")
             st.markdown(f"> {row['comment']}")
 
+            # Bouton de suppression (visible seulement pour l'auteur)
             if st.session_state.get("user_logged_in", False) and st.session_state.get("user_name") == row["user"]:
                 delete_key = f"delete_{idx}"
                 confirm_key = f"confirm_delete_{idx}"
@@ -1081,8 +1096,7 @@ else:
                 if st.session_state.get(confirm_key, False):
                     st.warning("⚠️ Confirmation suppression")
                     if st.button("✅ Oui, supprimer", key=f"confirmed_{idx}"):
-                        comments_df = comments_df.drop(index=idx)
-                        comments_df.to_csv(comments_data, index=False)
+                        delete_comment(row["id"])
                         st.success("Commentaire supprimé.")
                         st.session_state[confirm_key] = False
                         st.experimental_rerun()
