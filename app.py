@@ -1071,10 +1071,7 @@ else:
             st.markdown(f"**{row['user']}** - *{row['timestamp']}*")
             st.markdown(f"> {row['comment']}")
 
-            # Affichage du bouton de suppression si l'utilisateur est l'auteur ou admin
-            is_author = st.session_state.get("user_name") == row["user"]
-            is_admin = st.session_state.get("user_role") == "admin"  # Ajoute ça si tu gères un rôle admin
-            if st.session_state.get("user_logged_in", False) and (is_author or is_admin):
+            if st.session_state.get("user_logged_in", False) and st.session_state.get("user_name") == row["user"]:
                 delete_key = f"delete_{idx}"
                 confirm_key = f"confirm_delete_{idx}"
 
@@ -1085,7 +1082,7 @@ else:
                     st.warning("⚠️ Confirmation suppression")
                     if st.button("✅ Oui, supprimer", key=f"confirmed_{idx}"):
                         comments_df = comments_df.drop(index=idx)
-                        comments_data(comments_df)  # Appelle ta fonction pour sauvegarder dans Google Sheets
+                        comments_df.to_csv(comments_data, index=False)
                         st.success("Commentaire supprimé.")
                         st.session_state[confirm_key] = False
                         st.experimental_rerun()
