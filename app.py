@@ -865,317 +865,238 @@ with tab2:
 def run_tab3(filtered_df):
     st.header("📈 Analyse Statistique Avancée")
     
-    # Section 1: Bootstrap Confidence Intervals - Amélioré pour votre BDD
-    with st.expander("🔎 Intervalles de Confiance Clés", expanded=True):
-        st.subheader("Estimations par Bootstrap")
+    # Section 1: Bootstrap Confidence Intervals
+    with st.expander("🔎 Intervalle de Confiance par Bootstrap", expanded=True):
+        st.subheader("Estimation par Bootstrap")
         
-        cols = st.columns(3)
-        metrics_to_analyze = [
-            ("Confiance réseaux sociaux", "Confiance réseaux sociaux"),
-            ("Impact négatif", "Impact société"),
-            ("Formation souhaitée", "Formation souhaitée")
-        ]
+        if "Confiance réseaux sociaux" in filtered_df.columns:
+            # Convert to binary
+            confiance_series = filtered_df["Confiance réseaux sociaux"].apply(
+                lambda x: 1 if str(x).strip().lower() == 'oui' else 0
+            ).dropna()
+            
+            # Bootstrap
+            bootstrap_means = [
+                resample(confiance_series, replace=True).mean() 
+                for _ in range(1000)
+            ]
+            
+            # Metrics
+            mean_estimate = np.mean(bootstrap_means) * 100
+            ci_lower = np.percentile(bootstrap_means, 2.5) * 100
+            ci_upper = np.percentile(bootstrap_means, 97.5) * 100
+            
+            # Visualization
+            fig = px.histogram(
+                x=bootstrap_means,
+                nbins=50,
+                labels={'x': 'Proportion de confiance', 'y': 'Fréquence'},
+                title="Distribution Bootstrap de la Confiance"
+            )
+            fig.add_vline(x=mean_estimate/100, line_dash="dash", line_color="red")
+            fig.add_vline(x=ci_lower/100, line_color="green")
+            fig.add_vline(x=ci_upper/100, line_color="green")
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Metrics display
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Estimation Moyenne", f"{mean_estimate:.1f}%")
+            col2.metric("IC 95% Inférieur", f"{ci_lower:.1f}%")
+            col3.metric("IC 95% Supérieur", f"{ci_upper:.1f}%")
+        else:
+            st.warning("La colonne 'Confiance réseaux sociaux' est manquante")
 
-        for i, (title, col_name) in enumerate(metrics_to_analyze):
-            if col_name in filtered_df.columns:
-                with cols[i]:
-                    # Conversion selon la question
-                    if title == "Impact négatif":
-                        series = filtered_df[col_name].apply(
-                            lambda x: 1 if "négatif" in str(x).lower() else 0
-                        )
-                    else:
-                        series = filtered_df[col_name].apply(
-                            lambda x: 1 if str(x).strip().lower() in ['oui', 'très prêt(e)', 'assez prêt(e)'] else 0
-                        )
-                    
-                    # Vérification qu'il y a des données
-                    if series.notna().sum() == 0:
-                        st.warning("Aucune donnée valide pour cette métrique")
-                        continue
-                    
-                    # Bootstrap avec 2000 itérations pour plus de précision
-                    bootstrap_means = []
-                    for _ in range(2000):
-                        sample = resample(series.dropna(), replace=True)
-                        bootstrap_means.append(sample.mean())
-                    
-                    # Calcul des métriques
-                    mean_est = np.mean(bootstrap_means) * 100
-                    ci_lower = np.percentile(bootstrap_means, 2.5) * 100
-                    ci_upper = np.percentile(bootstrap_means, 97.5) * 100
-                    
-                    # Affichage compact
-                    st.metric(
-                        label=title,
-                        value=f"{mean_est:.1f}%",
-                        delta=f"IC 95%: [{ci_lower:.1f}%, {ci_upper:.1f}%]"
-                    )
-                    
-                    # Mini visualisation
-                    fig = go.Figure()
-                    fig.add_trace(go.Box(
-                        y=bootstrap_means, 
-                        name="", 
-                        boxpoints=False,
-                        marker_color='#636EFA'
-                    ))
-                    fig.update_layout(
-                        height=150, 
-                        showlegend=False, 
-                        margin=dict(t=0,b=0,l=0,r=0),
-                        yaxis=dict(showgrid=False, visible=False),
-                        plot_bgcolor='rgba(0,0,0,0)'
-                    )
-                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-            else:
-                cols[i].warning(f"Colonne '{col_name}' manquante")
-
-    # Section 2: Regression Analysis - Adaptée à vos variables
-    with st.expander("🧮 Analyse Prédictive", expanded=True):
-        st.subheader("Modélisation des Facteurs d'Influence")
+    # Section 2: Logistic Regression
+    with st.expander("🧮 Modélisation par Régression Logistique", expanded=True):
+        st.subheader("Prédicteurs de la Confiance")
         
-        # Préparation des données basée sur vos colonnes réelles
+        # Prepare data
         target_col = "Confiance réseaux sociaux"
         features = [
-            "Tranche d'âge", 
-            "Genre", 
-            "Niveau connaissance",
-            "Exposition DeepFakes",
-            "Impact société"
+            "Tranche d'âge", "Genre", "Niveau connaissance", 
+            "Exposition DeepFakes", "Impact société"
         ]
         
-        # Vérification des colonnes existantes
-        missing_features = [f for f in features if f not in filtered_df.columns]
-        if missing_features:
-            st.warning(f"Colonnes manquantes pour l'analyse: {', '.join(missing_features)}")
-            features = [f for f in features if f in filtered_df.columns]
-        
-        if not features:
-            st.error("Aucune variable disponible pour l'analyse")
-            return
-
-        # Nettoyage et préparation
+        # Filter and clean
         df_model = filtered_df[[target_col] + features].dropna()
         df_model["target"] = df_model[target_col].apply(
-            lambda x: 1 if str(x).strip().lower() in ['oui', 'cela dépend des sources'] else 0
+            lambda x: 1 if str(x).strip().lower() == 'oui' else 0
         )
         
-        if len(df_model) > 30:  # Seuil réduit pour plus de flexibilité
+        if len(df_model) > 50:  # Minimum sample size
             X = df_model[features]
             y = df_model["target"]
             
-            # Pipeline optimisé
+            # Preprocessing pipeline
+            categorical_features = features
             preprocessor = ColumnTransformer(
                 transformers=[
-                    ('cat', OneHotEncoder(handle_unknown='ignore'), features)
-                ]
+                    ('cat', OneHotEncoder(drop='first'), categorical_features)
+                ],
+                remainder='passthrough'
             )
             
+            # Model pipeline
             model = Pipeline([
                 ('preprocessor', preprocessor),
-                ('classifier', LogisticRegression(max_iter=1000, class_weight='balanced'))
+                ('classifier', LogisticRegression(max_iter=1000))
             ])
             
-            # Validation croisée pour une meilleure estimation
+            # Train-test split
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.3, random_state=42
+            )
+            
+            # Fit model
+            model.fit(X_train, y_train)
+            
+            # Model evaluation
+            st.subheader("Performance du Modèle")
+            
+            # Metrics
+            y_pred = model.predict(X_test)
+            y_proba = model.predict_proba(X_test)[:, 1]
+            auc = roc_auc_score(y_test, y_proba)
+            
+            col1, col2 = st.columns(2)
+            col1.metric("AUC-ROC", f"{auc:.3f}")
+            col2.metric("Exactitude", f"{model.score(X_test, y_test):.2f}")
+            
+            # Confusion matrix
+            st.subheader("Matrice de Confusion")
+            cm = confusion_matrix(y_test, y_pred)
+            fig_cm = px.imshow(
+                cm,
+                labels=dict(x="Prédit", y="Réel", color="Count"),
+                x=['Non', 'Oui'],
+                y=['Non', 'Oui'],
+                text_auto=True
+            )
+            st.plotly_chart(fig_cm, use_container_width=True)
+            
+            # ROC Curve
+            st.subheader("Courbe ROC")
+            fpr, tpr, _ = roc_curve(y_test, y_proba)
+            fig_roc = px.area(
+                x=fpr, y=tpr,
+                labels=dict(x="Taux Faux Positifs", y="Taux Vrais Positifs"),
+                title=f"Courbe ROC (AUC = {auc:.3f})"
+            )
+            fig_roc.add_shape(type='line', line=dict(dash='dash'), x0=0, x1=1, y0=0, y1=1)
+            st.plotly_chart(fig_roc, use_container_width=True)
+            
+            # Feature importance
+            st.subheader("Importance des Variables")
             try:
-                cv_scores = cross_val_score(model, X, y, cv=5, scoring='roc_auc')
+                # Get feature names after one-hot encoding
+                feature_names = model.named_steps['preprocessor'].transformers_[0][1].get_feature_names_out(input_features=features)
                 
-                # Entraînement final
-                model.fit(X, y)
+                # SHAP values
+                explainer = shap.Explainer(
+                    model.named_steps['classifier'], 
+                    model.named_steps['preprocessor'].transform(X_train)
+                )
+                shap_values = explainer.shap_values(model.named_steps['preprocessor'].transform(X_test))
                 
-                # Affichage des résultats
-                st.subheader("Performance du Modèle")
-                cols = st.columns(3)
-                cols[0].metric("AUC Moyenne (CV)", f"{np.mean(cv_scores):.3f}")
-                cols[1].metric("Écart-type CV", f"{np.std(cv_scores):.3f}")
-                cols[2].metric("Taille échantillon", len(df_model))
+                # Summary plot
+                fig_shap = go.Figure()
+                for i, name in enumerate(feature_names):
+                    fig_shap.add_trace(go.Box(
+                        y=shap_values[:, i],
+                        name=name,
+                        boxpoints=False
+                    ))
+                fig_shap.update_layout(
+                    title="Impact des Variables (SHAP Values)",
+                    yaxis_title="Valeur SHAP",
+                    showlegend=False
+                )
+                st.plotly_chart(fig_shap, use_container_width=True)
                 
-                # Importance des variables avec permutation (plus robuste)
-                st.subheader("Importance des Variables")
-                try:
-                    from sklearn.inspection import permutation_importance
-                    result = permutation_importance(
-                        model, X, y, n_repeats=10, random_state=42
-                    )
-                    
-                    importance_df = pd.DataFrame({
-                        'Variable': features,
-                        'Importance': result.importances_mean,
-                        'Ecart-type': result.importances_std
-                    }).sort_values('Importance', ascending=False)
-                    
-                    fig = px.bar(
-                        importance_df,
-                        x='Importance',
-                        y='Variable',
-                        error_x='Ecart-type',
-                        orientation='h',
-                        title="Importance par Permutation",
-                        color='Importance',
-                        color_continuous_scale='Bluered'
-                    )
-                    fig.update_layout(showlegend=False)
-                    st.plotly_chart(fig, use_container_width=True)
-                    
-                except Exception as e:
-                    st.warning(f"Importance par permutation non disponible : {str(e)}")
-                    
-                    # Solution de repli avec les coefficients
-                    try:
-                        feature_names = model.named_steps['preprocessor'].get_feature_names_out()
-                        coefs = pd.DataFrame({
-                            'Variable': feature_names,
-                            'Coefficient': model.named_steps['classifier'].coef_[0]
-                        }).sort_values('Coefficient', key=abs, ascending=False)
-                        
-                        fig = px.bar(
-                            coefs.head(10),  # Limité aux 10 plus importantes
-                            x='Coefficient',
-                            y='Variable',
-                            orientation='h',
-                            title="Top 10 des Coefficients",
-                            color='Coefficient',
-                            color_continuous_scale='Bluered'
-                        )
-                        fig.update_layout(showlegend=False)
-                        st.plotly_chart(fig, use_container_width=True)
-                    except Exception as e:
-                        st.error(f"Impossible d'extraire les coefficients: {str(e)}")
-
-                # Interprétation contextuelle
-                st.subheader("Interprétation")
-                st.markdown("""
-                - **Variables positives** : Augmentent la probabilité de confiance
-                - **Variables négatives** : Diminuent la probabilité de confiance
-                - Les valeurs absolues indiquent l'importance relative
-                """)
-                
-                # Export des résultats
-                if 'importance_df' in locals():
-                    st.download_button(
-                        label="📥 Exporter les résultats",
-                        data=importance_df.to_csv(index=False).encode('utf-8'),
-                        file_name="importance_variables.csv",
-                        mime="text/csv"
-                    )
             except Exception as e:
-                st.error(f"Erreur dans la modélisation: {str(e)}")
-        else:
-            st.warning(f"Données insuffisantes pour la modélisation (n={len(df_model)})")
+                st.warning(f"SHAP non disponible : {str(e)}")
 
-    # Section 3: Analyse des Corrélations
-    with st.expander("📊 Corrélations Clés", expanded=False):
-        st.subheader("Relations entre Variables")
-        
-        corr_vars = [
-            "Niveau connaissance",  
-            "Fréquence vérification",  
-            "Changement confiance",    
-            "Confiance réseaux sociaux"
-        ]
+                # Récupération des noms de variables après transformation + sélection
+                feature_names_raw = model.named_steps['preprocessor'].transformers_[0][1].get_feature_names_out(input_features=features)
+                selected_mask = model.named_steps['feature_selection'].get_support()
+                selected_features = feature_names_raw[selected_mask]
 
-        # Filtrage des variables qui existent réellement
-        corr_vars_existantes = [col for col in corr_vars if col in filtered_df.columns]
+                # Création du DataFrame des coefficients
+                coefs = pd.DataFrame({
+                    'Variable': selected_features,
+                    'Coefficient': model.named_steps['classifier'].coef_[0]
+                }).sort_values('Coefficient', ascending=False)
 
-        # Alerte si certaines sont manquantes
-        colonnes_manquantes = [col for col in corr_vars if col not in filtered_df.columns]
-        if colonnes_manquantes:
-            st.warning(f"Les colonnes suivantes sont absentes du jeu de données : {colonnes_manquantes}")
+                # Affichage des coefficients sous forme de graphique
+                fig_coef = px.bar(
+                    coefs,
+                    x='Coefficient',
+                    y='Variable',
+                    orientation='h',
+                    title="Coefficients de Régression"
+                )
+                st.plotly_chart(fig_coef, use_container_width=True)
 
-        # Ne pas continuer si aucune variable n'est disponible
-        if not corr_vars_existantes:
-            st.error("Aucune variable valide disponible pour l'analyse de corrélation.")
-            return
-
-        # Extraction sécurisée
-        df_corr = filtered_df[corr_vars_existantes].copy()
-        
-        # Mapping des réponses qualitatives
-        knowledge_map = {
-            "Pas du tout informé(e)": 1,
-            "Peu informé(e)": 2,
-            "Moyennement informé(e)": 3,
-            "Bien informé(e)": 4,
-            "Très bien informé(e)": 5
-        }
-        
-        freq_map = {
-            "Jamais": 1,
-            "Rarement": 2,
-            "Parfois": 3,
-            "Souvent": 4,
-            "Toujours": 5
-        }
-        
-        conf_map = {
-            "Fortement diminué": 1,
-            "Légèrement diminué": 2,
-            "Resté stable": 3,
-            "Légèrement augmenté": 4,
-            "Fortement augmenté": 5
-        }
-        
-        trust_map = {
-            "Non": 0,
-            "Cela dépend des sources": 1,
-            "Oui": 2
-        }
-        
-        try:
-            # Application des mappings selon les colonnes disponibles
-            if "Niveau connaissance" in df_corr.columns:
-                df_corr["Niveau connaissance"] = df_corr["Niveau connaissance"].map(knowledge_map)
-            if "Fréquence vérification" in df_corr.columns:
-                df_corr["Fréquence vérification"] = df_corr["Fréquence vérification"].map(freq_map)
-            if "Changement confiance" in df_corr.columns:
-                df_corr["Changement confiance"] = df_corr["Changement confiance"].map(conf_map)
-            if "Confiance réseaux sociaux" in df_corr.columns:
-                df_corr["Confiance réseaux sociaux"] = df_corr["Confiance réseaux sociaux"].map(trust_map)
-            
-            # Calcul de la matrice de corrélation
-            corr_matrix = df_corr.corr(method='spearman')  # Spearman pour données ordinales
-            
-            # Visualisation
-            fig = px.imshow(
-                corr_matrix,
-                text_auto=".2f",
-                color_continuous_scale='RdBu',
-                range_color=[-1, 1],
-                title="Matrice de Corrélation (Spearman)",
-                aspect="auto"
-            )
-            fig.update_layout(
-                width=800,
-                height=600,
-                xaxis=dict(tickangle=45)
-            )
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # Interprétation guidée
+            # Model interpretation
+            st.subheader("Interprétation du Modèle")
             st.markdown("""
-            **Interprétation des Corrélations :**
-            - **+1** : Relation positive parfaite
-            - **0** : Pas de relation
-            - **-1** : Relation négative parfaite
-            - Les valeurs entre -1 et 1 indiquent la force de la relation
+            - **Coefficients positifs** : Augmentent la probabilité de confiance
+            - **Coefficients négatifs** : Diminuent la probabilité de confiance
             """)
             
-            # Option pour exporter la matrice
-            st.download_button(
-                label="📥 Exporter la matrice de corrélation",
-                data=corr_matrix.to_csv().encode('utf-8'),
-                file_name="matrice_correlation.csv",
-                mime="text/csv"
-            )
+            # Export model
+            #st.download_button(
+                #label="📥 Télécharger les coefficients",
+                #data=coefs.to_csv(index=False),
+                #file_name="coefficients_regression.csv",
+                #mime="text/csv"
+            #)
             
-        except Exception as e:
-            st.error(f"Erreur dans l'analyse des corrélations : {str(e)}")
+        else:
+            st.warning("Échantillon trop petit pour la modélisation (n < 50)")
 
-# Utilisation dans votre application Streamlit :
+    # Section 3: Advanced Diagnostics
+    with st.expander("🔍 Diagnostics Avancés", expanded=False):
+        st.subheader("Validation du Modèle")
+        
+        if len(df_model) > 50:
+            # VIF Analysis
+            st.markdown("**Analyse de Multicolinéarité (VIF)**")
+            try:
+                # Get design matrix
+                X_design = model.named_steps['preprocessor'].transform(X)
+                
+                # Calculate VIF
+                vif_data = pd.DataFrame()
+                vif_data["Variable"] = feature_names
+                vif_data["VIF"] = [variance_inflation_factor(X_design, i) 
+                                   for i in range(X_design.shape[1])]
+                
+                st.dataframe(
+                    vif_data.style.applymap(
+                        lambda x: 'background-color: yellow' if x > 5 else ''
+                    ),
+                    height=300
+                )
+                st.markdown("> Un VIF > 5 indique une possible multicolinéarité")
+                
+            except Exception as e:
+                st.error(f"Erreur VIF : {str(e)}")
+            
+            # Precision-Recall Curve
+            st.subheader("Courbe Precision-Rappel")
+            precision, recall, _ = precision_recall_curve(y_test, y_proba)
+            fig_pr = px.line(
+                x=recall, y=precision,
+                labels=dict(x="Rappel", y="Précision"),
+                title="Courbe Precision-Rappel"
+            )
+            st.plotly_chart(fig_pr, use_container_width=True)
+
+# Example usage in your Streamlit app:
+# In your main app where you have tabs:
 with tab3:
-    run_tab3(filtered_df)
-
+     run_tab3(filtered_df)
 
 
 # =============================================
