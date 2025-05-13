@@ -1042,6 +1042,7 @@ def run_tab3(filtered_df):
             "Confiance réseaux sociaux"
         ]
 
+
         
         # Conversion en données numériques
         df_corr = filtered_df[corr_vars].copy()
