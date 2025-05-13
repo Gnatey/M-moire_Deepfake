@@ -1035,9 +1035,9 @@ def run_tab3(filtered_df):
         st.subheader("Relations entre Variables")
         
         corr_vars = [
-            "Niveau connaissance",  # anciennement : "Comment évalueriez vous..."
-            "Fréquence vérification",  # remplace l’intitulé complet par ton vrai nom de colonne si tu l’as renommé
-            "Changement confiance",    # idem
+            "Niveau connaissance",  
+            "Fréquence vérification",  
+            "Changement confiance",    
             "Confiance réseaux sociaux"
         ]
 
