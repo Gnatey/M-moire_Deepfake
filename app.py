@@ -1086,8 +1086,8 @@ def run_tab3(filtered_df):
 
 # Example usage in your Streamlit app:
 # In your main app where you have tabs:
-# with tab3:
-#     run_tab3(filtered_df)
+with tab3:
+     run_tab3(filtered_df)
 
 
 # =============================================
