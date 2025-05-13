@@ -1036,12 +1036,12 @@ def run_tab3(filtered_df):
             """)
             
             # Export model
-            st.download_button(
-                label="📥 Télécharger les coefficients",
-                data=coefs.to_csv(index=False),
-                file_name="coefficients_regression.csv",
-                mime="text/csv"
-            )
+            #st.download_button(
+                #label="📥 Télécharger les coefficients",
+                #data=coefs.to_csv(index=False),
+                #file_name="coefficients_regression.csv",
+                #mime="text/csv"
+            #)
             
         else:
             st.warning("Échantillon trop petit pour la modélisation (n < 50)")
