@@ -920,14 +920,15 @@ def run_tab3(filtered_df):
         st.subheader("Modélisation des Facteurs d'Influence")
         
         # Préparation des données basée sur vos colonnes réelles
-        target_col = "Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?"
+        target_col = "Confiance réseaux sociaux"
         features = [
-            "Quel est votre tranche d'âge ?", 
-            "Vous êtes ...?", 
-            "Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?",
-            "Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?",
-            "Selon vous, quel est l'impact global des Deep Fakes sur la société ?"
+            "Tranche d'âge", 
+            "Genre", 
+            "Niveau connaissance",
+            "Exposition DeepFakes",
+            "Impact société"
         ]
+
         
         # Nettoyage et préparation
         df_model = filtered_df[[target_col] + features].dropna()
