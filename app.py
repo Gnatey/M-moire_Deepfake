@@ -30,6 +30,7 @@ import shap
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import SelectFromModel
+from sklearn.model_selection import cross_val_score
 # =============================================
 # INITIALISATION ET CONFIGURATION DE BASE
 # =============================================
