@@ -1105,7 +1105,7 @@ def run_tab3(filtered_df):
             st.error(f"Erreur dans l'analyse des corrélations : {str(e)}")
 
 # Utilisation dans votre application Streamlit :
-# with tab3:
+with tab3:
             run_tab3(filtered_df)
 
 
