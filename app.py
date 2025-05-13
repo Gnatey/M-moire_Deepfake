@@ -28,6 +28,8 @@ import plotly.graph_objects as go
 from sklearn.utils import resample
 import shap
 from statsmodels.stats.outliers_influence import variance_inflation_factor
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_selection import SelectFromModel
 # =============================================
 # INITIALISATION ET CONFIGURATION DE BASE
 # =============================================
