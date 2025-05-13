@@ -1108,6 +1108,138 @@ def run_tab3(filtered_df):
 with tab3:
     run_tab3(filtered_df)
 
+def run_tab3(filtered_df):
+    st.header("📈 Analyse Statistique Avancée")
+
+    # ---------------------------
+    # Section 1 : Intervalles de confiance
+    # ---------------------------
+    with st.expander("🔎 Intervalles de Confiance Clés", expanded=True):
+        st.subheader("Estimations par Bootstrap")
+        cols = st.columns(3)
+        metrics_to_analyze = [
+            ("Confiance réseaux sociaux", "Confiance réseaux sociaux"),
+            ("Impact négatif", "Impact société"),
+            ("Formation souhaitée", "Formation souhaitée")  # À adapter selon ton fichier si cette colonne existe
+        ]
+
+        for i, (title, col_name) in enumerate(metrics_to_analyze):
+            if col_name in filtered_df.columns:
+                with cols[i]:
+                    series = filtered_df[col_name].dropna()
+
+                    if title == "Impact négatif":
+                        series = series.apply(lambda x: 1 if "négatif" in str(x).lower() else 0)
+                    else:
+                        series = series.apply(lambda x: 1 if str(x).strip().lower() in ['oui', 'très prêt(e)', 'assez prêt(e)'] else 0)
+
+                    bootstrap_means = []
+                    for _ in range(2000):
+                        sample = resample(series, replace=True)
+                        bootstrap_means.append(sample.mean())
+
+                    mean_est = np.mean(bootstrap_means) * 100
+                    ci_lower = np.percentile(bootstrap_means, 2.5) * 100
+                    ci_upper = np.percentile(bootstrap_means, 97.5) * 100
+
+                    st.metric(
+                        label=title,
+                        value=f"{mean_est:.1f}%",
+                        delta=f"IC 95%: [{ci_lower:.1f}%, {ci_upper:.1f}%]"
+                    )
+
+                    fig = go.Figure()
+                    fig.add_trace(go.Box(y=bootstrap_means, name="", boxpoints=False))
+                    fig.update_layout(height=150, showlegend=False, margin=dict(t=0, b=0, l=0, r=0))
+                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+            else:
+                cols[i].warning(f"Colonne '{col_name}' manquante dans les données.")
+
+    # ---------------------------
+    # Section 2 : Régression logistique
+    # ---------------------------
+    with st.expander("🧮 Analyse Prédictive", expanded=True):
+        st.subheader("Modélisation des Facteurs d'Influence")
+
+        target_col = "Confiance réseaux sociaux"
+        features = [
+            "Tranche d'âge", 
+            "Genre", 
+            "Niveau connaissance",
+            "Exposition DeepFakes",
+            "Impact société"
+        ]
+
+        if all(f in filtered_df.columns for f in [target_col] + features):
+            df_model = filtered_df[[target_col] + features].dropna()
+            df_model["target"] = df_model[target_col].apply(
+                lambda x: 1 if str(x).strip().lower() in ['oui', 'cela dépend des sources'] else 0
+            )
+
+            if len(df_model) > 30:
+                X = df_model[features]
+                y = df_model["target"]
+
+                preprocessor = ColumnTransformer(
+                    transformers=[
+                        ('cat', OneHotEncoder(handle_unknown='ignore'), features)
+                    ]
+                )
+
+                model = Pipeline([
+                    ('preprocessor', preprocessor),
+                    ('classifier', LogisticRegression(max_iter=1000, class_weight='balanced'))
+                ])
+
+                from sklearn.model_selection import cross_val_score
+                cv_scores = cross_val_score(model, X, y, cv=5, scoring='roc_auc')
+
+                model.fit(X, y)
+
+                st.subheader("Performance du Modèle")
+                cols = st.columns(3)
+                cols[0].metric("AUC Moyenne (CV)", f"{np.mean(cv_scores):.3f}")
+                cols[1].metric("Écart-type CV", f"{np.std(cv_scores):.3f}")
+                cols[2].metric("Taille échantillon", len(df_model))
+
+                # Importance des variables
+                st.subheader("Importance des Variables")
+                try:
+                    from sklearn.inspection import permutation_importance
+                    result = permutation_importance(
+                        model, X, y, n_repeats=10, random_state=42
+                    )
+
+                    importance_df = pd.DataFrame({
+                        'Variable': features,
+                        'Importance': result.importances_mean,
+                        'Ecart-type': result.importances_std
+                    }).sort_values('Importance', ascending=False)
+
+                    fig = px.bar(
+                        importance_df,
+                        x='Importance',
+                        y='Variable',
+                        error_x='Ecart-type',
+                        orientation='h',
+                        title="Importance par permutation"
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+
+                    st.download_button(
+                        label="📥 Exporter les résultats",
+                        data=importance_df.to_csv(index=False).encode('utf-8'),
+                        file_name="importance_variables.csv",
+                        mime="text/csv"
+                    )
+                except Exception as e:
+                    st.error(f"Erreur d'importance des variables : {str(e)}")
+
+            else:
+                st.warning(f"Données insuffisantes pour la modélisation (n={len(df_model)})")
+        else:
+            st.warning("Colonnes manquantes pour exécuter la régression.")
+
 
 # =============================================
 # SECTION COMMENTAIRES
