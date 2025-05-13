@@ -1042,6 +1042,21 @@ def run_tab3(filtered_df):
             "Confiance réseaux sociaux"
         ]
 
+        # Filtrage des variables qui existent réellement
+        corr_vars_existantes = [col for col in corr_vars if col in filtered_df.columns]
+
+        # Alerte si certaines sont manquantes
+        colonnes_manquantes = [col for col in corr_vars if col not in filtered_df.columns]
+        if colonnes_manquantes:
+            st.warning(f"Les colonnes suivantes sont absentes du jeu de données : {colonnes_manquantes}")
+
+        # Ne pas continuer si aucune variable n’est disponible
+        if not corr_vars_existantes:
+            st.error("Aucune variable valide disponible pour l’analyse de corrélation.")
+        return
+
+        # Extraction sécurisée
+        df_corr = filtered_df[corr_vars_existantes].copy()
 
         
         # Conversion en données numériques
