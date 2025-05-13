@@ -871,10 +871,11 @@ def run_tab3(filtered_df):
         
         cols = st.columns(3)
         metrics_to_analyze = [
-            ("Confiance médias sociaux", "Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?"),
-            ("Impact négatif", "Selon vous, quel est l'impact global des Deep Fakes sur la société ?"),
-            ("Formation souhaitée", "Seriez-vous favorable à des formations sur les deep fakes ?")
+            ("Confiance réseaux sociaux", "Confiance réseaux sociaux"),
+            ("Impact négatif", "Impact société"),
+            ("Formation souhaitée", "Formation souhaitée")  # Si cette colonne existe
         ]
+
         
         for i, (title, col_name) in enumerate(metrics_to_analyze):
             if col_name in filtered_df.columns:
@@ -1033,13 +1034,13 @@ def run_tab3(filtered_df):
     with st.expander("📊 Corrélations Clés", expanded=False):
         st.subheader("Relations entre Variables")
         
-        # Sélection des variables pertinentes
         corr_vars = [
-            "Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?",
-            "À quelle fréquence vérifiez-vous l'authenticité d'une information avant de la partager ?",
-            "Depuis que vous avez entendu parler des Deep Fakes, votre confiance dans les médias sociaux a-t-elle changé ?",
-            "Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?"
+            "Niveau connaissance",  # anciennement : "Comment évalueriez vous..."
+            "Fréquence vérification",  # remplace l’intitulé complet par ton vrai nom de colonne si tu l’as renommé
+            "Changement confiance",    # idem
+            "Confiance réseaux sociaux"
         ]
+
         
         # Conversion en données numériques
         df_corr = filtered_df[corr_vars].copy()
