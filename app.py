@@ -942,9 +942,9 @@ def run_tab3(filtered_df):
             # Pipeline optimisé
             preprocessor = ColumnTransformer(
                 transformers=[
-                    ('cat', OneHotEncoder(handle_unknown='ignore'), features
-                ]
-            )
+                    ('cat', OneHotEncoder(handle_unknown='ignore'), features)
+                    ]
+                )
             
             model = Pipeline([
                 ('preprocessor', preprocessor),
