@@ -1014,13 +1014,17 @@ def run_tab3(filtered_df):
                 )
                 st.plotly_chart(fig_shap, use_container_width=True)
                 
-            except Exception as e:
-                st.warning(f"SHAP non disponible : {str(e)}")
-                # Fallback to coefficients
+                # Récupération des noms de variables après transformation + sélection
+                feature_names_raw = model.named_steps['preprocessor'].transformers_[0][1].get_feature_names_out(input_features=features)
+                selected_mask = model.named_steps['feature_selection'].get_support()
+                selected_features = feature_names_raw[selected_mask]
+
+                # Création du DataFrame des coefficients
                 coefs = pd.DataFrame({
-                    'Variable': feature_names,
+                    'Variable': selected_features,
                     'Coefficient': model.named_steps['classifier'].coef_[0]
                 }).sort_values('Coefficient', ascending=False)
+
                 
                 fig_coef = px.bar(
                     coefs,
