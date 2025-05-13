@@ -1014,6 +1014,9 @@ def run_tab3(filtered_df):
                 )
                 st.plotly_chart(fig_shap, use_container_width=True)
                 
+            except Exception as e:
+                st.warning(f"SHAP non disponible : {str(e)}")
+
                 # Récupération des noms de variables après transformation + sélection
                 feature_names_raw = model.named_steps['preprocessor'].transformers_[0][1].get_feature_names_out(input_features=features)
                 selected_mask = model.named_steps['feature_selection'].get_support()
@@ -1025,7 +1028,7 @@ def run_tab3(filtered_df):
                     'Coefficient': model.named_steps['classifier'].coef_[0]
                 }).sort_values('Coefficient', ascending=False)
 
-                
+                # Affichage des coefficients sous forme de graphique
                 fig_coef = px.bar(
                     coefs,
                     x='Coefficient',
@@ -1034,7 +1037,7 @@ def run_tab3(filtered_df):
                     title="Coefficients de Régression"
                 )
                 st.plotly_chart(fig_coef, use_container_width=True)
-            
+
             # Model interpretation
             st.subheader("Interprétation du Modèle")
             st.markdown("""
