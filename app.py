@@ -937,6 +937,7 @@ def run_tab3(filtered_df):
             # Model pipeline
             model = Pipeline([
                 ('preprocessor', preprocessor),
+                ('feature_selection', SelectFromModel(RandomForestClassifier(n_estimators=100), threshold="median")),
                 ('classifier', LogisticRegression(max_iter=1000))
             ])
             
