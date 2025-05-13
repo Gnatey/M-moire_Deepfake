@@ -30,7 +30,6 @@ import shap
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import SelectFromModel
-from sklearn.model_selection import cross_val_score
 # =============================================
 # INITIALISATION ET CONFIGURATION DE BASE
 # =============================================
@@ -872,11 +871,10 @@ def run_tab3(filtered_df):
         
         cols = st.columns(3)
         metrics_to_analyze = [
-            ("Confiance réseaux sociaux", "Confiance réseaux sociaux"),
-            ("Impact négatif", "Impact société"),
-            ("Formation souhaitée", "Formation souhaitée")  # Si cette colonne existe
+            ("Confiance médias sociaux", "Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?"),
+            ("Impact négatif", "Selon vous, quel est l'impact global des Deep Fakes sur la société ?"),
+            ("Formation souhaitée", "Seriez-vous favorable à des formations sur les deep fakes ?")
         ]
-
         
         for i, (title, col_name) in enumerate(metrics_to_analyze):
             if col_name in filtered_df.columns:
@@ -922,15 +920,14 @@ def run_tab3(filtered_df):
         st.subheader("Modélisation des Facteurs d'Influence")
         
         # Préparation des données basée sur vos colonnes réelles
-        target_col = "Confiance réseaux sociaux"
+        target_col = "Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?"
         features = [
-            "Tranche d'âge", 
-            "Genre", 
-            "Niveau connaissance",
-            "Exposition DeepFakes",
-            "Impact société"
+            "Quel est votre tranche d'âge ?", 
+            "Vous êtes ...?", 
+            "Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?",
+            "Avez-vous déjà vu un Deep Fake sur les réseaux sociaux ?",
+            "Selon vous, quel est l'impact global des Deep Fakes sur la société ?"
         ]
-
         
         # Nettoyage et préparation
         df_model = filtered_df[[target_col] + features].dropna()
@@ -1035,29 +1032,13 @@ def run_tab3(filtered_df):
     with st.expander("📊 Corrélations Clés", expanded=False):
         st.subheader("Relations entre Variables")
         
+        # Sélection des variables pertinentes
         corr_vars = [
-            "Niveau connaissance",  
-            "Fréquence vérification",  
-            "Changement confiance",    
-            "Confiance réseaux sociaux"
+            "Comment évalueriez vous votre niveau de connaissance des Deep Fakes ?",
+            "À quelle fréquence vérifiez-vous l'authenticité d'une information avant de la partager ?",
+            "Depuis que vous avez entendu parler des Deep Fakes, votre confiance dans les médias sociaux a-t-elle changé ?",
+            "Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?"
         ]
-
-        # Filtrage des variables qui existent réellement
-        corr_vars_existantes = [col for col in corr_vars if col in filtered_df.columns]
-
-        # Alerte si certaines sont manquantes
-        colonnes_manquantes = [col for col in corr_vars if col not in filtered_df.columns]
-        if colonnes_manquantes:
-            st.warning(f"Les colonnes suivantes sont absentes du jeu de données : {colonnes_manquantes}")
-
-        # Ne pas continuer si aucune variable n’est disponible
-        if not corr_vars_existantes:
-            st.error("Aucune variable valide disponible pour l’analyse de corrélation.")
-        return
-
-        # Extraction sécurisée
-        df_corr = filtered_df[corr_vars_existantes].copy()
-
         
         # Conversion en données numériques
         df_corr = filtered_df[corr_vars].copy()
@@ -1124,8 +1105,8 @@ def run_tab3(filtered_df):
             st.error(f"Erreur dans l'analyse des corrélations : {str(e)}")
 
 # Utilisation dans votre application Streamlit :
-with tab3:
-    run_tab3(filtered_df)
+        with tab3:
+            run_tab3(filtered_df)
 
 
 # =============================================
