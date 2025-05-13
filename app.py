@@ -748,7 +748,7 @@ with tab2:
         Intervalle de confiance : **[{ci_low*100:.1f}% - {ci_high*100:.1f}%]**
         """)
 
-        # =============================================
+    # =============================================
     # SECTION 4 : ANALYSE DES BIAIS
     # =============================================
     with st.expander("⚠️ Diagnostic des biais", expanded=True):
@@ -851,67 +851,251 @@ with tab2:
 </div>
 """, unsafe_allow_html=True)
 
-# ===========================================
-# ONGLET 3 : Analyse Statistique Avancée
-# ===========================================
-with tab3:
+import streamlit as st
+import pandas as pd
+import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
+from sklearn.utils import resample
+import statsmodels.api as sm
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import (confusion_matrix, classification_report, 
+                            roc_curve, roc_auc_score, precision_recall_curve)
+import shap
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+
+def run_tab3(filtered_df):
     st.header("📈 Analyse Statistique Avancée")
+    
+    # Section 1: Bootstrap Confidence Intervals
+    with st.expander("🔎 Intervalle de Confiance par Bootstrap", expanded=True):
+        st.subheader("Estimation par Bootstrap")
+        
+        if "Confiance réseaux sociaux" in filtered_df.columns:
+            # Convert to binary
+            confiance_series = filtered_df["Confiance réseaux sociaux"].apply(
+                lambda x: 1 if str(x).strip().lower() == 'oui' else 0
+            ).dropna()
+            
+            # Bootstrap
+            bootstrap_means = [
+                resample(confiance_series, replace=True).mean() 
+                for _ in range(1000)
+            ]
+            
+            # Metrics
+            mean_estimate = np.mean(bootstrap_means) * 100
+            ci_lower = np.percentile(bootstrap_means, 2.5) * 100
+            ci_upper = np.percentile(bootstrap_means, 97.5) * 100
+            
+            # Visualization
+            fig = px.histogram(
+                x=bootstrap_means,
+                nbins=50,
+                labels={'x': 'Proportion de confiance', 'y': 'Fréquence'},
+                title="Distribution Bootstrap de la Confiance"
+            )
+            fig.add_vline(x=mean_estimate/100, line_dash="dash", line_color="red")
+            fig.add_vline(x=ci_lower/100, line_color="green")
+            fig.add_vline(x=ci_upper/100, line_color="green")
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Metrics display
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Estimation Moyenne", f"{mean_estimate:.1f}%")
+            col2.metric("IC 95% Inférieur", f"{ci_lower:.1f}%")
+            col3.metric("IC 95% Supérieur", f"{ci_upper:.1f}%")
+        else:
+            st.warning("La colonne 'Confiance réseaux sociaux' est manquante")
 
-    # 1. Nettoyage des données utiles pour la régression
-    target_col = "Confiance réseaux sociaux"
-    features = ["Exposition DeepFakes", "Impact société", "Niveau connaissance", "Tranche d'âge", "Genre"]
-
-    # Filtrage des lignes valides
-    df_model = filtered_df[[target_col] + features].dropna()
-
-    # Transformation binaire de la cible
-    df_model["Confiance_binaire"] = df_model[target_col].apply(lambda x: 1 if x.strip().lower() == "oui" else 0)
-
-        # 2. Séparation des features et de la cible
-    X = df_model[features]
-    y = df_model["Confiance_binaire"]
-
-    # Encodage des variables catégorielles avec OneHotEncoder
-    categorical_features = features
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ('cat', OneHotEncoder(drop='first'), categorical_features)
+    # Section 2: Logistic Regression
+    with st.expander("🧮 Modélisation par Régression Logistique", expanded=True):
+        st.subheader("Prédicteurs de la Confiance")
+        
+        # Prepare data
+        target_col = "Confiance réseaux sociaux"
+        features = [
+            "Tranche d'âge", "Genre", "Niveau connaissance", 
+            "Exposition DeepFakes", "Impact société"
         ]
-    )
+        
+        # Filter and clean
+        df_model = filtered_df[[target_col] + features].dropna()
+        df_model["target"] = df_model[target_col].apply(
+            lambda x: 1 if str(x).strip().lower() == 'oui' else 0
+        )
+        
+        if len(df_model) > 50:  # Minimum sample size
+            X = df_model[features]
+            y = df_model["target"]
+            
+            # Preprocessing pipeline
+            categorical_features = features
+            preprocessor = ColumnTransformer(
+                transformers=[
+                    ('cat', OneHotEncoder(drop='first'), categorical_features)
+                ],
+                remainder='passthrough'
+            )
+            
+            # Model pipeline
+            model = Pipeline([
+                ('preprocessor', preprocessor),
+                ('classifier', LogisticRegression(max_iter=1000))
+            ])
+            
+            # Train-test split
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.3, random_state=42
+            )
+            
+            # Fit model
+            model.fit(X_train, y_train)
+            
+            # Model evaluation
+            st.subheader("Performance du Modèle")
+            
+            # Metrics
+            y_pred = model.predict(X_test)
+            y_proba = model.predict_proba(X_test)[:, 1]
+            auc = roc_auc_score(y_test, y_proba)
+            
+            col1, col2 = st.columns(2)
+            col1.metric("AUC-ROC", f"{auc:.3f}")
+            col2.metric("Exactitude", f"{model.score(X_test, y_test):.2f}")
+            
+            # Confusion matrix
+            st.subheader("Matrice de Confusion")
+            cm = confusion_matrix(y_test, y_pred)
+            fig_cm = px.imshow(
+                cm,
+                labels=dict(x="Prédit", y="Réel", color="Count"),
+                x=['Non', 'Oui'],
+                y=['Non', 'Oui'],
+                text_auto=True
+            )
+            st.plotly_chart(fig_cm, use_container_width=True)
+            
+            # ROC Curve
+            st.subheader("Courbe ROC")
+            fpr, tpr, _ = roc_curve(y_test, y_proba)
+            fig_roc = px.area(
+                x=fpr, y=tpr,
+                labels=dict(x="Taux Faux Positifs", y="Taux Vrais Positifs"),
+                title=f"Courbe ROC (AUC = {auc:.3f})"
+            )
+            fig_roc.add_shape(type='line', line=dict(dash='dash'), x0=0, x1=1, y0=0, y1=1)
+            st.plotly_chart(fig_roc, use_container_width=True)
+            
+            # Feature importance
+            st.subheader("Importance des Variables")
+            try:
+                # Get feature names after one-hot encoding
+                feature_names = model.named_steps['preprocessor'].transformers_[0][1].get_feature_names_out(input_features=features)
+                
+                # SHAP values
+                explainer = shap.Explainer(
+                    model.named_steps['classifier'], 
+                    model.named_steps['preprocessor'].transform(X_train)
+                )
+                shap_values = explainer.shap_values(model.named_steps['preprocessor'].transform(X_test))
+                
+                # Summary plot
+                fig_shap = go.Figure()
+                for i, name in enumerate(feature_names):
+                    fig_shap.add_trace(go.Box(
+                        y=shap_values[:, i],
+                        name=name,
+                        boxpoints=False
+                    ))
+                fig_shap.update_layout(
+                    title="Impact des Variables (SHAP Values)",
+                    yaxis_title="Valeur SHAP",
+                    showlegend=False
+                )
+                st.plotly_chart(fig_shap, use_container_width=True)
+                
+            except Exception as e:
+                st.warning(f"SHAP non disponible : {str(e)}")
+                # Fallback to coefficients
+                coefs = pd.DataFrame({
+                    'Variable': feature_names,
+                    'Coefficient': model.named_steps['classifier'].coef_[0]
+                }).sort_values('Coefficient', ascending=False)
+                
+                fig_coef = px.bar(
+                    coefs,
+                    x='Coefficient',
+                    y='Variable',
+                    orientation='h',
+                    title="Coefficients de Régression"
+                )
+                st.plotly_chart(fig_coef, use_container_width=True)
+            
+            # Model interpretation
+            st.subheader("Interprétation du Modèle")
+            st.markdown("""
+            - **Coefficients positifs** : Augmentent la probabilité de confiance
+            - **Coefficients négatifs** : Diminuent la probabilité de confiance
+            """)
+            
+            # Export model
+            st.download_button(
+                label="📥 Télécharger les coefficients",
+                data=coefs.to_csv(index=False),
+                file_name="coefficients_regression.csv",
+                mime="text/csv"
+            )
+            
+        else:
+            st.warning("Échantillon trop petit pour la modélisation (n < 50)")
 
-    # Pipeline avec prétraitement + modèle
-    model = Pipeline(steps=[
-        ('preprocessor', preprocessor),
-        ('classifier', LogisticRegression(max_iter=1000))
-    ])
+    # Section 3: Advanced Diagnostics
+    with st.expander("🔍 Diagnostics Avancés", expanded=False):
+        st.subheader("Validation du Modèle")
+        
+        if len(df_model) > 50:
+            # VIF Analysis
+            st.markdown("**Analyse de Multicolinéarité (VIF)**")
+            try:
+                # Get design matrix
+                X_design = model.named_steps['preprocessor'].transform(X)
+                
+                # Calculate VIF
+                vif_data = pd.DataFrame()
+                vif_data["Variable"] = feature_names
+                vif_data["VIF"] = [variance_inflation_factor(X_design, i) 
+                                   for i in range(X_design.shape[1])]
+                
+                st.dataframe(
+                    vif_data.style.applymap(
+                        lambda x: 'background-color: yellow' if x > 5 else ''
+                    ),
+                    height=300
+                )
+                st.markdown("> Un VIF > 5 indique une possible multicolinéarité")
+                
+            except Exception as e:
+                st.error(f"Erreur VIF : {str(e)}")
+            
+            # Precision-Recall Curve
+            st.subheader("Courbe Precision-Rappel")
+            precision, recall, _ = precision_recall_curve(y_test, y_proba)
+            fig_pr = px.line(
+                x=recall, y=precision,
+                labels=dict(x="Rappel", y="Précision"),
+                title="Courbe Precision-Rappel"
+            )
+            st.plotly_chart(fig_pr, use_container_width=True)
 
-    # Split des données en train/test
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-
-    # Entraînement du modèle
-    model.fit(X_train, y_train)
-
-    # Prédictions
-    y_pred = model.predict(X_test)
-    y_proba = model.predict_proba(X_test)[:, 1]
-
-    # Affichage des performances
-    st.subheader("📊 Évaluation du Modèle")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("**Matrice de Confusion**")
-        cm = confusion_matrix(y_test, y_pred)
-        st.dataframe(pd.DataFrame(cm, index=["Réel Non", "Réel Oui"], columns=["Prédit Non", "Prédit Oui"]))
-
-    with col2:
-        st.markdown("**Classification Report**")
-        report = classification_report(y_test, y_pred, output_dict=True)
-        st.dataframe(pd.DataFrame(report).transpose().round(2))
-
-    # AUC
-    auc_score = roc_auc_score(y_test, y_proba)
-    st.metric("Score AUC", f"{auc_score:.3f}")
+# Example usage in your Streamlit app:
+# In your main app where you have tabs:
+# with tab3:
+#     run_tab3(filtered_df)
 
 
 # =============================================
