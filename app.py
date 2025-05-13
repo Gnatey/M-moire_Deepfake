@@ -857,7 +857,7 @@ with tab2:
 
 
 # =============================================
-# SECTION 5 : CONCLUSION MÉTHODOLOGIQUE
+# ONGLET 3 : ANALYSE STATISTIQUE & REGRESSION
 # =============================================
 
 def run_tab3(filtered_df):
