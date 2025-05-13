@@ -19,11 +19,15 @@ from google.oauth2.service_account import Credentials
 import gspread
 import statsmodels.api as sm
 from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.metrics import confusion_matrix, classification_report, roc_curve, roc_auc_score
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.metrics import (confusion_matrix, classification_report, roc_curve, roc_auc_score,precision_recall_curve)
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
+import plotly.graph_objects as go
+from sklearn.utils import resample
+import shap
+from statsmodels.stats.outliers_influence import variance_inflation_factor
 # =============================================
 # INITIALISATION ET CONFIGURATION DE BASE
 # =============================================
@@ -851,22 +855,10 @@ with tab2:
 </div>
 """, unsafe_allow_html=True)
 
-import streamlit as st
-import pandas as pd
-import numpy as np
-import plotly.express as px
-import plotly.graph_objects as go
-from sklearn.utils import resample
-import statsmodels.api as sm
-from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from sklearn.pipeline import Pipeline
-from sklearn.compose import ColumnTransformer
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import (confusion_matrix, classification_report, 
-                            roc_curve, roc_auc_score, precision_recall_curve)
-import shap
-from statsmodels.stats.outliers_influence import variance_inflation_factor
+
+# =============================================
+# SECTION 5 : CONCLUSION MÉTHODOLOGIQUE
+# =============================================
 
 def run_tab3(filtered_df):
     st.header("📈 Analyse Statistique Avancée")
