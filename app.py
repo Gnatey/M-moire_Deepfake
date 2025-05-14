@@ -1561,7 +1561,9 @@ def generate_analysis_report(filtered_df):
         pdf.cell(0, 10, f"Document généré le {datetime.now().strftime('%d/%m/%Y %H:%M')}", 0, 0, 'C')
         
         # Retourne le PDF sous forme de bytes
-        return pdf.output(dest='S').encode('latin1')
+        output_data = pdf.output(dest='S')
+        return output_data if isinstance(output_data, bytes) else output_data.encode('latin1')
+
     
     except Exception as e:
         st.error(f"Erreur génération rapport: {str(e)}")
