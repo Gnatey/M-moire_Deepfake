@@ -643,7 +643,7 @@ with tab2:
                         labels=dict(x=y_axis, y=x_axis, color="Count"),
                         title=f"<b>Heatmap: {x_axis} vs {y_axis}</b>",
                         aspect="auto",
-                        color_continuous_scale='RdBu',
+                        color_continuous_scale='Blues',
                         text_auto=True
                     )
                 
