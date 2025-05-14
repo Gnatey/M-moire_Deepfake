@@ -338,14 +338,12 @@ with tab1:
 # TELECHARGER TOUT L'ONGLET 1
 # =============================================
 
-import plotly.io as pio
-
 def fig_to_image(fig, width=1200, height=800, scale=2):
     """Convertit une figure Plotly en image PIL avec bonne qualité et couleurs."""
     img_bytes = pio.to_image(fig, format="png", width=width, height=height, scale=scale, engine="kaleido")
     return Image.open(io.BytesIO(img_bytes))
 
-def generate_dashboard_pdf(fig_list, filename="dashboard.pdf"):
+def generate_dashboard_pdf(fig_list):
     """Crée un PDF à partir d'une liste d'images PIL."""
     pdf = FPDF()
     for fig in fig_list:
@@ -362,30 +360,6 @@ def generate_dashboard_pdf(fig_list, filename="dashboard.pdf"):
     pdf.output(pdf_bytes)
     pdf_bytes.seek(0)
     return pdf_bytes
-
-# 🧩 Récupération des figures à exporter (doivent déjà exister dans l'onglet 1)
-pdf_figures = [
-    fig_knowledge,
-    fig_platforms,
-    fig_impact,
-    fig_trust_age,
-    fig,        # heatmap Genre x Plateformes
-    fig_corr    # matrice de corrélation
-]
-
-# 📸 Convertir en images
-pdf_images = [fig_to_image(f) for f in pdf_figures]
-
-# 📄 Générer le PDF
-dashboard_pdf = generate_dashboard_pdf(pdf_images)
-
-# 📥 Bouton de téléchargement
-st.download_button(
-    label="📥 Télécharger tout le Tableau de Bord en PDF",
-    data=dashboard_pdf,
-    file_name="dashboard_deepfakes.pdf",
-    mime="application/pdf"
-)
 
 # =============================================
 # ONGLET 2 - EXPLORATION AVANCÉE
