@@ -343,7 +343,7 @@ def fig_to_image(fig):
     img_bytes = fig.to_image(format="png", width=1200, height=800, scale=2)
     return Image.open(io.BytesIO(img_bytes))
 
-def generate_dashboard_pdf(figures):
+def generate_dashboard_pdf(images):
     """Génère un PDF avec toutes les visualisations + titres"""
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
@@ -363,7 +363,7 @@ def generate_dashboard_pdf(figures):
         "Matrice de Corrélation"
     ]
 
-    for image, title in zip(figures, titles):
+    for image, title in zip(images, titles):
         with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
             image.save(tmpfile.name)
             pdf.add_page()
