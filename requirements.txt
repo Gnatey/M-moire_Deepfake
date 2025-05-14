@@ -36,3 +36,5 @@ Pillow==10.3.0
 statsmodels==0.14.4
 
 shap==0.47.2
+
+fpdf==8.1.0
