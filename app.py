@@ -207,7 +207,7 @@ with tab1:
                 values='count',
                 hole=0.3,
                 labels={'index': 'Plateforme', 'count': 'Occurrences'},
-                color_discrete_sequence=px.colors.qualitative.Pastel  # <--- AJOUTER ÇA
+                color_discrete_sequence=px.colors.qualitative.blue  # <--- AJOUTER ÇA
         )
 
             st.plotly_chart(fig_platforms, use_container_width=True)
