@@ -338,10 +338,6 @@ with tab1:
 # FONCTIONS POUR TELECHARGER L'ONGLET 1
 # =============================================
 
-    # =============================================
-# FONCTIONS POUR TELECHARGER L'ONGLET 1
-# =============================================
-
 def fig_to_image(fig):
     """Convertit une figure Plotly en image PNG"""
     img_bytes = fig.to_image(format="png", width=1200, height=800, scale=2)
@@ -390,15 +386,15 @@ def generate_dashboard_pdf(figures):
     pdf.set_font('Arial', 'I', 8)
     pdf.cell(0, 10, f"Généré le {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", 0, 0, 'C')
     
-    output_data = pdf.output(dest='S')
-    return output_data if isinstance(output_data, bytes) else output_data.encode('latin1')
+    # Retourne directement le buffer PDF
+    return pdf.output(dest='S')
 
 # =============================================
 # TELECHARGER TOUT L'ONGLET 1
 # =============================================
 with tab1:
     if not filtered_df.empty:
-        # 🧩 Récupération des figures à exporter (doivent déjà exister dans l'onglet 1)
+        # 🧩 Récupération des figures à exporter
         pdf_figures = [
             fig_knowledge,
             fig_platforms,
@@ -411,19 +407,31 @@ with tab1:
         # 📥 Bouton de téléchargement
         if st.button("📥 Télécharger tout le Tableau de Bord en PDF"):
             try:
+                # Vérification que toutes les figures existent
+                valid_figures = [f for f in pdf_figures if f is not None]
+                if len(valid_figures) != len(pdf_figures):
+                    st.warning("Certaines visualisations ne sont pas disponibles")
+                
                 # 📸 Convertir en images
-                pdf_images = [fig_to_image(f) for f in pdf_figures if f is not None]
+                pdf_images = []
+                for f in valid_figures:
+                    try:
+                        pdf_images.append(fig_to_image(f))
+                    except Exception as e:
+                        st.error(f"Erreur conversion figure: {str(e)}")
+                        continue
                 
-                # 📄 Générer le PDF
-                dashboard_pdf = generate_dashboard_pdf(pdf_images)
-                
-                # Téléchargement
-                st.download_button(
-                    label="⬇️ Cliquez pour télécharger",
-                    data=dashboard_pdf,
-                    file_name="dashboard_deepfakes.pdf",
-                    mime="application/pdf"
-                )
+                if pdf_images:
+                    # 📄 Générer le PDF
+                    dashboard_pdf = generate_dashboard_pdf(pdf_images)
+                    
+                    # Téléchargement
+                    st.download_button(
+                        label="⬇️ Cliquez pour télécharger",
+                        data=dashboard_pdf,
+                        file_name="dashboard_deepfakes.pdf",
+                        mime="application/pdf"
+                    )
                 
             except Exception as e:
                 st.error(f"Erreur lors de la génération du PDF: {str(e)}")
