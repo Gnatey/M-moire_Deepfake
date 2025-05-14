@@ -390,7 +390,8 @@ def generate_dashboard_pdf(figures):
     pdf.set_font('Arial', 'I', 8)
     pdf.cell(0, 10, f"Généré le {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", 0, 0, 'C')
     
-    return pdf.output(dest='S').encode('latin1')
+    output_data = pdf.output(dest='S')
+    return output_data if isinstance(output_data, bytes) else output_data.encode('latin1')
 
 # =============================================
 # TELECHARGER TOUT L'ONGLET 1
