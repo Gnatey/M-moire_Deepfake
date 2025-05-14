@@ -398,9 +398,7 @@ def generate_dashboard_pdf(figures, titles):
             pdf_buffer.write(output_data)
         else:
             pdf_buffer.write(output_data.encode('latin1'))
-
-        pdf_buffer.write(pdf_output)
-        pdf_buffer.seek(0)
+            pdf_buffer.seek(0)
         
         return pdf_buffer.getvalue()
     
