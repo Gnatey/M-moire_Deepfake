@@ -343,7 +343,7 @@ def fig_to_image(fig):
     img_bytes = fig.to_image(format="png", width=1200, height=800, scale=2)
     return Image.open(io.BytesIO(img_bytes))
 
-def generate_dashboard_pdf(images):
+def generate_dashboard_pdf(figures):
     """Génère un PDF avec toutes les visualisations + titres"""
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
