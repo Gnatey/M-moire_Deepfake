@@ -335,7 +335,7 @@ with tab1:
             st.warning("Certaines colonnes nécessaires pour la matrice de corrélation sont manquantes")
 
 # =============================================
-# FONCTIONS POUR TELECHARGER L'ONGLET 1 (VERSION CORRIGEE)
+# FONCTIONS POUR TELECHARGER L'ONGLET 1 (VERSION FINALE)
 # =============================================
 
 def fig_to_image(fig):
@@ -350,6 +350,9 @@ def fig_to_image(fig):
 def generate_dashboard_pdf(figures, titles):
     """Génère un PDF avec toutes les visualisations"""
     try:
+        # Création d'un buffer en mémoire pour le PDF
+        pdf_buffer = io.BytesIO()
+        
         pdf = FPDF()
         pdf.set_auto_page_break(auto=True, margin=15)
         
@@ -389,15 +392,19 @@ def generate_dashboard_pdf(figures, titles):
         pdf.set_font('Arial', 'I', 8)
         pdf.cell(0, 10, f"Généré le {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", 0, 0, 'C')
         
-        # Retourne le PDF sous forme de bytes
-        return pdf.output(dest='S').encode('latin1')
+        # Écriture directe dans le buffer
+        pdf_output = pdf.output(dest='S').encode('latin1')
+        pdf_buffer.write(pdf_output)
+        pdf_buffer.seek(0)
+        
+        return pdf_buffer.getvalue()
     
     except Exception as e:
         st.error(f"Erreur génération PDF: {str(e)}")
         return None
 
 # =============================================
-# TELECHARGER TOUT L'ONGLET 1 (IMPLEMENTATION)
+# TELECHARGER TOUT L'ONGLET 1 (IMPLEMENTATION FINALE)
 # =============================================
 with tab1:
     if not filtered_df.empty:
