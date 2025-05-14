@@ -202,12 +202,14 @@ with tab1:
             platform_flat = [item.strip() for sublist in platform_series for item in sublist]
             platform_counts = pd.Series(platform_flat).value_counts().reset_index()
             fig_platforms = px.pie(
-                platform_counts, 
+            platform_counts, 
                 names='index', 
                 values='count',
                 hole=0.3,
-                labels={'index': 'Plateforme', 'count': 'Occurrences'}
-            )
+                labels={'index': 'Plateforme', 'count': 'Occurrences'},
+                color_discrete_sequence=px.colors.qualitative.Pastel  # <--- AJOUTER ÇA
+        )
+
             st.plotly_chart(fig_platforms, use_container_width=True)
         
         # 3. Impact perçu
