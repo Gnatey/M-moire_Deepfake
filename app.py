@@ -335,7 +335,7 @@ with tab1:
             st.warning("Certaines colonnes nécessaires pour la matrice de corrélation sont manquantes")
 
 # =============================================
-# FONCTIONS POUR TELECHARGER L'ONGLET 1 (VERSION FINALE)
+# FONCTIONS POUR TELECHARGER L'ONGLET 1
 # =============================================
 
 def fig_to_image(fig):
@@ -393,7 +393,12 @@ def generate_dashboard_pdf(figures, titles):
         pdf.cell(0, 10, f"Généré le {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", 0, 0, 'C')
         
         # Écriture directe dans le buffer
-        pdf_output = pdf.output(dest='S').encode('latin1')
+        output_data = pdf.output(dest='S')
+        if isinstance(output_data, (bytes, bytearray)):
+            pdf_buffer.write(output_data)
+        else:
+            pdf_buffer.write(output_data.encode('latin1'))
+
         pdf_buffer.write(pdf_output)
         pdf_buffer.seek(0)
         
