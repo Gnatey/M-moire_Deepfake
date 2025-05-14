@@ -338,7 +338,7 @@ with tab1:
 # FONCTIONS POUR TELECHARGER L'ONGLET 1
 # =============================================
 
-# =============================================
+    # =============================================
 # FONCTIONS POUR TELECHARGER L'ONGLET 1
 # =============================================
 
@@ -426,7 +426,6 @@ with tab1:
                 
             except Exception as e:
                 st.error(f"Erreur lors de la génération du PDF: {str(e)}")
-
 
 # =============================================
 # ONGLET 2 - EXPLORATION AVANCÉE
