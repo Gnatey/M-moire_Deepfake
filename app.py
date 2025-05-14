@@ -335,33 +335,93 @@ with tab1:
             st.warning("Certaines colonnes nécessaires pour la matrice de corrélation sont manquantes")
 
 # =============================================
-# TELECHARGER TOUT L'ONGLET 1
+# FONCTIONS POUR TELECHARGER L'ONGLET 1
 # =============================================
 
-import plotly.io as pio
-
-def fig_to_image(fig, width=1200, height=800, scale=2):
-    """Convertit une figure Plotly en image PIL avec bonne qualité et couleurs."""
-    img_bytes = pio.to_image(fig, format="png", width=width, height=height, scale=scale, engine="kaleido")
+def fig_to_image(fig):
+    """Convertit une figure Plotly en image PNG"""
+    img_bytes = fig.to_image(format="png", width=1200, height=800, scale=2)
     return Image.open(io.BytesIO(img_bytes))
 
-def generate_dashboard_pdf(fig_list):
-    """Crée un PDF à partir d'une liste d'images PIL."""
+def generate_dashboard_pdf(figures):
+    """Génère un PDF avec toutes les visualisations"""
     pdf = FPDF()
-    for fig in fig_list:
-        with io.BytesIO() as buf:
-            fig.save(buf, format="PNG")
-            buf.seek(0)
-            img = Image.open(buf).convert("RGB")
-            temp_path = f"/tmp/{uuid.uuid4()}.png"
-            img.save(temp_path)
-            pdf.add_page()
-            pdf.image(temp_path, x=10, y=10, w=190)
-            os.remove(temp_path)
-    pdf_bytes = io.BytesIO()
-    pdf.output(pdf_bytes)
-    pdf_bytes.seek(0)
-    return pdf_bytes
+    pdf.set_auto_page_break(auto=True, margin=15)
+    
+    # Titre principal
+    pdf.add_page()
+    pdf.set_font('Arial', 'B', 16)
+    pdf.cell(0, 10, 'Tableau de Bord DeepFakes - Onglet 1', 0, 1, 'C')
+    pdf.ln(10)
+    
+    # Ajout des visualisations avec leurs titres
+    titles = [
+        "Niveau de Connaissance des DeepFakes",
+        "Plateformes où les DeepFakes sont vus",
+        "Impact perçu des DeepFakes",
+        "Confiance par Tranche d'âge",
+        "Genre vs Plateformes",
+        "Matrice de Corrélation"
+    ]
+    
+    for i, (fig, title) in enumerate(zip(figures, titles)):
+        if fig is not None:
+            # Ajout du titre de la section
+            pdf.set_font('Arial', 'B', 12)
+            pdf.cell(0, 10, f"{i+1}. {title}", 0, 1)
+            pdf.ln(5)
+            
+            # Sauvegarde temporaire de l'image
+            img_path = f"temp_{i}.png"
+            fig.save(img_path)
+            
+            # Ajout de l'image au PDF
+            pdf.image(img_path, x=10, w=190)
+            pdf.ln(10)
+            
+            # Suppression du fichier temporaire
+            os.remove(img_path)
+    
+    # Pied de page
+    pdf.set_font('Arial', 'I', 8)
+    pdf.cell(0, 10, f"Généré le {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", 0, 0, 'C')
+    
+    return pdf.output(dest='S').encode('latin1')
+
+# =============================================
+# TELECHARGER TOUT L'ONGLET 1
+# =============================================
+with tab1:
+    if not filtered_df.empty:
+        # 🧩 Récupération des figures à exporter (doivent déjà exister dans l'onglet 1)
+        pdf_figures = [
+            fig_knowledge,
+            fig_platforms,
+            fig_impact,
+            fig_trust_age,
+            fig,        # heatmap Genre x Plateformes
+            fig_corr    # matrice de corrélation
+        ]
+        
+        # 📥 Bouton de téléchargement
+        if st.button("📥 Télécharger tout le Tableau de Bord en PDF"):
+            try:
+                # 📸 Convertir en images
+                pdf_images = [fig_to_image(f) for f in pdf_figures if f is not None]
+                
+                # 📄 Générer le PDF
+                dashboard_pdf = generate_dashboard_pdf(pdf_images)
+                
+                # Téléchargement
+                st.download_button(
+                    label="⬇️ Cliquez pour télécharger",
+                    data=dashboard_pdf,
+                    file_name="dashboard_deepfakes.pdf",
+                    mime="application/pdf"
+                )
+                
+            except Exception as e:
+                st.error(f"Erreur lors de la génération du PDF: {str(e)}")
 
 # 🧩 Récupération des figures à exporter (doivent déjà exister dans l'onglet 1)
 pdf_figures = [
