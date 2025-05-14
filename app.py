@@ -312,7 +312,7 @@ with tab1:
             fig_corr = px.imshow(
                 corr_matrix,
                 text_auto=True,
-                color_continuous_scale='RdBu',
+                color_continuous_scale='Viridis',
                 zmin=-1,
                 zmax=1,
                 labels=dict(color="Corrélation"),
