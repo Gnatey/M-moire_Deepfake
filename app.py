@@ -335,67 +335,84 @@ with tab1:
             st.warning("Certaines colonnes nécessaires pour la matrice de corrélation sont manquantes")
 
 # =============================================
-# FONCTIONS POUR TELECHARGER L'ONGLET 1
+# FONCTIONS POUR TELECHARGER L'ONGLET 1 (VERSION CORRIGEE)
 # =============================================
 
 def fig_to_image(fig):
     """Convertit une figure Plotly en image PNG"""
-    img_bytes = fig.to_image(format="png", width=1200, height=800, scale=2)
-    return Image.open(io.BytesIO(img_bytes))
+    try:
+        img_bytes = fig.to_image(format="png", width=1200, height=800, scale=2)
+        return Image.open(io.BytesIO(img_bytes))
+    except Exception as e:
+        st.error(f"Erreur conversion figure: {str(e)}")
+        return None
 
-def generate_dashboard_pdf(figures):
+def generate_dashboard_pdf(figures, titles):
     """Génère un PDF avec toutes les visualisations"""
-    pdf = FPDF()
-    pdf.set_auto_page_break(auto=True, margin=15)
+    try:
+        pdf = FPDF()
+        pdf.set_auto_page_break(auto=True, margin=15)
+        
+        # Métadonnées du PDF
+        pdf.set_title("Dashboard DeepFakes")
+        pdf.set_author("Streamlit App")
+        
+        # Titre principal
+        pdf.add_page()
+        pdf.set_font('Arial', 'B', 16)
+        pdf.cell(0, 10, 'Tableau de Bord DeepFakes - Onglet 1', 0, 1, 'C')
+        pdf.ln(10)
+        
+        # Ajout des visualisations avec leurs titres
+        for i, (fig, title) in enumerate(zip(figures, titles)):
+            if fig is not None:
+                # Ajout du titre de la section
+                pdf.set_font('Arial', 'B', 12)
+                pdf.multi_cell(0, 10, f"{i+1}. {title}")
+                pdf.ln(5)
+                
+                # Sauvegarde temporaire de l'image
+                img_path = f"temp_{uuid.uuid4()}.png"
+                fig.save(img_path)
+                
+                # Ajout de l'image au PDF
+                pdf.image(img_path, x=10, w=190)
+                pdf.ln(10)
+                
+                # Suppression du fichier temporaire
+                try:
+                    os.remove(img_path)
+                except:
+                    pass
+        
+        # Pied de page
+        pdf.set_font('Arial', 'I', 8)
+        pdf.cell(0, 10, f"Généré le {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", 0, 0, 'C')
+        
+        # Retourne le PDF sous forme de bytes
+        return pdf.output(dest='S').encode('latin1')
     
-    # Titre principal
-    pdf.add_page()
-    pdf.set_font('Arial', 'B', 16)
-    pdf.cell(0, 10, 'Tableau de Bord DeepFakes - Onglet 1', 0, 1, 'C')
-    pdf.ln(10)
-    
-    # Ajout des visualisations avec leurs titres
-    titles = [
-        "Niveau de Connaissance des DeepFakes",
-        "Plateformes où les DeepFakes sont vus",
-        "Impact perçu des DeepFakes",
-        "Confiance par Tranche d'âge",
-        "Genre vs Plateformes",
-        "Matrice de Corrélation"
-    ]
-    
-    for i, (fig, title) in enumerate(zip(figures, titles)):
-        if fig is not None:
-            # Ajout du titre de la section
-            pdf.set_font('Arial', 'B', 12)
-            pdf.cell(0, 10, f"{i+1}. {title}", 0, 1)
-            pdf.ln(5)
-            
-            # Sauvegarde temporaire de l'image
-            img_path = f"temp_{i}.png"
-            fig.save(img_path)
-            
-            # Ajout de l'image au PDF
-            pdf.image(img_path, x=10, w=190)
-            pdf.ln(10)
-            
-            # Suppression du fichier temporaire
-            os.remove(img_path)
-    
-    # Pied de page
-    pdf.set_font('Arial', 'I', 8)
-    pdf.cell(0, 10, f"Généré le {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", 0, 0, 'C')
-    
-    # Retourne directement le buffer PDF
-    return pdf.output(dest='S')
+    except Exception as e:
+        st.error(f"Erreur génération PDF: {str(e)}")
+        return None
 
 # =============================================
-# TELECHARGER TOUT L'ONGLET 1
+# TELECHARGER TOUT L'ONGLET 1 (IMPLEMENTATION)
 # =============================================
 with tab1:
     if not filtered_df.empty:
-        # 🧩 Récupération des figures à exporter
-        pdf_figures = [
+        # Titres des sections
+        section_titles = [
+            "Niveau de Connaissance des DeepFakes",
+            "Plateformes où les DeepFakes sont vus",
+            "Impact perçu des DeepFakes",
+            "Confiance par Tranche d'âge",
+            "Genre vs Plateformes",
+            "Matrice de Corrélation"
+        ]
+        
+        # Figures correspondantes
+        figures_to_export = [
             fig_knowledge,
             fig_platforms,
             fig_impact,
@@ -404,37 +421,34 @@ with tab1:
             fig_corr    # matrice de corrélation
         ]
         
-        # 📥 Bouton de téléchargement
+        # Vérification des figures disponibles
+        available_figures = [f for f in figures_to_export if f is not None]
+        
         if st.button("📥 Télécharger tout le Tableau de Bord en PDF"):
-            try:
-                # Vérification que toutes les figures existent
-                valid_figures = [f for f in pdf_figures if f is not None]
-                if len(valid_figures) != len(pdf_figures):
-                    st.warning("Certaines visualisations ne sont pas disponibles")
-                
-                # 📸 Convertir en images
-                pdf_images = []
-                for f in valid_figures:
-                    try:
-                        pdf_images.append(fig_to_image(f))
-                    except Exception as e:
-                        st.error(f"Erreur conversion figure: {str(e)}")
-                        continue
-                
-                if pdf_images:
-                    # 📄 Générer le PDF
-                    dashboard_pdf = generate_dashboard_pdf(pdf_images)
+            if len(available_figures) == 0:
+                st.warning("Aucune visualisation disponible à exporter")
+            else:
+                with st.spinner("Génération du PDF en cours..."):
+                    # Convertir les figures en images
+                    images = []
+                    for fig in available_figures:
+                        img = fig_to_image(fig)
+                        if img is not None:
+                            images.append(img)
                     
-                    # Téléchargement
-                    st.download_button(
-                        label="⬇️ Cliquez pour télécharger",
-                        data=dashboard_pdf,
-                        file_name="dashboard_deepfakes.pdf",
-                        mime="application/pdf"
-                    )
-                
-            except Exception as e:
-                st.error(f"Erreur lors de la génération du PDF: {str(e)}")
+                    if images:
+                        # Générer le PDF
+                        pdf_bytes = generate_dashboard_pdf(images, section_titles[:len(images)])
+                        
+                        if pdf_bytes:
+                            # Proposer le téléchargement
+                            st.download_button(
+                                label="⬇️ Télécharger le PDF",
+                                data=pdf_bytes,
+                                file_name="dashboard_deepfakes.pdf",
+                                mime="application/pdf",
+                                key="download_pdf"
+                            )
 
 # =============================================
 # ONGLET 2 - EXPLORATION AVANCÉE
