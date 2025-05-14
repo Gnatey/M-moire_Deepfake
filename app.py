@@ -1566,6 +1566,12 @@ def generate_analysis_report(filtered_df):
     except Exception as e:
         st.error(f"Erreur génération rapport: {str(e)}")
         return None
+    
+    class PDF(FPDF):
+        def footer(self):
+            self.set_y(-15)
+            self.set_font('Arial', 'I', 8)
+            self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
 
 # =============================================
 # BOUTON DE TELECHARGEMENT DU RAPPORT
