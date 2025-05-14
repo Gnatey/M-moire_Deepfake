@@ -339,8 +339,11 @@ with tab1:
 # =============================================
 
 def fig_to_image(fig):
-    """Convertit une figure Plotly en image PNG"""
+    """Convertit une figure Plotly en image PNG avec palette compatible"""
     try:
+        # Forcer un template ou palette claire si manquant
+        if 'coloraxis' in fig.layout:
+            fig.update_layout(coloraxis_colorscale="Viridis")
         img_bytes = fig.to_image(format="png", width=1200, height=800, scale=2)
         return Image.open(io.BytesIO(img_bytes))
     except Exception as e:
