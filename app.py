@@ -259,7 +259,7 @@ with tab1:
                 cross_tab,
                 text_auto=True,
                 aspect="auto",
-                color_continuous_scale='Blues',
+                color_continuous_scale='RdBu',
                 height=600
             )
             fig.update_layout(
@@ -312,7 +312,7 @@ with tab1:
             fig_corr = px.imshow(
                 corr_matrix,
                 text_auto=True,
-                color_continuous_scale='Viridis',
+                color_continuous_scale='RdBu',
                 zmin=-1,
                 zmax=1,
                 labels=dict(color="Corrélation"),
@@ -643,7 +643,7 @@ with tab2:
                         labels=dict(x=y_axis, y=x_axis, color="Count"),
                         title=f"<b>Heatmap: {x_axis} vs {y_axis}</b>",
                         aspect="auto",
-                        color_continuous_scale='Blues',
+                        color_continuous_scale='RdBu',
                         text_auto=True
                     )
                 
