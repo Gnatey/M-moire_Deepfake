@@ -1559,7 +1559,7 @@ def generate_analysis_report(filtered_df):
         # Pied de page
         pdf.set_font('Arial', 'I', 8)
         pdf.cell(0, 10, f"Document généré le {datetime.now().strftime('%d/%m/%Y %H:%M')}", 0, 0, 'C')
-        
+
         # Retourne le PDF sous forme de bytes
         output_data = pdf.output(dest='S')
         return output_data if isinstance(output_data, bytes) else output_data.encode('latin1')
