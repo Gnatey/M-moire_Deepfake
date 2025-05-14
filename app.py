@@ -338,44 +338,48 @@ with tab1:
 # TELECHARGER TOUT L'ONGLET 1
 # =============================================
 
-def fig_to_image(fig, width=1000, height=600):
-    """Convertit une figure Plotly en image PIL"""
-    img_bytes = fig.to_image(format="png", width=width, height=height)
+import plotly.io as pio
+
+def fig_to_image(fig, width=1200, height=800, scale=2):
+    """Convertit une figure Plotly en image PIL avec bonne qualité et couleurs."""
+    img_bytes = pio.to_image(fig, format="png", width=width, height=height, scale=scale, engine="kaleido")
     return Image.open(io.BytesIO(img_bytes))
 
 def generate_dashboard_pdf(fig_list, filename="dashboard.pdf"):
-    """Crée un PDF avec une liste d'images PIL"""
+    """Crée un PDF à partir d'une liste d'images PIL."""
     pdf = FPDF()
     for fig in fig_list:
         with io.BytesIO() as buf:
             fig.save(buf, format="PNG")
             buf.seek(0)
-            img = Image.open(buf)
-            img = img.convert("RGB")
-            img_path = f"/tmp/{uuid.uuid4()}.png"
-            img.save(img_path)
+            img = Image.open(buf).convert("RGB")
+            temp_path = f"/tmp/{uuid.uuid4()}.png"
+            img.save(temp_path)
             pdf.add_page()
-            pdf.image(img_path, x=10, y=10, w=190)
-            os.remove(img_path)
+            pdf.image(temp_path, x=10, y=10, w=190)
+            os.remove(temp_path)
     pdf_bytes = io.BytesIO()
     pdf.output(pdf_bytes)
     pdf_bytes.seek(0)
     return pdf_bytes
 
-# ✅ Collecte des figures dans l’onglet tab1
+# 🧩 Récupération des figures à exporter (doivent déjà exister dans l'onglet 1)
 pdf_figures = [
     fig_knowledge,
     fig_platforms,
     fig_impact,
     fig_trust_age,
-    fig,
-    fig_corr
+    fig,        # heatmap Genre x Plateformes
+    fig_corr    # matrice de corrélation
 ]
 
+# 📸 Convertir en images
 pdf_images = [fig_to_image(f) for f in pdf_figures]
+
+# 📄 Générer le PDF
 dashboard_pdf = generate_dashboard_pdf(pdf_images)
 
-# ✅ Bouton de téléchargement
+# 📥 Bouton de téléchargement
 st.download_button(
     label="📥 Télécharger tout le Tableau de Bord en PDF",
     data=dashboard_pdf,
