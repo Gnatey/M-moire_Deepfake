@@ -9,6 +9,8 @@ import plotly.graph_objects as go
 from PIL import Image
 import networkx as nx
 import matplotlib.pyplot as plt
+from PIL import Image
+from fpdf import FPDF
 import streamlit as st
 import io
 import kaleido
@@ -331,6 +333,55 @@ with tab1:
             st.plotly_chart(fig_corr, use_container_width=True)
         else:
             st.warning("Certaines colonnes nécessaires pour la matrice de corrélation sont manquantes")
+
+# =============================================
+# TELECHARGER TOUT L'ONGLET 1
+# =============================================
+
+def fig_to_image(fig, width=1000, height=600):
+    """Convertit une figure Plotly en image PIL"""
+    img_bytes = fig.to_image(format="png", width=width, height=height)
+    return Image.open(io.BytesIO(img_bytes))
+
+def generate_dashboard_pdf(fig_list, filename="dashboard.pdf"):
+    """Crée un PDF avec une liste d'images PIL"""
+    pdf = FPDF()
+    for fig in fig_list:
+        with io.BytesIO() as buf:
+            fig.save(buf, format="PNG")
+            buf.seek(0)
+            img = Image.open(buf)
+            img = img.convert("RGB")
+            img_path = f"/tmp/{uuid.uuid4()}.png"
+            img.save(img_path)
+            pdf.add_page()
+            pdf.image(img_path, x=10, y=10, w=190)
+            os.remove(img_path)
+    pdf_bytes = io.BytesIO()
+    pdf.output(pdf_bytes)
+    pdf_bytes.seek(0)
+    return pdf_bytes
+
+# ✅ Collecte des figures dans l’onglet tab1
+pdf_figures = [
+    fig_knowledge,
+    fig_platforms,
+    fig_impact,
+    fig_trust_age,
+    fig,
+    fig_corr
+]
+
+pdf_images = [fig_to_image(f) for f in pdf_figures]
+dashboard_pdf = generate_dashboard_pdf(pdf_images)
+
+# ✅ Bouton de téléchargement
+st.download_button(
+    label="📥 Télécharger tout le Tableau de Bord en PDF",
+    data=dashboard_pdf,
+    file_name="dashboard_deepfakes.pdf",
+    mime="application/pdf"
+)
 
 # =============================================
 # ONGLET 2 - EXPLORATION AVANCÉE
@@ -861,6 +912,7 @@ with tab2:
 # =============================================
 # ONGLET 3 : ANALYSE STATISTIQUE & REGRESSION
 # =============================================
+
 
 def run_tab3(filtered_df):
     st.header("📈 Analyse Statistique Avancée")
