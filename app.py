@@ -1418,166 +1418,143 @@ else:
 # FONCTION POUR GENERER LE RAPPORT D'ANALYSE
 # =============================================
 
+from fpdf import FPDF
+import plotly.express as px
+import os
+from datetime import datetime
+import io
+from PIL import Image
+
 def generate_analysis_report(filtered_df):
-    """Génère un PDF avec la démarche d'analyse et les résultats"""
+    """Génère un PDF professionnel avec l'analyse complète des données DeepFakes."""
+    class PDF(FPDF):
+        def footer(self):
+            self.set_y(-15)
+            self.set_font('Arial', 'I', 8)
+            self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
+
     try:
-        # Création du PDF
-        pdf = FPDF()
+        pdf = PDF()
         pdf.set_auto_page_break(auto=True, margin=15)
         pdf.add_page()
-        
-        # Métadonnées
-        pdf.set_title("Analyse DeepFakes - Résultats")
-        pdf.set_author("Dashboard DeepFakes")
-        
-        # Style
-        pdf.set_font('Arial', 'B', 16)
-        pdf.cell(0, 10, 'Analyse des Données DeepFakes', 0, 1, 'C')
-        pdf.ln(10)
-        
-        # Section 1: Démarche d'analyse
-        pdf.set_font('Arial', 'B', 14)
-        pdf.cell(0, 10, '1. Démarche d\'analyse des données', 0, 1)
-        pdf.set_font('Arial', '', 12)
-        
-        methodology_text = """
-        Cette analyse s'appuie sur une enquête quantitative menée auprès d'un échantillon de répondants. 
-        La démarche méthodologique comporte plusieurs étapes clés :
-        
-        1. Collecte des données via un questionnaire en ligne
-        2. Nettoyage et préparation des données
-        3. Analyse descriptive (statistiques, visualisations)
-        4. Analyse statistique avancée (tests, modélisation)
-        5. Interprétation et validation des résultats
-        
-        Les méthodes utilisées incluent :
-        - Analyses univariées et bivariées
-        - Tests du Chi2 et coefficients d'association
-        - Modélisation par régression logistique
-        - Analyse des intervalles de confiance
-        """
-        pdf.multi_cell(0, 10, methodology_text)
-        pdf.ln(10)
-        
-        # Section 2: Principaux résultats
-        pdf.set_font('Arial', 'B', 14)
-        pdf.cell(0, 10, '2. Principaux résultats obtenus', 0, 1)
-        pdf.set_font('Arial', '', 12)
-        
-        # Ajout des indicateurs clés
-        if not filtered_df.empty:
-            # Calcul des indicateurs
-            aware_pct = filtered_df["Connaissance DeepFakes"].value_counts(normalize=True).get('Oui', 0) * 100
-            seen_pct = filtered_df["Exposition DeepFakes"].value_counts(normalize=True).get('Oui', 0) * 100
-            trust_pct = filtered_df["Confiance réseaux sociaux"].apply(lambda x: 1 if x == 'Oui' else 0).mean() * 100
-            
-            results_text = f"""
-            Principaux indicateurs :
-            - {aware_pct:.1f}% des répondants ont déjà entendu parler des DeepFakes
-            - {seen_pct:.1f}% ont déjà vu un DeepFake sur les réseaux sociaux
-            - Niveau de confiance moyen dans les réseaux sociaux : {trust_pct:.1f}%
-            
-            Analyses significatives :
-            """
-            pdf.multi_cell(0, 10, results_text)
-            pdf.ln(5)
-            
-            # Ajout des visualisations principales
-            img_paths = []
-            
-            # 1. Niveau de connaissance
-            fig = px.bar(
-                filtered_df["Niveau connaissance"].value_counts().reset_index(),
-                x="Niveau connaissance",
-                y="count",
-                title="Niveau de connaissance des DeepFakes"
-            )
-            img_path = "knowledge_level.png"
-            fig.write_image(img_path)
-            img_paths.append(img_path)
-            pdf.image(img_path, x=10, w=190)
-            pdf.ln(5)
-            
-            # 2. Plateformes
-            if "Plateformes" in filtered_df.columns:
-                platform_series = filtered_df["Plateformes"].dropna().str.split(';')
-                platform_flat = [item.strip() for sublist in platform_series for item in sublist]
-                platform_counts = pd.Series(platform_flat).value_counts().reset_index()
-                
-                fig = px.pie(
-                    platform_counts,
-                    names='index',
-                    values='count',
-                    title="Plateformes où les DeepFakes sont vus"
-                )
-                img_path = "platforms.png"
-                fig.write_image(img_path)
-                img_paths.append(img_path)
-                pdf.image(img_path, x=10, w=190)
-                pdf.ln(5)
-            
-            # 3. Impact
-            fig = px.bar(
-                filtered_df["Impact société"].value_counts().reset_index(),
-                x="Impact société",
-                y="count",
-                title="Impact perçu des DeepFakes"
-            )
-            img_path = "impact.png"
-            fig.write_image(img_path)
-            img_paths.append(img_path)
-            pdf.image(img_path, x=10, w=190)
-            
-            # Nettoyage des images temporaires
-            for path in img_paths:
-                try:
-                    os.remove(path)
-                except:
-                    pass
-            
-            # Conclusion
-            pdf.add_page()
-            pdf.set_font('Arial', 'B', 14)
-            pdf.cell(0, 10, '3. Conclusion', 0, 1)
-            pdf.set_font('Arial', '', 12)
-            
-            conclusion_text = """
-            Cette analyse révèle plusieurs insights clés sur la perception des DeepFakes :
-            
-            - Une bonne connaissance générale mais des niveaux de compréhension variables
-            - Une exposition importante via certaines plateformes sociales
-            - Un impact perçu comme majoritairement négatif sur la société
-            - Des différences significatives selon l'âge et le genre
-            
-            Ces résultats soulignent l'importance de :
-            1. Sensibiliser davantage aux risques des DeepFakes
-            2. Développer des outils de détection accessibles
-            3. Renforcer l'éducation aux médias
-            """
-            pdf.multi_cell(0, 10, conclusion_text)
-            
-        # Pied de page
-        pdf.set_font('Arial', 'I', 8)
-        pdf.cell(0, 10, f"Document généré le {datetime.now().strftime('%d/%m/%Y %H:%M')}", 0, 0, 'C')
 
-        # Retourne le PDF sous forme de bytes
-        try:
-            output_data = pdf.output(dest='S')
-            return output_data.encode('latin1') if isinstance(output_data, str) else bytes(output_data)
-        except Exception as e:
-            st.error(f"Erreur encodage rapport: {str(e)}")
-            return None
+        # Titre principal
+        pdf.set_font("Arial", 'B', 16)
+        pdf.cell(0, 10, "Rapport d'Analyse sur les DeepFakes", ln=True, align='C')
+        pdf.ln(10)
+
+        # Section 1 : Contexte
+        pdf.set_font("Arial", 'B', 14)
+        pdf.cell(0, 10, "1. Objectif & Contexte", ln=True)
+        pdf.set_font("Arial", '', 12)
+        pdf.multi_cell(0, 10, (
+            "Cette étude vise à comprendre la perception, l’exposition et la confiance des utilisateurs vis-à-vis des DeepFakes, "
+            "ainsi que leur impact perçu sur la société. Les données ont été recueillies via un questionnaire en ligne anonymisé."
+        ))
+        pdf.ln(5)
+
+        # Section 2 : Méthodologie
+        pdf.set_font("Arial", 'B', 14)
+        pdf.cell(0, 10, "2. Méthodologie", ln=True)
+        pdf.set_font("Arial", '', 12)
+        pdf.multi_cell(0, 10, (
+            "La démarche comprend : nettoyage, transformation, exploration descriptive, tests statistiques, et modélisation. "
+            "Les analyses incluent :\n"
+            "- Des statistiques descriptives\n"
+            "- Des visualisations interactives\n"
+            "- Des tests du Chi2\n"
+            "- Une régression logistique\n"
+            "- Une analyse des biais et de la validité scientifique"
+        ))
+        pdf.ln(5)
+
+        # Section 3 : Indicateurs clés
+        pdf.set_font("Arial", 'B', 14)
+        pdf.cell(0, 10, "3. Résultats Synthétiques", ln=True)
+        pdf.set_font("Arial", '', 12)
+
+        aware_pct = filtered_df["Connaissance DeepFakes"].value_counts(normalize=True).get('Oui', 0) * 100
+        seen_pct = filtered_df["Exposition DeepFakes"].value_counts(normalize=True).get('Oui', 0) * 100
+        trust_pct = filtered_df["Confiance réseaux sociaux"].apply(lambda x: 1 if x == 'Oui' else 0).mean() * 100
+
+        pdf.multi_cell(0, 10, (
+            f"- {aware_pct:.1f}% des répondants connaissent les DeepFakes\n"
+            f"- {seen_pct:.1f}% y ont été exposés\n"
+            f"- La confiance dans les réseaux sociaux est en moyenne de {trust_pct:.1f}%"
+        ))
+        pdf.ln(5)
+
+        # Section 4 : Visualisations
+        pdf.set_font("Arial", 'B', 14)
+        pdf.cell(0, 10, "4. Visualisations Clés", ln=True)
+        img_paths = []
+
+        # 1. Connaissance
+        fig = px.bar(filtered_df["Niveau connaissance"].value_counts().reset_index(),
+                     x="Niveau connaissance", y="count",
+                     title="Niveau de connaissance des DeepFakes")
+        img_path = "viz_knowledge.png"
+        fig.write_image(img_path)
+        pdf.image(img_path, x=10, w=190)
+        img_paths.append(img_path)
+        pdf.ln(5)
+
+        # 2. Plateformes
+        if "Plateformes" in filtered_df.columns:
+            platforms_raw = filtered_df["Plateformes"].dropna().str.split(';')
+            platforms_flat = [p.strip() for sublist in platforms_raw for p in sublist]
+            platform_counts = pd.Series(platforms_flat).value_counts().reset_index()
+            fig = px.pie(platform_counts, names='index', values='count',
+                         title="Plateformes où les DeepFakes sont vus")
+            img_path = "viz_platforms.png"
+            fig.write_image(img_path)
+            pdf.image(img_path, x=10, w=190)
+            img_paths.append(img_path)
+            pdf.ln(5)
+
+        # 3. Impact perçu
+        fig = px.bar(filtered_df["Impact société"].value_counts().reset_index(),
+                     x="Impact société", y="count",
+                     title="Impact perçu des DeepFakes")
+        img_path = "viz_impact.png"
+        fig.write_image(img_path)
+        pdf.image(img_path, x=10, w=190)
+        img_paths.append(img_path)
+
+        # Nettoyage des images
+        for path in img_paths:
+            try:
+                os.remove(path)
+            except:
+                pass
+
+        # Section 5 : Conclusion
+        pdf.add_page()
+        pdf.set_font("Arial", 'B', 14)
+        pdf.cell(0, 10, "5. Conclusion & Recommandations", ln=True)
+        pdf.set_font("Arial", '', 12)
+        pdf.multi_cell(0, 10, (
+            "L’analyse met en lumière une forte exposition aux DeepFakes via les réseaux sociaux, "
+            "avec un impact perçu comme préoccupant. Malgré un certain niveau de connaissance, la confiance "
+            "dans les plateformes reste limitée. \n\n"
+            "📌 Recommandations :\n"
+            "- Intensifier les campagnes d'éducation aux médias\n"
+            "- Mettre en place des outils de détection accessibles\n"
+            "- Encourager les plateformes à modérer les contenus falsifiés\n"
+        ))
+
+        # Pied de page
+        pdf.set_font("Arial", 'I', 8)
+        pdf.cell(0, 10, f"Document généré le {datetime.now().strftime('%d/%m/%Y %H:%M')}", ln=True, align='C')
+
+        # Export final
+        pdf_output = pdf.output(dest='S')
+        return pdf_output if isinstance(pdf_output, bytes) else pdf_output.encode('latin1')
 
     except Exception as e:
-        st.error(f"Erreur génération rapport: {str(e)}")
+        st.error(f"Erreur génération du rapport : {str(e)}")
         return None
 
-
-class PDF(FPDF):
-    def footer(self):
-        self.set_y(-15)
-        self.set_font('Arial', 'I', 8)
-        self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
 
 # =============================================
 # BOUTON DE TELECHARGEMENT DU RAPPORT
