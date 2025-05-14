@@ -363,7 +363,7 @@ def generate_dashboard_pdf(figures):
         "Matrice de Corrélation"
     ]
 
-    for image, title in zip(images, titles):
+    for image, title in zip(figures, titles):
         with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
             image.save(tmpfile.name)
             pdf.add_page()
