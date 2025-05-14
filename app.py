@@ -1561,19 +1561,23 @@ def generate_analysis_report(filtered_df):
         pdf.cell(0, 10, f"Document généré le {datetime.now().strftime('%d/%m/%Y %H:%M')}", 0, 0, 'C')
 
         # Retourne le PDF sous forme de bytes
-        output_data = pdf.output(dest='S')
-        return output_data if isinstance(output_data, bytes) else output_data.encode('latin1')
+        try:
+            output_data = pdf.output(dest='S')
+            return output_data.encode('latin1') if isinstance(output_data, str) else bytes(output_data)
+        except Exception as e:
+            st.error(f"Erreur encodage rapport: {str(e)}")
+            return None
 
-    
     except Exception as e:
         st.error(f"Erreur génération rapport: {str(e)}")
         return None
-    
-    class PDF(FPDF):
-        def footer(self):
-            self.set_y(-15)
-            self.set_font('Arial', 'I', 8)
-            self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
+
+
+class PDF(FPDF):
+    def footer(self):
+        self.set_y(-15)
+        self.set_font('Arial', 'I', 8)
+        self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
 
 # =============================================
 # BOUTON DE TELECHARGEMENT DU RAPPORT
