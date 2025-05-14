@@ -7,7 +7,6 @@ from datetime import datetime
 from scipy.stats import chi2_contingency
 import plotly.graph_objects as go
 from PIL import Image
-import tempfile
 import networkx as nx
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -339,22 +338,27 @@ with tab1:
 # FONCTIONS POUR TELECHARGER L'ONGLET 1
 # =============================================
 
+# =============================================
+# FONCTIONS POUR TELECHARGER L'ONGLET 1
+# =============================================
+
 def fig_to_image(fig):
     """Convertit une figure Plotly en image PNG"""
     img_bytes = fig.to_image(format="png", width=1200, height=800, scale=2)
     return Image.open(io.BytesIO(img_bytes))
 
-def generate_dashboard_pdf(images):
-    """Génère un PDF avec toutes les visualisations + titres"""
+def generate_dashboard_pdf(figures):
+    """Génère un PDF avec toutes les visualisations"""
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
     
-    # Page de titre
+    # Titre principal
     pdf.add_page()
     pdf.set_font('Arial', 'B', 16)
     pdf.cell(0, 10, 'Tableau de Bord DeepFakes - Onglet 1', 0, 1, 'C')
     pdf.ln(10)
-
+    
+    # Ajout des visualisations avec leurs titres
     titles = [
         "Niveau de Connaissance des DeepFakes",
         "Plateformes où les DeepFakes sont vus",
@@ -363,21 +367,6 @@ def generate_dashboard_pdf(images):
         "Genre vs Plateformes",
         "Matrice de Corrélation"
     ]
-
-    for image, title in zip(images, titles):
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
-            image.save(tmpfile.name)
-            pdf.add_page()
-            pdf.set_font('Arial', 'B', 12)
-            pdf.cell(0, 10, title, 0, 1, 'C')
-            pdf.image(tmpfile.name, x=10, y=25, w=190)
-            os.unlink(tmpfile.name)
-
-    # Export en binaire (pas besoin d'encode latin1)
-    pdf_output = io.BytesIO()
-    pdf.output(pdf_output)
-    pdf_output.seek(0)
-    return pdf_output
     
     for i, (fig, title) in enumerate(zip(figures, titles)):
         if fig is not None:
@@ -437,30 +426,6 @@ with tab1:
                 
             except Exception as e:
                 st.error(f"Erreur lors de la génération du PDF: {str(e)}")
-
-# 🧩 Récupération des figures à exporter (doivent déjà exister dans l'onglet 1)
-pdf_figures = [
-    fig_knowledge,
-    fig_platforms,
-    fig_impact,
-    fig_trust_age,
-    fig,        # heatmap Genre x Plateformes
-    fig_corr    # matrice de corrélation
-]
-
-# 📸 Convertir en images
-pdf_images = [fig_to_image(f) for f in pdf_figures]
-
-# 📄 Générer le PDF
-dashboard_pdf = generate_dashboard_pdf(pdf_images)
-
-# 📥 Bouton de téléchargement
-st.download_button(
-    label="📥 Télécharger tout le Tableau de Bord en PDF",
-    data=dashboard_pdf,
-    file_name="dashboard_deepfakes.pdf",
-    mime="application/pdf"
-)
 
 
 # =============================================
