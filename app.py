@@ -221,7 +221,7 @@ with tab1:
             y="count",
             text="count",
             color="Impact société",
-            color_discrete_sequence=px.colors.qualitative.Pyplot
+            color_discrete_sequence=px.colors.qualitative.Plotly
         )
         st.plotly_chart(fig_impact, use_container_width=True)
         
