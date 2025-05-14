@@ -207,7 +207,7 @@ with tab1:
                 values='count',
                 hole=0.3,
                 labels={'index': 'Plateforme', 'count': 'Occurrences'},
-                color_discrete_sequence=px.colors.qualitative.Pastel  # <--- AJOUTER ÇA
+                color_discrete_sequence=px.colors.qualitative.Pastel
         )
 
             st.plotly_chart(fig_platforms, use_container_width=True)
@@ -220,8 +220,8 @@ with tab1:
             x="Impact société",
             y="count",
             text="count",
-            color="Impact société"
-            color_discrete_sequence=px.colors.qualitative.Plotly
+            color="Impact société",
+            color_discrete_sequence=px.colors.qualitative.Pyplot
         )
         st.plotly_chart(fig_impact, use_container_width=True)
         
