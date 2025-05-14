@@ -259,7 +259,7 @@ with tab1:
                 cross_tab,
                 text_auto=True,
                 aspect="auto",
-                color_continuous_scale='RdBu',
+                color_continuous_scale='Blues',
                 height=600
             )
             fig.update_layout(
