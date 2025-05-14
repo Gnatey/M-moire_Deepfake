@@ -235,7 +235,7 @@ with tab1:
             trust_age,
             barmode="group",
             labels={'value': 'Pourcentage', 'variable': 'Confiance'},
-            height=500
+            height=500,
             color_discrete_sequence=px.colors.qualitative.Plotly
         )
         st.plotly_chart(fig_trust_age, use_container_width=True)
