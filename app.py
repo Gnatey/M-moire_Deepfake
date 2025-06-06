@@ -1011,15 +1011,9 @@ with tab2:
 """, unsafe_allow_html=True)
 
 
-<<<<<<< HEAD
 # =============================================
 # ONGLET 3 : ANALYSE STATISTIQUE & REGRESSION
 # =============================================
-=======
-# =================================================
-# ONGLET 3 : ANALYSE STATISTIQUE & MACHINE LEARNING
-# =================================================
->>>>>>> deb94f43e28aec4d27b9041237335b6192f44d35
 
 def run_tab3(filtered_df):
     st.header("📈 Analyse Statistique Avancée")
