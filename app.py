@@ -1030,16 +1030,20 @@ with tab2:
 def prepare_supervised_data(df, target_col: str):
     df_clean = df.copy()
 
-    # Nettoyage de la target
-    df_clean = df_clean.dropna(subset=[target_col])
-    df_clean["target"] = df_clean[target_col].apply(
-        lambda x: 1 if str(x).strip().lower() == "oui" else 0
-    )
+    # Nettoyage de la colonne cible
+    df_clean[target_col] = df_clean[target_col].astype(str).str.strip().str.lower()
 
-    # Suppression de la colonne originale
+    # On garde uniquement les réponses interprétables
+    df_clean = df_clean[df_clean[target_col].isin(["oui", "non", "cela dépend des sources"])]
+
+    # 🔍 Décision experte :
+    # On considère "non" + "cela dépend des sources" comme un manque de confiance global
+    df_clean["target"] = df_clean[target_col].apply(lambda x: 1 if x == "oui" else 0)
+
+    # Suppression de la colonne originale pour éviter les fuites de données
     df_clean = df_clean.drop(columns=[target_col])
 
-    # Suppression des lignes contenant des valeurs manquantes
+    # Suppression des lignes avec valeurs manquantes restantes
     df_clean = df_clean.dropna()
 
     # Séparation X / y
@@ -1050,7 +1054,7 @@ def prepare_supervised_data(df, target_col: str):
     categorical_columns = selector(dtype_include="object")(X)
     numeric_columns = selector(dtype_exclude="object")(X)
 
-    # Création du pipeline de transformation
+    # Pipeline de prétraitement
     preprocessor = ColumnTransformer([
         ("cat", OneHotEncoder(drop="first", handle_unknown="ignore"), categorical_columns),
         ("num", StandardScaler(), numeric_columns)
@@ -1058,75 +1062,23 @@ def prepare_supervised_data(df, target_col: str):
 
     return X, y, preprocessor, categorical_columns, numeric_columns
 
+# Chargement et prétraitement
+X, y, preprocessor, cat_cols, num_cols = prepare_supervised_data(
+    filtered_df,
+    "Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?"
+)
 
-st.subheader("🔍 Comparaison de modèles supervisés")
+# Vérification des données disponibles
+if X.empty or y.empty:
+    st.error("❌ Aucune donnée disponible après nettoyage. Vérifie la colonne cible.")
+    st.stop()
+elif len(X) < 30:
+    st.warning(f"⚠️ Trop peu de données pour entraîner un modèle fiable (n = {len(X)}).")
+    st.stop()
 
-# Split
-X, y, preprocessor, cat_cols, num_cols = prepare_supervised_data(filtered_df, "Confiance réseaux sociaux")
+# Split train/test
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
-# Liste des modèles
-models = {
-    "Logistic Regression": LogisticRegression(max_iter=1000),
-    "KNN": KNeighborsClassifier(),
-    "Decision Tree": DecisionTreeClassifier(),
-    "Random Forest": RandomForestClassifier(),
-    "XGBoost": XGBClassifier(use_label_encoder=False, eval_metric='logloss'),
-    "SVM": SVC(probability=True)
-}
-
-# Comparaison
-model_results = []
-
-for name, clf in models.items():
-    with st.expander(f"📊 {name}", expanded=False):
-        pipe = Pipeline([
-            ("preprocessor", preprocessor),
-            ("classifier", clf)
-        ])
-        pipe.fit(X_train, y_train)
-        y_pred = pipe.predict(X_test)
-        y_proba = pipe.predict_proba(X_test)[:, 1]
-
-        acc = pipe.score(X_test, y_test)
-        auc = roc_auc_score(y_test, y_proba)
-        cm = confusion_matrix(y_test, y_pred)
-        cr = classification_report(y_test, y_pred, output_dict=True)
-
-        # Matrice de confusion
-        fig_cm, ax_cm = plt.subplots()
-        sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax_cm)
-        ax_cm.set_title(f"Matrice de confusion - {name}")
-        st.pyplot(fig_cm)
-
-        # ROC Curve
-        fpr, tpr, _ = roc_curve(y_test, y_proba)
-        fig_roc, ax_roc = plt.subplots()
-        ax_roc.plot(fpr, tpr, label=f"AUC = {auc:.2f}")
-        ax_roc.plot([0, 1], [0, 1], linestyle="--")
-        ax_roc.set_title(f"Courbe ROC - {name}")
-        ax_roc.set_xlabel("Faux positifs")
-        ax_roc.set_ylabel("Vrais positifs")
-        ax_roc.legend()
-        st.pyplot(fig_roc)
-
-        # Résumé des scores
-        st.metric("Exactitude", f"{acc:.2f}")
-        st.metric("AUC ROC", f"{auc:.2f}")
-        st.text("Rapport de classification :")
-        st.json(cr)
-
-        # Ajout aux résultats globaux
-        model_results.append({
-            "Modèle": name,
-            "Accuracy": acc,
-            "AUC": auc
-        })
-
-# Tableau comparatif
-st.subheader("📈 Résumé des performances")
-results_df = pd.DataFrame(model_results).sort_values("AUC", ascending=False)
-st.dataframe(results_df, use_container_width=True)
 
 
 # =============================================
