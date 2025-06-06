@@ -30,7 +30,6 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
-from xgboost import XGBClassifier
 from sklearn.svm import SVC
 from sklearn.metrics import (
     classification_report, confusion_matrix,
@@ -40,6 +39,7 @@ from sklearn.utils import resample
 
 import shap
 from statsmodels.stats.outliers_influence import variance_inflation_factor
+from sklearn.model_selection import train_test_split, learning_curve
 
 # =============================================
 # INITIALISATION ET CONFIGURATION DE BASE
