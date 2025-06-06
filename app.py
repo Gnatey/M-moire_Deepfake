@@ -1014,9 +1014,183 @@ with tab2:
 # =================================================
 # ONGLET 3 : ANALYSE STATISTIQUE & MACHINE LEARNING
 # =================================================
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+from sklearn.preprocessing import LabelEncoder
+from sklearn.feature_extraction.text import CountVectorizer
+from wordcloud import WordCloud
+import plotly.express as px
+import warnings
+warnings.filterwarnings('ignore')
 
+# Chargement des données
+df = pd.read_csv('Deepfakes.csv', sep=';', encoding='utf-8')
 
+# Nettoyage initial
+df = df.drop(columns=['Clé', 'Date de saisie', 'Date de dernière modification', 
+                    'Date de dernier enregistrement', 'Temps de saisie', 'Langue',
+                    'Progression', 'Dernière question saisie', 'Origine',
+                    'Appareil utilisé pour la saisie', 'Campagne de diffusion'], errors='ignore')
 
+# Onglet 3 - Analyse Avancée et Machine Learning
+def onglet3_analysis(df):
+    # Section 1: Préparation des données
+    print("Préparation des données pour le Machine Learning...")
+    
+    # Encodage des variables catégorielles
+    le = LabelEncoder()
+    categorical_cols = df.select_dtypes(include=['object']).columns
+    for col in categorical_cols:
+        try:
+            df[col] = le.fit_transform(df[col].astype(str))
+        except:
+            df[col] = df[col].astype('category').cat.codes
+    
+    # Sélection des features et target
+    features = df.drop(columns=['Selon vous, quel est l\'impact global des Deep Fakes sur la société ?'])
+    target = df['Selon vous, quel est l\'impact global des Deep Fakes sur la société ?']
+    
+    # Split des données
+    X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.3, random_state=42)
+    
+    # Section 2: Modèle de Machine Learning
+    print("\nEntraînement du modèle Random Forest...")
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
+    
+    # Prédictions
+    y_pred = model.predict(X_test)
+    
+    # Évaluation
+    print("\nPerformance du modèle:")
+    print(f"Accuracy: {accuracy_score(y_test, y_pred):.2f}")
+    print("\nMatrice de confusion:")
+    print(confusion_matrix(y_test, y_pred))
+    print("\nRapport de classification:")
+    print(classification_report(y_test, y_pred))
+    
+    # Importance des features
+    feature_importance = pd.DataFrame({
+        'Feature': features.columns,
+        'Importance': model.feature_importances_
+    }).sort_values('Importance', ascending=False).head(10)
+    
+    # Section 3: Visualisations
+    plt.figure(figsize=(15, 10))
+    
+    # 1. Importance des features
+    plt.subplot(2, 2, 1)
+    sns.barplot(x='Importance', y='Feature', data=feature_importance)
+    plt.title('Top 10 des variables les plus importantes')
+    
+    # 2. Nuage de mots pour les plateformes
+    plt.subplot(2, 2, 2)
+    platforms = df['_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)'].astype(str)
+    wordcloud = WordCloud(width=800, height=400, background_color='white').generate(' '.join(platforms))
+    plt.imshow(wordcloud, interpolation='bilinear')
+    plt.axis('off')
+    plt.title('Plateformes où les DeepFakes sont vus')
+    
+    # 3. Distribution de l'impact perçu
+    plt.subplot(2, 2, 3)
+    impact_mapping = {0: 'Très négatif', 1: 'Négatif', 2: 'Neutre', 3: 'Positif', 4: 'Très positif'}
+    impact = target.map(impact_mapping)
+    sns.countplot(x=impact, order=['Très négatif', 'Négatif', 'Neutre', 'Positif', 'Très positif'])
+    plt.title('Distribution de l\'impact perçu des DeepFakes')
+    plt.xticks(rotation=45)
+    
+    # 4. Corrélation entre confiance et impact
+    plt.subplot(2, 2, 4)
+    sns.scatterplot(x=df['Depuis que vous avez entendu parler des Deep Fakes, votre confiance dans les médias sociaux a-t-elle changé ?'],
+                   y=target)
+    plt.title('Relation entre confiance et impact perçu')
+    
+    plt.tight_layout()
+    plt.savefig('onglet3_visualisations.png')
+    plt.show()
+    
+    # Section 4: Analyse textuelle avancée
+    print("\nAnalyse textuelle des commentaires...")
+    try:
+        # Exemple avec une colonne de texte (à adapter selon vos données)
+        text_data = df['Quelles sont vos méthodes de vérification des informations en ligne ? (Plusieurs choix possibles)'].dropna()
+        
+        # Vectorisation du texte
+        vectorizer = CountVectorizer(max_features=50, stop_words='french')
+        X_text = vectorizer.fit_transform(text_data)
+        
+        # Mots les plus fréquents
+        words = vectorizer.get_feature_names_out()
+        frequencies = X_text.sum(axis=0).A1
+        word_freq = pd.DataFrame({'Word': words, 'Frequency': frequencies}).sort_values('Frequency', ascending=False)
+        
+        # Visualisation interactive
+        fig = px.bar(word_freq.head(20), x='Word', y='Frequency', 
+                     title='Mots les plus fréquents dans les méthodes de vérification',
+                     color='Frequency', color_continuous_scale='Blues')
+        fig.show()
+    except Exception as e:
+        print(f"Erreur dans l'analyse textuelle: {e}")
+    
+    # Section 5: Recommandations automatisées
+    print("\nGénération de recommandations personnalisées...")
+    
+    # Analyse des groupes à risque
+    high_risk = df[df['Selon vous, quel est l\'impact global des Deep Fakes sur la société ?'] <= 1]  # Très négatif/Négatif
+    
+    recommendations = {
+        'Plateformes': "Renforcer les mécanismes de détection sur " + ', '.join(high_risk['_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)'].mode()),
+        'Éducation': f"{len(high_risk)} utilisateurs à haut risque identifiés - Campagnes de sensibilisation ciblées recommandées",
+        'Détection': "Investir dans des outils de détection automatisée pour " + high_risk['Parmi les 4 photos, laquelle est un Deepfakes ?'].mode()[0],
+        'Confiance': "Programmes de restauration de confiance pour les utilisateurs dont la confiance a diminué"
+    }
+    
+    print("\nRecommandations stratégiques:")
+    for key, value in recommendations.items():
+        print(f"- {key}: {value}")
+    
+    # Sauvegarde des résultats
+    results = {
+        'model': model,
+        'feature_importance': feature_importance,
+        'accuracy': accuracy_score(y_test, y_pred),
+        'recommendations': recommendations
+    }
+    
+    return results
+
+# Exécution de l'analyse
+results = onglet3_analysis(df)
+
+# Fonction supplémentaire pour l'automatisation des rapports
+def generate_report(results):
+    report = f"""
+    RAPPORT D'ANALYSE DES DEEPFAKES - ONGLET 3
+    ===========================================
+    
+    Performances du modèle:
+    - Exactitude: {results['accuracy']:.2%}
+    
+    Top 5 des variables les plus importantes:
+    {results['feature_importance'].head(5).to_string()}
+    
+    Recommandations:
+    """
+    for key, value in results['recommendations'].items():
+        report += f"\n- {key}: {value}"
+    
+    with open('deepfakes_report_onglet3.txt', 'w', encoding='utf-8') as f:
+        f.write(report)
+    
+    return report
+
+# Génération du rapport
+print(generate_report(results))
 
 # =============================================
 # SECTION COMMENTAIRES
