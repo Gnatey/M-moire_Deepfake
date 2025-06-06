@@ -1062,22 +1062,6 @@ def prepare_supervised_data(df, target_col: str):
 
     return X, y, preprocessor, categorical_columns, numeric_columns
 
-# Chargement et prétraitement
-X, y, preprocessor, cat_cols, num_cols = prepare_supervised_data(
-    filtered_df,
-    "Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?"
-)
-
-# Vérification des données disponibles
-if X.empty or y.empty:
-    st.error("❌ Aucune donnée disponible après nettoyage. Vérifie la colonne cible.")
-    st.stop()
-elif len(X) < 30:
-    st.warning(f"⚠️ Trop peu de données pour entraîner un modèle fiable (n = {len(X)}).")
-    st.stop()
-
-# Split train/test
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
 
 
