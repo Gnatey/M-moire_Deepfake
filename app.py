@@ -117,6 +117,7 @@ with st.sidebar:
         # Filtres de base
         ages = df["Tranche d'âge"].dropna().unique()
         genres = df["Genre"].dropna().unique()
+        plateformes = df["Plateformes"].dropna().unique()
         
         selected_ages = st.multiselect(
             "Tranches d'âge :", 
@@ -130,6 +131,13 @@ with st.sidebar:
             options=genres, 
             default=genres,
             help="Filtrez les résultats par genre"
+        )
+
+        selected_plateforme = st.multiselect(
+            "plateformes :", 
+            options=plateformes, 
+            default=plateformes,
+            help="Filtrez les résultats par plateformes"
         )
         
     else:
