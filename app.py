@@ -108,7 +108,7 @@ df = load_data()
 local_css("style.css")
 
 # =============================================
-# SIDEBAR FILTRES (version améliorée)
+# SIDEBAR FILTRES
 # =============================================
 with st.sidebar:
     st.header("🎛️ Filtres Principaux")
@@ -117,8 +117,11 @@ with st.sidebar:
         # Filtres de base
         ages = df["Tranche d'âge"].dropna().unique()
         genres = df["Genre"].dropna().unique()
-        plateformes = df["Plateformes"].dropna().unique()
-        
+
+        # Extraction et nettoyage des plateformes individuelles
+        plateforme_series = df["Plateformes"].dropna().str.split(";")
+        all_plateformes = sorted(set(p.strip() for sublist in plateforme_series for p in sublist if p.strip()))
+
         selected_ages = st.multiselect(
             "Tranches d'âge :", 
             options=ages, 
@@ -134,24 +137,34 @@ with st.sidebar:
         )
 
         selected_plateforme = st.multiselect(
-            "plateformes :", 
-            options=plateformes, 
-            default=plateformes,
+            "Plateformes :", 
+            options=all_plateformes,
+            default=all_plateformes,
             help="Filtrez les résultats par plateformes"
         )
         
     else:
         selected_ages = []
         selected_genres = []
+        selected_plateforme = []
 
 # Application des filtres
 if not df.empty:
+    # Filtrage âge + genre
     filtered_df = df[
         (df["Tranche d'âge"].isin(selected_ages)) &
         (df["Genre"].isin(selected_genres))
     ]
+
+    # Filtrage plateformes (ligne contenant au moins une des plateformes sélectionnées)
+    if selected_plateforme:
+        mask_plateformes = df["Plateformes"].dropna().apply(
+            lambda x: any(p.strip() in selected_plateforme for p in x.split(";"))
+        )
+        filtered_df = filtered_df[mask_plateformes]
 else:
     filtered_df = pd.DataFrame()
+
 
 # =============================================
 # ONGLETS PRINCIPAUX
