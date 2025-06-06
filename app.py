@@ -1063,11 +1063,10 @@ def prepare_supervised_data(df, target_col: str):
     return X, y, preprocessor, categorical_columns, numeric_columns
 
 
-
 st.subheader("🔍 Comparaison de modèles supervisés")
 
 # Split
-X, y, preprocessor, cat_cols, num_cols = prepare_supervised_data(filtered_df, "Confiance réseaux sociaux")
+X, y, preprocessor, cat_cols, num_cols = prepare_supervised_data(filtered_df, "Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?")
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
 # Liste des modèles
