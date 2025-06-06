@@ -1027,7 +1027,8 @@ with tab2:
 # Fonction robuste pour préparation des données supervisées
 @st.cache_data
 def prepare_supervised_data(df):
-    target_col = "Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?"
+    # On prend désormais le nom déjà renommé dans load_data()
+    target_col = "Confiance réseaux sociaux"
 
     if target_col not in df.columns:
         st.error(f"Colonne cible '{target_col}' introuvable dans les données.")
@@ -1035,121 +1036,138 @@ def prepare_supervised_data(df):
 
     df_clean = df.copy()
 
-    # Normalisation des réponses
-    df_clean[target_col] = df_clean[target_col].astype(str).str.strip().str.lower()
+    # 1. Normalisation des réponses de la colonne cible
+    df_clean[target_col] = (
+        df_clean[target_col]
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
 
-    # Filtrage des réponses exploitables
-    df_clean = df_clean[df_clean[target_col].isin(["oui", "non", "cela dépend des sources"])]
+    # 2. On ne garde que les réponses interprétables : "oui", "non", "cela dépend des sources"
+    df_clean = df_clean[df_clean[target_col].isin(
+        ["oui", "non", "cela dépend des sources"]
+    )]
 
-    # Décision experte : "oui" → 1, sinon → 0
+    # 3. Décision experte : "oui" → 1 ; tous les autres (non, cela dépend) → 0
     df_clean["target"] = df_clean[target_col].apply(lambda x: 1 if x == "oui" else 0)
 
-    # Suppression de la colonne originale
+    # 4. Suppression de la colonne originale pour éviter le data-leakage
     df_clean = df_clean.drop(columns=[target_col])
 
-    # Suppression des lignes incomplètes
+    # 5. Suppression des lignes incomplètes restantes
     df_clean = df_clean.dropna()
 
     if df_clean.empty:
         return pd.DataFrame(), pd.Series(), None, [], []
 
-    # Séparation X / y
+    # 6. Séparation X / y
     y = df_clean["target"]
     X = df_clean.drop(columns=["target"])
 
-    # Sélection des colonnes catégorielles vs numériques
+    # 7. On repère automatiquement les colonnes catégorielles vs numériques
     categorical_columns = selector(dtype_include="object")(X)
-    numeric_columns = selector(dtype_exclude="object")(X)
+    numeric_columns     = selector(dtype_exclude="object")(X)
 
-    # Pipeline de prétraitement
+    # 8. Pipeline de prétraitement : encodage one-hot pour le catégoriel, standardisation pour le numérique
     preprocessor = ColumnTransformer([
         ("cat", OneHotEncoder(drop="first", handle_unknown="ignore"), categorical_columns),
-        ("num", StandardScaler(), numeric_columns)
+        ("num", StandardScaler(),                                                   numeric_columns)
     ])
 
     return X, y, preprocessor, categorical_columns, numeric_columns
 
 
-# Interface
+# Interface Streamlit pour la comparaison des modèles
 st.subheader("🔍 Comparaison de modèles supervisés")
 
-# Chargement / préparation des données
+# 1. On prépare les données (avec la bonne colonne cible)
 X, y, preprocessor, cat_cols, num_cols = prepare_supervised_data(filtered_df)
 
+# 2. On vérifie la taille minimale (ici, j’ai mis 10 exemples – tu peux adapter)
 if X.shape[0] < 10:
     st.warning("⚠️ Données insuffisantes pour l'apprentissage supervisé.")
 else:
-    # Split en train/test
+    # 3. Split train / test
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.3, random_state=42
+        X, y,
+        test_size=0.3,
+        random_state=42
     )
 
-    # Définition des modèles à tester
+    # 4. Définition des modèles à comparer
     models = {
         "Logistic Regression": LogisticRegression(max_iter=1000),
-        "KNN": KNeighborsClassifier(),
-        "Decision Tree": DecisionTreeClassifier(),
-        "Random Forest": RandomForestClassifier(),
-        "XGBoost": XGBClassifier(use_label_encoder=False, eval_metric='logloss'),
-        "SVM": SVC(probability=True)
+        "KNN":                KNeighborsClassifier(),
+        "Decision Tree":      DecisionTreeClassifier(),
+        "Random Forest":      RandomForestClassifier(),
+        "XGBoost":            XGBClassifier(use_label_encoder=False, eval_metric='logloss'),
+        "SVM":                SVC(probability=True)
     }
 
     model_results = []
 
+    # 5. Pour chaque modèle, on entraîne, on prédit et on affiche heatmap/confusion/ROC/learning curve
     for name, clf in models.items():
         with st.expander(f"📊 {name}", expanded=False):
             pipe = Pipeline([
                 ("preprocessor", preprocessor),
                 ("classifier", clf)
             ])
+
             pipe.fit(X_train, y_train)
             y_pred = pipe.predict(X_test)
             y_proba = pipe.predict_proba(X_test)[:, 1]
 
-            # Scores
+            # 5.1 Scores
             acc = pipe.score(X_test, y_test)
             auc = roc_auc_score(y_test, y_proba)
-            cm = confusion_matrix(y_test, y_pred)
-            cr = classification_report(y_test, y_pred, output_dict=True)
+            cm  = confusion_matrix(y_test, y_pred)
+            cr  = classification_report(y_test, y_pred, output_dict=True)
 
-            # 1) Matrice de confusion
-            fig_cm, ax_cm = plt.subplots()
+            # —— Matrice de confusion
+            fig_cm, ax_cm = plt.subplots(figsize=(4, 3))
             sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax_cm)
             ax_cm.set_title(f"Matrice de confusion - {name}")
+            ax_cm.set_xlabel("Prédit")
+            ax_cm.set_ylabel("Réel")
             st.pyplot(fig_cm)
 
-            # 2) Courbe ROC
+            # —— Courbe ROC
             fpr, tpr, _ = roc_curve(y_test, y_proba)
-            fig_roc, ax_roc = plt.subplots()
+            fig_roc, ax_roc = plt.subplots(figsize=(4, 3))
             ax_roc.plot(fpr, tpr, label=f"AUC = {auc:.2f}")
-            ax_roc.plot([0, 1], [0, 1], linestyle="--")
+            ax_roc.plot([0, 1], [0, 1], linestyle="--", color="gray")
             ax_roc.set_title(f"Courbe ROC - {name}")
             ax_roc.set_xlabel("Faux positifs")
             ax_roc.set_ylabel("Vrais positifs")
-            ax_roc.legend()
+            ax_roc.legend(loc="lower right")
             st.pyplot(fig_roc)
 
-            # 3) Courbe d'apprentissage
+            # —— Courbe d’apprentissage (ROC AUC en CV)
             st.subheader("📉 Courbe d’apprentissage")
             train_sizes, train_scores, test_scores = learning_curve(
-                pipe, X, y, cv=5, scoring="roc_auc",
+                pipe, X, y,
+                cv=5, scoring="roc_auc",
                 train_sizes=np.linspace(0.1, 1.0, 5),
                 n_jobs=-1
             )
             train_scores_mean = train_scores.mean(axis=1)
-            test_scores_mean = test_scores.mean(axis=1)
-            fig_learning, ax_learning = plt.subplots()
+            test_scores_mean  = test_scores.mean(axis=1)
+            fig_learning, ax_learning = plt.subplots(figsize=(4, 3))
             ax_learning.plot(train_sizes, train_scores_mean, label="Train", marker="o")
             ax_learning.plot(train_sizes, test_scores_mean, label="Test", marker="s")
-            ax_learning.set_title("Courbe d'apprentissage - ROC AUC")
-            ax_learning.set_xlabel("Taille de l'échantillon d'entraînement")
+            ax_learning.set_title("Learning Curve (ROC AUC)")
+            ax_learning.set_xlabel("Taille de l’échantillon d’entraînement")
             ax_learning.set_ylabel("Score ROC AUC")
-            ax_learning.legend()
+            ax_learning.legend(loc="lower right")
             st.pyplot(fig_learning)
 
-            # 4) Affichage des métriques
-            st.metric("Exactitude", f"{acc:.2f}")
-            st.metric("AUC ROC", f"{auc:.2f}")
+            # —— Affichage rapide des métriques
+            col1, col2 = st.columns(2)
+            col1.metric("Exactitude", f"{acc:.2f}")
+            col2.metric("AUC ROC",      f"{auc:.2f}")
+
             st.text("Rapport de classification :")
             st.json(cr)
 
@@ -1159,10 +1177,11 @@ else:
                 "AUC": auc
             })
 
-    # Tableau récapitulatif des performances
+    # 6. Tableau récapitulatif trié par AUC
     st.subheader("📈 Résumé des performances")
     results_df = pd.DataFrame(model_results).sort_values("AUC", ascending=False)
     st.dataframe(results_df, use_container_width=True)
+
 
 
 # =============================================
