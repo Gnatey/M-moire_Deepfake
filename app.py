@@ -1048,6 +1048,13 @@ def prepare_supervised_data(df, target_col: str):
     return X, y, preprocessor, categorical_columns, numeric_columns
 
 
+target_col = "Confiance réseaux sociaux"
+
+try:
+    X, y, preprocessor, cat_cols, num_cols = prepare_supervised_data(filtered_df, target_col)
+    st.success("✅ Données préparées avec succès")
+except Exception as e:
+    st.error(f"❌ Erreur pendant la préparation des données : {str(e)}")
 
 
 # =============================================
