@@ -1023,34 +1023,43 @@ with tab2:
 
 
 # =============================================
-# ONGLET 3 : ANALYSE STATISTIQUE & REGRESSION
+# ONGLET 3 : ANALYSE STATISTIQUE & RÉGRESSION
 # =============================================
 
+# Fonction robuste pour préparation des données supervisées
 @st.cache_data
-def prepare_supervised_data(df, target_col: str):
+def prepare_supervised_data(df):
+    target_col = "Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?"
+
+    if target_col not in df.columns:
+        st.error(f"Colonne cible '{target_col}' introuvable dans les données.")
+        return pd.DataFrame(), pd.Series(), None, [], []
+
     df_clean = df.copy()
 
-    # Nettoyage de la colonne cible
+    # Normalisation des réponses
     df_clean[target_col] = df_clean[target_col].astype(str).str.strip().str.lower()
 
-    # On garde uniquement les réponses interprétables
+    # Filtrage des réponses utilisables
     df_clean = df_clean[df_clean[target_col].isin(["oui", "non", "cela dépend des sources"])]
 
-    # 🔍 Décision experte :
-    # On considère "non" + "cela dépend des sources" comme un manque de confiance global
+    # Regroupement expert : "oui" = 1 ; les autres = 0
     df_clean["target"] = df_clean[target_col].apply(lambda x: 1 if x == "oui" else 0)
 
-    # Suppression de la colonne originale pour éviter les fuites de données
+    # Suppression de la colonne originale
     df_clean = df_clean.drop(columns=[target_col])
 
-    # Suppression des lignes avec valeurs manquantes restantes
+    # Nettoyage : suppression des lignes incomplètes
     df_clean = df_clean.dropna()
+
+    if df_clean.empty:
+        return pd.DataFrame(), pd.Series(), None, [], []
 
     # Séparation X / y
     y = df_clean["target"]
     X = df_clean.drop(columns=["target"])
 
-    # Sélection automatique des types de colonnes
+    # Colonnes catégorielles / numériques
     categorical_columns = selector(dtype_include="object")(X)
     numeric_columns = selector(dtype_exclude="object")(X)
 
@@ -1063,74 +1072,96 @@ def prepare_supervised_data(df, target_col: str):
     return X, y, preprocessor, categorical_columns, numeric_columns
 
 
+# Interface
 st.subheader("🔍 Comparaison de modèles supervisés")
 
-# Split
-X, y, preprocessor, cat_cols, num_cols = prepare_supervised_data(filtered_df, "Faites-vous confiance aux informations que vous trouvez sur les réseaux sociaux ?")
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+# Préparation des données
+X, y, preprocessor, cat_cols, num_cols = prepare_supervised_data(filtered_df)
 
-# Liste des modèles
-models = {
-    "Logistic Regression": LogisticRegression(max_iter=1000),
-    "KNN": KNeighborsClassifier(),
-    "Decision Tree": DecisionTreeClassifier(),
-    "Random Forest": RandomForestClassifier(),
-    "XGBoost": XGBClassifier(use_label_encoder=False, eval_metric='logloss'),
-    "SVM": SVC(probability=True)
-}
+if X.shape[0] < 10:
+    st.warning("⚠️ Données insuffisantes pour l'apprentissage supervisé.")
+else:
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
-# Comparaison
-model_results = []
+    # Modèles à tester
+    models = {
+        "Logistic Regression": LogisticRegression(max_iter=1000),
+        "KNN": KNeighborsClassifier(),
+        "Decision Tree": DecisionTreeClassifier(),
+        "Random Forest": RandomForestClassifier(),
+        "XGBoost": XGBClassifier(use_label_encoder=False, eval_metric='logloss'),
+        "SVM": SVC(probability=True)
+    }
 
-for name, clf in models.items():
-    with st.expander(f"📊 {name}", expanded=False):
-        pipe = Pipeline([
-            ("preprocessor", preprocessor),
-            ("classifier", clf)
-        ])
-        pipe.fit(X_train, y_train)
-        y_pred = pipe.predict(X_test)
-        y_proba = pipe.predict_proba(X_test)[:, 1]
+    model_results = []
 
-        acc = pipe.score(X_test, y_test)
-        auc = roc_auc_score(y_test, y_proba)
-        cm = confusion_matrix(y_test, y_pred)
-        cr = classification_report(y_test, y_pred, output_dict=True)
+    for name, clf in models.items():
+        with st.expander(f"📊 {name}", expanded=False):
+            pipe = Pipeline([
+                ("preprocessor", preprocessor),
+                ("classifier", clf)
+            ])
+            pipe.fit(X_train, y_train)
+            y_pred = pipe.predict(X_test)
+            y_proba = pipe.predict_proba(X_test)[:, 1]
 
-        # Matrice de confusion
-        fig_cm, ax_cm = plt.subplots()
-        sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax_cm)
-        ax_cm.set_title(f"Matrice de confusion - {name}")
-        st.pyplot(fig_cm)
+            acc = pipe.score(X_test, y_test)
+            auc = roc_auc_score(y_test, y_proba)
+            cm = confusion_matrix(y_test, y_pred)
+            cr = classification_report(y_test, y_pred, output_dict=True)
 
-        # ROC Curve
-        fpr, tpr, _ = roc_curve(y_test, y_proba)
-        fig_roc, ax_roc = plt.subplots()
-        ax_roc.plot(fpr, tpr, label=f"AUC = {auc:.2f}")
-        ax_roc.plot([0, 1], [0, 1], linestyle="--")
-        ax_roc.set_title(f"Courbe ROC - {name}")
-        ax_roc.set_xlabel("Faux positifs")
-        ax_roc.set_ylabel("Vrais positifs")
-        ax_roc.legend()
-        st.pyplot(fig_roc)
+            # Matrice de confusion
+            fig_cm, ax_cm = plt.subplots()
+            sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax_cm)
+            ax_cm.set_title(f"Matrice de confusion - {name}")
+            st.pyplot(fig_cm)
 
-        # Résumé des scores
-        st.metric("Exactitude", f"{acc:.2f}")
-        st.metric("AUC ROC", f"{auc:.2f}")
-        st.text("Rapport de classification :")
-        st.json(cr)
+            # ROC Curve
+            fpr, tpr, _ = roc_curve(y_test, y_proba)
+            fig_roc, ax_roc = plt.subplots()
+            ax_roc.plot(fpr, tpr, label=f"AUC = {auc:.2f}")
+            ax_roc.plot([0, 1], [0, 1], linestyle="--")
+            ax_roc.set_title(f"Courbe ROC - {name}")
+            ax_roc.set_xlabel("Faux positifs")
+            ax_roc.set_ylabel("Vrais positifs")
+            ax_roc.legend()
+            st.pyplot(fig_roc)
 
-        # Ajout aux résultats globaux
-        model_results.append({
-            "Modèle": name,
-            "Accuracy": acc,
-            "AUC": auc
-        })
+            # Courbe d'apprentissage
+            st.subheader("📉 Courbe d’apprentissage")
+            train_sizes, train_scores, test_scores = learning_curve(
+                pipe, X, y, cv=5, scoring="roc_auc",
+                train_sizes=np.linspace(0.1, 1.0, 5),
+                n_jobs=-1
+            )
+            train_scores_mean = train_scores.mean(axis=1)
+            test_scores_mean = test_scores.mean(axis=1)
+            fig_learning, ax_learning = plt.subplots()
+            ax_learning.plot(train_sizes, train_scores_mean, label="Train", marker="o")
+            ax_learning.plot(train_sizes, test_scores_mean, label="Test", marker="s")
+            ax_learning.set_title("Courbe d'apprentissage - ROC AUC")
+            ax_learning.set_xlabel("Taille de l'échantillon d'entraînement")
+            ax_learning.set_ylabel("Score ROC AUC")
+            ax_learning.legend()
+            st.pyplot(fig_learning)
 
-# Tableau comparatif
-st.subheader("📈 Résumé des performances")
-results_df = pd.DataFrame(model_results).sort_values("AUC", ascending=False)
-st.dataframe(results_df, use_container_width=True)
+            # Scores
+            st.metric("Exactitude", f"{acc:.2f}")
+            st.metric("AUC ROC", f"{auc:.2f}")
+            st.text("Rapport de classification :")
+            st.json(cr)
+
+            model_results.append({
+                "Modèle": name,
+                "Accuracy": acc,
+                "AUC": auc
+            })
+
+    # Résumé comparatif
+    st.subheader("📈 Résumé des performances")
+    results_df = pd.DataFrame(model_results).sort_values("AUC", ascending=False)
+    st.dataframe(results_df, use_container_width=True)
+
 
 
 # =============================================
