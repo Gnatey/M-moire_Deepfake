@@ -1016,374 +1016,240 @@ with tab2:
 # =============================================
 
 def run_tab3(filtered_df):
-    st.header("📈 Analyse Statistique & Machine Learning")
+    st.header("📈 Analyse Statistique Avancée")
+    
+    # Section 1: Bootstrap Confidence Intervals
+    with st.expander("🔎 Intervalle de Confiance par Bootstrap", expanded=True):
+        st.subheader("Estimation par Bootstrap")
+        
+        if "Confiance réseaux sociaux" in filtered_df.columns:
+            # Convert to binary
+            confiance_series = filtered_df["Confiance réseaux sociaux"].apply(
+                lambda x: 1 if str(x).strip().lower() == 'oui' else 0
+            ).dropna()
+            
+            # Bootstrap
+            bootstrap_means = [
+                resample(confiance_series, replace=True).mean() 
+                for _ in range(1000)
+            ]
+            
+            # Metrics
+            mean_estimate = np.mean(bootstrap_means) * 100
+            ci_lower = np.percentile(bootstrap_means, 2.5) * 100
+            ci_upper = np.percentile(bootstrap_means, 97.5) * 100
+            
+            # Visualization
+            fig = px.histogram(
+                x=bootstrap_means,
+                nbins=50,
+                labels={'x': 'Proportion de confiance', 'y': 'Fréquence'},
+                title="Distribution Bootstrap de la Confiance"
+            )
+            fig.add_vline(x=mean_estimate/100, line_dash="dash", line_color="red")
+            fig.add_vline(x=ci_lower/100, line_color="green")
+            fig.add_vline(x=ci_upper/100, line_color="green")
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Metrics display
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Estimation Moyenne", f"{mean_estimate:.1f}%")
+            col2.metric("IC 95% Inférieur", f"{ci_lower:.1f}%")
+            col3.metric("IC 95% Supérieur", f"{ci_upper:.1f}%")
+        else:
+            st.warning("La colonne 'Confiance réseaux sociaux' est manquante")
 
-    # 0. Préparation du DataFrame pour la modélisation
-    # ------------------------------------------------
-    # On vérifie d’abord que toutes les colonnes nécessaires sont présentes
-    required_cols = [
-        "Tranche d'âge", "Genre", "Niveau connaissance",
-        "Exposition DeepFakes", "Impact société", "Confiance réseaux sociaux"
-    ]
-    missing = [c for c in required_cols if c not in filtered_df.columns]
-    if missing:
-        st.error(f"Colonnes manquantes pour l'analyse : {missing}")
-        return
-
-    # On retire les lignes ayant des NaN sur au moins l'une des colonnes d'intérêt
-    df = filtered_df[required_cols].dropna().copy()
-    if df.shape[0] < 50:
-        st.warning("Après suppression des valeurs manquantes, moins de 50 observations : analyse impossible.")
-        return
-
-    # On crée la variable target binaire (Oui → 1, Non → 0)
-    df["target"] = df["Confiance réseaux sociaux"].apply(
-        lambda x: 1 if str(x).strip().lower() == "oui" else 0
-    )
-
-    # Liste des features catégorielles
-    features = [
-        "Tranche d'âge", "Genre", "Niveau connaissance",
-        "Exposition DeepFakes", "Impact société"
-    ]
-    X_full = df[features]
-    y_full = df["target"]
-
-    # ------------------------------------------------
-    # 1. Apprentissage Non Supervisé (Clustering)
-    # ------------------------------------------------
-    with st.expander("🤖 Apprentissage Non Supervisé", expanded=False):
-        st.subheader("Clustering K-Means + PCA")
-        st.markdown(
-            "On encode toutes les variables catégorielles, on réalise un K-Means "
-            "(pour un K choisi par l’utilisateur), puis on réduit en 2D avec PCA pour visualisation."
+    # Section 2: Logistic Regression
+    with st.expander("🧮 Modélisation par Régression Logistique", expanded=True):
+        st.subheader("Prédicteurs de la Confiance")
+        
+        # Prepare data
+        target_col = "Confiance réseaux sociaux"
+        features = [
+            "Tranche d'âge", "Genre", "Niveau connaissance", 
+            "Exposition DeepFakes", "Impact société"
+        ]
+        
+        # Filter and clean
+        df_model = filtered_df[[target_col] + features].dropna()
+        df_model["target"] = df_model[target_col].apply(
+            lambda x: 1 if str(x).strip().lower() == 'oui' else 0
         )
-
-        # 1.1. Pipeline d’encodage (OneHot) pour le clustering
-        preproc_cluster = ColumnTransformer([
-            ("onehot", OneHotEncoder(drop="first", sparse=False), features)
-        ])
-        X_encoded = preproc_cluster.fit_transform(X_full)
-
-        # 1.2. Choix du nombre de clusters
-        k = st.slider("Nombre de clusters (K)", min_value=2, max_value=6, value=3)
-
-        # 1.3. Exécution du K-Means
-        from sklearn.cluster import KMeans
-        kmeans = KMeans(n_clusters=k, random_state=42)
-        clusters = kmeans.fit_predict(X_encoded)
-        df["cluster"] = clusters.astype(str)
-
-        # 1.4. Réduction de dimension avec PCA pour visualisation
-        from sklearn.decomposition import PCA
-        pca = PCA(n_components=2, random_state=42)
-        X_pca = pca.fit_transform(X_encoded)
-
-        df_visu = pd.DataFrame({
-            "PC1": X_pca[:, 0],
-            "PC2": X_pca[:, 1],
-            "Cluster": df["cluster"]
-        })
-
-        fig_pca = px.scatter(
-            df_visu, x="PC1", y="PC2", color="Cluster",
-            title=f"PCA 2D + K-Means (K={k})",
-            labels={"PC1": "Composante principale 1", "PC2": "Composante principale 2"}
-        )
-        st.plotly_chart(fig_pca, use_container_width=True)
-
-        st.subheader("Distribution par cluster")
-        dist_cluster = df["cluster"].value_counts().reset_index()
-        dist_cluster.columns = ["Cluster", "Effectif"]
-        st.dataframe(dist_cluster, use_container_width=True)
-
-    # ------------------------------------------------
-    # 2. Apprentissage Supervisé (Comparaison de modèles)
-    # ------------------------------------------------
-    with st.expander("🧮 Apprentissage Supervisé", expanded=True):
-        st.subheader("Comparaison de plusieurs classifieurs")
-        st.markdown(
-            "On entraîne :\n"
-            "- Régression Logistique\n"
-            "- Arbre de Décision\n"
-            "- Forêt Aléatoire\n\n"
-            "Pour chacun, on affichera accuracy, AUC-ROC, matrice de confusion, rapport Classification, "
-            "et importance des variables."
-        )
-
-        # 2.1. Split train / test (stratifié)
-        X_train, X_test, y_train, y_test = train_test_split(
-            X_full, y_full,
-            test_size=0.3,
-            random_state=42,
-            stratify=y_full
-        )
-
-        # 2.2. Pipeline de preprocessing commun (OneHot pour toutes les features)
-        preprocessor = ColumnTransformer([
-            ("onehot", OneHotEncoder(drop="first", sparse=False), features)
-        ], remainder="drop")
-
-        # 2.3. Définition des modèles
-        models = {
-            "Régression Logistique": LogisticRegression(max_iter=1000),
-            "Arbre de Décision": RandomForestClassifier(n_estimators=1, random_state=42),  # temporaire, on change plus bas
-            "Forêt Aléatoire": RandomForestClassifier(n_estimators=100, random_state=42)
-        }
-        # Correction : pour l’arbre de décision, on instancie DecisionTreeClassifier
-        from sklearn.tree import DecisionTreeClassifier
-        models["Arbre de Décision"] = DecisionTreeClassifier(random_state=42)
-
-        # 2.4. Entraînement et évaluation
-        results = []
-        for name, clf in models.items():
-            pipe = Pipeline([
-                ("preproc", preprocessor),
-                ("classifier", clf)
+        
+        if len(df_model) > 50:  # Minimum sample size
+            X = df_model[features]
+            y = df_model["target"]
+            
+            # Preprocessing pipeline
+            categorical_features = features
+            preprocessor = ColumnTransformer(
+                transformers=[
+                    ('cat', OneHotEncoder(drop='first'), categorical_features)
+                ],
+                remainder='passthrough'
+            )
+            
+            # Model pipeline
+            model = Pipeline([
+                ('preprocessor', preprocessor),
+                ('classifier', LogisticRegression(max_iter=1000))
             ])
-            pipe.fit(X_train, y_train)
-
-            y_pred = pipe.predict(X_test)
-            y_proba = pipe.predict_proba(X_test)[:, 1]
-
-            acc = accuracy_score(y_test, y_pred)
+            
+            # Train-test split
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.3, random_state=42
+            )
+            
+            # Fit model
+            model.fit(X_train, y_train)
+            
+            # Model evaluation
+            st.subheader("Performance du Modèle")
+            
+            # Metrics
+            y_pred = model.predict(X_test)
+            y_proba = model.predict_proba(X_test)[:, 1]
             auc = roc_auc_score(y_test, y_proba)
+            
+            col1, col2 = st.columns(2)
+            col1.metric("AUC-ROC", f"{auc:.3f}")
+            col2.metric("Exactitude", f"{model.score(X_test, y_test):.2f}")
+            
+            # Confusion matrix
+            st.subheader("Matrice de Confusion")
             cm = confusion_matrix(y_test, y_pred)
-            report_dict = classification_report(y_test, y_pred, output_dict=True, zero_division=0)
-
-            results.append({
-                "Modèle": name,
-                "Accuracy": acc,
-                "AUC-ROC": auc,
-                "CM": cm,
-                "Report": report_dict,
-                "Pipeline": pipe
-            })
-
-        # 2.5. Tableau récapitulatif des performances
-        df_res = pd.DataFrame({
-            "Modèle": [r["Modèle"] for r in results],
-            "Accuracy": [r["Accuracy"] for r in results],
-            "AUC-ROC": [r["AUC-ROC"] for r in results]
-        }).round(3).sort_values(by="AUC-ROC", ascending=False)
-
-        st.subheader("Tableau comparatif")
-        st.dataframe(df_res, use_container_width=True)
-
-        # 2.6. Détails par modèle
-        st.subheader("Détails pour chaque modèle")
-        # On récupère les noms de variables après one-hot pour toutes les features
-        ohe: OneHotEncoder = preprocessor.named_transformers_["onehot"]
-        feat_names = ohe.get_feature_names_out(input_features=features)
-
-        for r in results:
-            st.markdown(f"### {r['Modèle']}")
-
-            # Matrice de confusion
-            cm = r["CM"]
             fig_cm = px.imshow(
                 cm,
-                labels={"x": "Prédit", "y": "Réel", "color": "Effectif"},
-                x=["Non", "Oui"], y=["Non", "Oui"],
-                text_auto=True,
-                title=f"Matrice de Confusion – {r['Modèle']}"
+                labels=dict(x="Prédit", y="Réel", color="Count"),
+                x=['Non', 'Oui'],
+                y=['Non', 'Oui'],
+                text_auto=True
             )
             st.plotly_chart(fig_cm, use_container_width=True)
-
-            # Courbe ROC
-            y_proba = r["Pipeline"].predict_proba(X_test)[:, 1]
+            
+            # ROC Curve
+            st.subheader("Courbe ROC")
             fpr, tpr, _ = roc_curve(y_test, y_proba)
-            auc_val = r["AUC-ROC"]
             fig_roc = px.area(
                 x=fpr, y=tpr,
-                labels={"x": "Taux Faux Positifs", "y": "Taux Vrais Positifs"},
-                title=f"Courbe ROC – {r['Modèle']} (AUC = {auc_val:.3f})"
+                labels=dict(x="Taux Faux Positifs", y="Taux Vrais Positifs"),
+                title=f"Courbe ROC (AUC = {auc:.3f})"
             )
-            fig_roc.add_shape(
-                type="line", line=dict(dash="dash"), x0=0, x1=1, y0=0, y1=1
-            )
+            fig_roc.add_shape(type='line', line=dict(dash='dash'), x0=0, x1=1, y0=0, y1=1)
             st.plotly_chart(fig_roc, use_container_width=True)
-
-            # Rapport de classification
-            st.text("Rapport de classification (Précision / Rappel / F1)")
-            df_report = pd.DataFrame(r["Report"]).transpose().round(3)
-            st.dataframe(df_report)
-
-            # Importance des variables
-            st.markdown("**Importance / Coefficients des variables**")
-            clf = r["Pipeline"].named_steps["classifier"]
-            if isinstance(clf, LogisticRegression):
-                coefs = clf.coef_[0]
-                df_imp = pd.DataFrame({
-                    "Variable": feat_names,
-                    "Coefficient": coefs
-                }).sort_values("Coefficient", ascending=False)
-                fig_imp = px.bar(
-                    df_imp, x="Coefficient", y="Variable", orientation="h",
-                    title="Coefficients Régression Logistique"
+            
+            # Feature importance
+            st.subheader("Importance des Variables")
+            try:
+                # Get feature names after one-hot encoding
+                feature_names = model.named_steps['preprocessor'].transformers_[0][1].get_feature_names_out(input_features=features)
+                
+                # SHAP values
+                explainer = shap.Explainer(
+                    model.named_steps['classifier'], 
+                    model.named_steps['preprocessor'].transform(X_train)
                 )
-                st.plotly_chart(fig_imp, use_container_width=True)
-
-            elif isinstance(clf, DecisionTreeClassifier):
-                importances = clf.feature_importances_
-                df_imp = pd.DataFrame({
-                    "Variable": feat_names,
-                    "Importance": importances
-                }).sort_values("Importance", ascending=False)
-                fig_imp = px.bar(
-                    df_imp, x="Importance", y="Variable", orientation="h",
-                    title="Importance des Variables (Arbre de Décision)"
+                shap_values = explainer.shap_values(model.named_steps['preprocessor'].transform(X_test))
+                
+                # Summary plot
+                fig_shap = go.Figure()
+                for i, name in enumerate(feature_names):
+                    fig_shap.add_trace(go.Box(
+                        y=shap_values[:, i],
+                        name=name,
+                        boxpoints=False
+                    ))
+                fig_shap.update_layout(
+                    title="Impact des Variables (SHAP Values)",
+                    yaxis_title="Valeur SHAP",
+                    showlegend=False
                 )
-                st.plotly_chart(fig_imp, use_container_width=True)
+                st.plotly_chart(fig_shap, use_container_width=True)
+                
+            except Exception as e:
+                st.warning(f"SHAP non disponible : {str(e)}")
 
-            else:  # RandomForestClassifier
-                importances = clf.feature_importances_
-                df_imp = pd.DataFrame({
-                    "Variable": feat_names,
-                    "Importance": importances
-                }).sort_values("Importance", ascending=False)
-                fig_imp = px.bar(
-                    df_imp, x="Importance", y="Variable", orientation="h",
-                    title="Importance des Variables (Forêt Aléatoire)"
+                # Récupération des noms de variables après transformation + sélection
+                feature_names_raw = model.named_steps['preprocessor'].transformers_[0][1].get_feature_names_out(input_features=features)
+                selected_mask = model.named_steps['feature_selection'].get_support()
+                selected_features = feature_names_raw[selected_mask]
+
+                # Création du DataFrame des coefficients
+                coefs = pd.DataFrame({
+                    'Variable': selected_features,
+                    'Coefficient': model.named_steps['classifier'].coef_[0]
+                }).sort_values('Coefficient', ascending=False)
+
+                # Affichage des coefficients sous forme de graphique
+                fig_coef = px.bar(
+                    coefs,
+                    x='Coefficient',
+                    y='Variable',
+                    orientation='h',
+                    title="Coefficients de Régression"
                 )
-                st.plotly_chart(fig_imp, use_container_width=True)
+                st.plotly_chart(fig_coef, use_container_width=True)
 
-        # 2.7. Analyse de multicolinéarité (VIF) sur le jeu complet
-        st.subheader("Analyse de Multicolinéarité (VIF)")
-        try:
-            X_design = preprocessor.transform(X_full)
-            vif_data = pd.DataFrame({
-                "Variable": feat_names,
-                "VIF": [
-                    variance_inflation_factor(X_design, i)
-                    for i in range(X_design.shape[1])
-                ]
-            })
-            vif_data["VIF"] = vif_data["VIF"].round(2)
-            def highlight_vif(val):
-                return "background-color: yellow" if val > 5 else ""
-            st.dataframe(
-                vif_data.style.applymap(highlight_vif, subset=["VIF"]),
-                height=300
+            # Model interpretation
+            st.subheader("Interprétation du Modèle")
+            st.markdown("""
+            - **Coefficients positifs** : Augmentent la probabilité de confiance
+            - **Coefficients négatifs** : Diminuent la probabilité de confiance
+            """)
+            
+            # Export model
+            #st.download_button(
+                #label="📥 Télécharger les coefficients",
+                #data=coefs.to_csv(index=False),
+                #file_name="coefficients_regression.csv",
+                #mime="text/csv"
+            #)
+            
+        else:
+            st.warning("Échantillon trop petit pour la modélisation (n < 50)")
+
+    # Section 3: Advanced Diagnostics
+    with st.expander("🔍 Diagnostics Avancés", expanded=False):
+        st.subheader("Validation du Modèle")
+        
+        if len(df_model) > 50:
+            # VIF Analysis
+            st.markdown("**Analyse de Multicolinéarité (VIF)**")
+            try:
+                # Get design matrix
+                X_design = model.named_steps['preprocessor'].transform(X)
+                
+                # Calculate VIF
+                vif_data = pd.DataFrame()
+                vif_data["Variable"] = feature_names
+                vif_data["VIF"] = [variance_inflation_factor(X_design, i) 
+                                   for i in range(X_design.shape[1])]
+                
+                st.dataframe(
+                    vif_data.style.applymap(
+                        lambda x: 'background-color: yellow' if x > 5 else ''
+                    ),
+                    height=300
+                )
+                st.markdown("> Un VIF > 5 indique une possible multicolinéarité")
+                
+            except Exception as e:
+                st.error(f"Erreur VIF : {str(e)}")
+            
+            # Precision-Recall Curve
+            st.subheader("Courbe Precision-Rappel")
+            precision, recall, _ = precision_recall_curve(y_test, y_proba)
+            fig_pr = px.line(
+                x=recall, y=precision,
+                labels=dict(x="Rappel", y="Précision"),
+                title="Courbe Precision-Rappel"
             )
-            st.markdown("> Un VIF > 5 peut signaler une multicolinéarité.")
-        except Exception as e:
-            st.error(f"Impossible de calculer le VIF : {e}")
+            st.plotly_chart(fig_pr, use_container_width=True)
 
-        # 2.8. Courbe Precision-Recall du meilleur modèle (AUC max)
-        meilleur = max(results, key=lambda x: x["AUC-ROC"])
-        st.subheader(f"Courbe Precision-Recall ({meilleur['Modèle']})")
-        y_proba_best = meilleur["Pipeline"].predict_proba(X_test)[:, 1]
-        precision, recall, _ = precision_recall_curve(y_test, y_proba_best)
-        fig_pr = px.line(
-            x=recall, y=precision,
-            labels={"x": "Rappel", "y": "Précision"},
-            title="Precision-Recall Curve"
-        )
-        st.plotly_chart(fig_pr, use_container_width=True)
-
-    # ------------------------------------------------
-    # 3. Courbe d’Apprentissage (Learning Curve)
-    # ------------------------------------------------
-    with st.expander("📈 Courbe d’Apprentissage", expanded=False):
-        st.subheader("Learning Curve (Forêt Aléatoire)")
-        st.markdown(
-            "On trace ici l’évolution de l’accuracy en fonction de la taille du jeu d’entraînement :\n"
-            "- Courbe d'entraînement\n- Courbe de validation (CV)"
-        )
-
-        # Recherche de la pipeline Forêt Aléatoire dans les résultats
-        rf_pipeline = next(
-            r["Pipeline"] for r in results if r["Modèle"] == "Forêt Aléatoire"
-        )
-
-        from sklearn.model_selection import learning_curve
-        train_sizes, train_scores, val_scores = learning_curve(
-            rf_pipeline,
-            X_full, y_full,
-            cv=5,
-            train_sizes=np.linspace(0.1, 1.0, 5),
-            scoring="accuracy",
-            n_jobs=-1,
-            shuffle=True,
-            random_state=42
-        )
-
-        train_mean = np.mean(train_scores, axis=1)
-        train_std = np.std(train_scores, axis=1)
-        val_mean = np.mean(val_scores, axis=1)
-        val_std = np.std(val_scores, axis=1)
-
-        df_lc = pd.DataFrame({
-            "Échantillons train": train_sizes,
-            "Train_mean": train_mean,
-            "Train_std": train_std,
-            "Val_mean": val_mean,
-            "Val_std": val_std
-        })
-
-        # Tracé en Plotly (go.Figure)
-        fig_lc = go.Figure()
-
-        # Bande d'incertitude train
-        fig_lc.add_trace(go.Scatter(
-            x=df_lc["Échantillons train"],
-            y=df_lc["Train_mean"],
-            mode="lines",
-            name="Train (moyenne)",
-            line=dict(color="blue")
-        ))
-        fig_lc.add_trace(go.Scatter(
-            x=df_lc["Échantillons train"],
-            y=df_lc["Train_mean"] + df_lc["Train_std"],
-            mode="lines",
-            showlegend=False,
-            line=dict(width=0),
-            hoverinfo="skip"
-        ))
-        fig_lc.add_trace(go.Scatter(
-            x=df_lc["Échantillons train"],
-            y=df_lc["Train_mean"] - df_lc["Train_std"],
-            mode="lines",
-            fill="tonexty",
-            fillcolor="rgba(0,0,255,0.1)",
-            showlegend=False,
-            hoverinfo="skip"
-        ))
-
-        # Bande d'incertitude validation
-        fig_lc.add_trace(go.Scatter(
-            x=df_lc["Échantillons train"],
-            y=df_lc["Val_mean"],
-            mode="lines",
-            name="Validation (moyenne)",
-            line=dict(color="orange")
-        ))
-        fig_lc.add_trace(go.Scatter(
-            x=df_lc["Échantillons train"],
-            y=df_lc["Val_mean"] + df_lc["Val_std"],
-            mode="lines",
-            showlegend=False,
-            line=dict(width=0),
-            hoverinfo="skip"
-        ))
-        fig_lc.add_trace(go.Scatter(
-            x=df_lc["Échantillons train"],
-            y=df_lc["Val_mean"] - df_lc["Val_std"],
-            mode="lines",
-            fill="tonexty",
-            fillcolor="rgba(255,165,0,0.1)",
-            showlegend=False,
-            hoverinfo="skip"
-        ))
-
-        fig_lc.update_layout(
-            title="Courbe d’Apprentissage – Forêt Aléatoire",
-            xaxis_title="Nombre d’échantillons d’entraînement",
-            yaxis_title="Accuracy"
-        )
-        st.plotly_chart(fig_lc, use_container_width=True)
-
+# Example usage in your Streamlit app:
+# In your main app where you have tabs:
+with tab3:
+     run_tab3(filtered_df)
 
 
 # =============================================
