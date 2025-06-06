@@ -1020,7 +1020,7 @@ def run_tab3(filtered_df):
 
     # ---- 1. Préparation générale des données ----
     # On travaille sur une copie pour ne pas modifier l'original
-    df = filtered_df.copy()
+    df = filtered_df()
 
     # 1.1. Renommer certaines colonnes pour simplifier le code
     #    (adapter exactement aux intitulés de votre CSV)
