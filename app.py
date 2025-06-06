@@ -1011,6 +1011,42 @@ with tab2:
 """, unsafe_allow_html=True)
 
 
+# =============================================
+# ONGLET 3 : ANALYSE STATISTIQUE & REGRESSION
+# =============================================
+
+@st.cache_data
+def prepare_supervised_data(df, target_col: str):
+    df_clean = df.copy()
+
+    # Nettoyage de la target
+    df_clean = df_clean.dropna(subset=[target_col])
+    df_clean["target"] = df_clean[target_col].apply(
+        lambda x: 1 if str(x).strip().lower() == "oui" else 0
+    )
+
+    # Suppression de la colonne originale
+    df_clean = df_clean.drop(columns=[target_col])
+
+    # Suppression des lignes contenant des valeurs manquantes
+    df_clean = df_clean.dropna()
+
+    # Séparation X / y
+    y = df_clean["target"]
+    X = df_clean.drop(columns=["target"])
+
+    # Sélection automatique des types de colonnes
+    categorical_columns = selector(dtype_include="object")(X)
+    numeric_columns = selector(dtype_exclude="object")(X)
+
+    # Création du pipeline de transformation
+    preprocessor = ColumnTransformer([
+        ("cat", OneHotEncoder(drop="first", handle_unknown="ignore"), categorical_columns),
+        ("num", StandardScaler(), numeric_columns)
+    ])
+
+    return X, y, preprocessor, categorical_columns, numeric_columns
+
 
 
 
