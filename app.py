@@ -2,47 +2,45 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
+import plotly.graph_objects as go
 import os
 from datetime import datetime
 from scipy.stats import chi2_contingency
-import plotly.graph_objects as go
 from PIL import Image
 import networkx as nx
 import matplotlib.pyplot as plt
-from PIL import Image
+import seaborn as sns
 from fpdf import FPDF
-import streamlit as st
 import io
-import kaleido
 import uuid
 import hashlib
 import json
+
 from google.oauth2.service_account import Credentials
 import gspread
+
 import statsmodels.api as sm
-from sklearn.linear_model import LogisticRegression
+
+# Pour la partie ML supervisé :
+from sklearn.model_selection import train_test_split, learning_curve
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer, make_column_selector as selector
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from sklearn.metrics import (confusion_matrix, classification_report, roc_curve, roc_auc_score,precision_recall_curve)
-from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline
-from sklearn.compose import ColumnTransformer
-import plotly.graph_objects as go
-from sklearn.utils import resample
-import shap
-from statsmodels.stats.outliers_influence import variance_inflation_factor
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.feature_selection import SelectFromModel
-from sklearn.compose import make_column_selector as selector
-from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline
-from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score, roc_curve
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
 from sklearn.svm import SVC
-import matplotlib.pyplot as plt
-import seaborn as sns
+from sklearn.metrics import (
+    classification_report, confusion_matrix,
+    roc_auc_score, roc_curve
+)
+from sklearn.utils import resample
+
+import shap
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+
 # =============================================
 # INITIALISATION ET CONFIGURATION DE BASE
 # =============================================
