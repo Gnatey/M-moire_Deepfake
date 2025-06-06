@@ -1050,13 +1050,73 @@ def prepare_supervised_data(df, target_col: str):
     return X, y, preprocessor, categorical_columns, numeric_columns
 
 
-target_col = "Confiance réseaux sociaux"
+st.subheader("🔍 Comparaison de modèles supervisés")
 
-try:
-    X, y, preprocessor, cat_cols, num_cols = prepare_supervised_data(filtered_df, target_col)
-    st.success("✅ Données préparées avec succès")
-except Exception as e:
-    st.error(f"❌ Erreur pendant la préparation des données : {str(e)}")
+# Split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+# Liste des modèles
+models = {
+    "Logistic Regression": LogisticRegression(max_iter=1000),
+    "KNN": KNeighborsClassifier(),
+    "Decision Tree": DecisionTreeClassifier(),
+    "Random Forest": RandomForestClassifier(),
+    "XGBoost": XGBClassifier(use_label_encoder=False, eval_metric='logloss'),
+    "SVM": SVC(probability=True)
+}
+
+# Comparaison
+model_results = []
+
+for name, clf in models.items():
+    with st.expander(f"📊 {name}", expanded=False):
+        pipe = Pipeline([
+            ("preprocessor", preprocessor),
+            ("classifier", clf)
+        ])
+        pipe.fit(X_train, y_train)
+        y_pred = pipe.predict(X_test)
+        y_proba = pipe.predict_proba(X_test)[:, 1]
+
+        acc = pipe.score(X_test, y_test)
+        auc = roc_auc_score(y_test, y_proba)
+        cm = confusion_matrix(y_test, y_pred)
+        cr = classification_report(y_test, y_pred, output_dict=True)
+
+        # Matrice de confusion
+        fig_cm, ax_cm = plt.subplots()
+        sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax_cm)
+        ax_cm.set_title(f"Matrice de confusion - {name}")
+        st.pyplot(fig_cm)
+
+        # ROC Curve
+        fpr, tpr, _ = roc_curve(y_test, y_proba)
+        fig_roc, ax_roc = plt.subplots()
+        ax_roc.plot(fpr, tpr, label=f"AUC = {auc:.2f}")
+        ax_roc.plot([0, 1], [0, 1], linestyle="--")
+        ax_roc.set_title(f"Courbe ROC - {name}")
+        ax_roc.set_xlabel("Faux positifs")
+        ax_roc.set_ylabel("Vrais positifs")
+        ax_roc.legend()
+        st.pyplot(fig_roc)
+
+        # Résumé des scores
+        st.metric("Exactitude", f"{acc:.2f}")
+        st.metric("AUC ROC", f"{auc:.2f}")
+        st.text("Rapport de classification :")
+        st.json(cr)
+
+        # Ajout aux résultats globaux
+        model_results.append({
+            "Modèle": name,
+            "Accuracy": acc,
+            "AUC": auc
+        })
+
+# Tableau comparatif
+st.subheader("📈 Résumé des performances")
+results_df = pd.DataFrame(model_results).sort_values("AUC", ascending=False)
+st.dataframe(results_df, use_container_width=True)
 
 
 # =============================================
