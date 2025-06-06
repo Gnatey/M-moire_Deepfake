@@ -40,8 +40,6 @@ from sklearn.utils import resample
 
 import shap
 from statsmodels.stats.outliers_influence import variance_inflation_factor
-from sklearn.model_selection import train_test_split, learning_curve
-
 
 # =============================================
 # INITIALISATION ET CONFIGURATION DE BASE
@@ -1165,6 +1163,7 @@ else:
     st.subheader("📈 Résumé des performances")
     results_df = pd.DataFrame(model_results).sort_values("AUC", ascending=False)
     st.dataframe(results_df, use_container_width=True)
+
 
 # =============================================
 # SECTION COMMENTAIRES
