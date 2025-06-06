@@ -1453,4 +1453,4 @@ with tab3:
     with col_img:
         st.image("images.jpeg", width=100)
     with col_msg:
-        st.info("Cet onglet est en cours de rédaction. Il n'est pas encore finalisé. certaines visualisations peuvent être incorrectes")
+        st.info("Cet onglet est en cours de rédaction. Il n'est pas encore finalisé. Certaines visualisations peuvent être incorrectes")
