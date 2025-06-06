@@ -40,6 +40,8 @@ from sklearn.utils import resample
 
 import shap
 from statsmodels.stats.outliers_influence import variance_inflation_factor
+from sklearn.model_selection import train_test_split, learning_curve
+
 
 # =============================================
 # INITIALISATION ET CONFIGURATION DE BASE
@@ -1038,16 +1040,16 @@ def prepare_supervised_data(df):
     # Normalisation des réponses
     df_clean[target_col] = df_clean[target_col].astype(str).str.strip().str.lower()
 
-    # Filtrage des réponses utilisables
+    # Filtrage des réponses exploitables
     df_clean = df_clean[df_clean[target_col].isin(["oui", "non", "cela dépend des sources"])]
 
-    # Regroupement expert : "oui" = 1 ; les autres = 0
+    # Décision experte : "oui" → 1, sinon → 0
     df_clean["target"] = df_clean[target_col].apply(lambda x: 1 if x == "oui" else 0)
 
     # Suppression de la colonne originale
     df_clean = df_clean.drop(columns=[target_col])
 
-    # Nettoyage : suppression des lignes incomplètes
+    # Suppression des lignes incomplètes
     df_clean = df_clean.dropna()
 
     if df_clean.empty:
@@ -1057,7 +1059,7 @@ def prepare_supervised_data(df):
     y = df_clean["target"]
     X = df_clean.drop(columns=["target"])
 
-    # Colonnes catégorielles / numériques
+    # Sélection des colonnes catégorielles vs numériques
     categorical_columns = selector(dtype_include="object")(X)
     numeric_columns = selector(dtype_exclude="object")(X)
 
@@ -1073,15 +1075,18 @@ def prepare_supervised_data(df):
 # Interface
 st.subheader("🔍 Comparaison de modèles supervisés")
 
-# Préparation des données
+# Chargement / préparation des données
 X, y, preprocessor, cat_cols, num_cols = prepare_supervised_data(filtered_df)
 
 if X.shape[0] < 10:
     st.warning("⚠️ Données insuffisantes pour l'apprentissage supervisé.")
 else:
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+    # Split en train/test
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.3, random_state=42
+    )
 
-    # Modèles à tester
+    # Définition des modèles à tester
     models = {
         "Logistic Regression": LogisticRegression(max_iter=1000),
         "KNN": KNeighborsClassifier(),
@@ -1103,18 +1108,19 @@ else:
             y_pred = pipe.predict(X_test)
             y_proba = pipe.predict_proba(X_test)[:, 1]
 
+            # Scores
             acc = pipe.score(X_test, y_test)
             auc = roc_auc_score(y_test, y_proba)
             cm = confusion_matrix(y_test, y_pred)
             cr = classification_report(y_test, y_pred, output_dict=True)
 
-            # Matrice de confusion
+            # 1) Matrice de confusion
             fig_cm, ax_cm = plt.subplots()
             sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax_cm)
             ax_cm.set_title(f"Matrice de confusion - {name}")
             st.pyplot(fig_cm)
 
-            # ROC Curve
+            # 2) Courbe ROC
             fpr, tpr, _ = roc_curve(y_test, y_proba)
             fig_roc, ax_roc = plt.subplots()
             ax_roc.plot(fpr, tpr, label=f"AUC = {auc:.2f}")
@@ -1125,7 +1131,7 @@ else:
             ax_roc.legend()
             st.pyplot(fig_roc)
 
-            # Courbe d'apprentissage
+            # 3) Courbe d'apprentissage
             st.subheader("📉 Courbe d’apprentissage")
             train_sizes, train_scores, test_scores = learning_curve(
                 pipe, X, y, cv=5, scoring="roc_auc",
@@ -1143,7 +1149,7 @@ else:
             ax_learning.legend()
             st.pyplot(fig_learning)
 
-            # Scores
+            # 4) Affichage des métriques
             st.metric("Exactitude", f"{acc:.2f}")
             st.metric("AUC ROC", f"{auc:.2f}")
             st.text("Rapport de classification :")
@@ -1155,12 +1161,10 @@ else:
                 "AUC": auc
             })
 
-    # Résumé comparatif
+    # Tableau récapitulatif des performances
     st.subheader("📈 Résumé des performances")
     results_df = pd.DataFrame(model_results).sort_values("AUC", ascending=False)
     st.dataframe(results_df, use_container_width=True)
-
-
 
 # =============================================
 # SECTION COMMENTAIRES
