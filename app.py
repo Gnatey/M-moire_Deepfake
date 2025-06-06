@@ -41,7 +41,6 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
-from xgboost import XGBClassifier
 import matplotlib.pyplot as plt
 import seaborn as sns
 # =============================================
