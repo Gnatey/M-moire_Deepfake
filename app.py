@@ -32,6 +32,8 @@ import shap
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import SelectFromModel
+from sklearn.compose import make_column_selector as selector
+from sklearn.model_selection import train_test_split
 # =============================================
 # INITIALISATION ET CONFIGURATION DE BASE
 # =============================================
