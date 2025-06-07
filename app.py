@@ -35,6 +35,7 @@ from sklearn.feature_selection import SelectFromModel
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.model_selection import GridSearchCV
 import seaborn as sns
+import shap
 
 # =============================================
 # INITIALISATION ET CONFIGURATION DE BASE
