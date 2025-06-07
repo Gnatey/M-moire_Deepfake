@@ -1021,10 +1021,6 @@ with tab3:
     st.header("📊 Analyse exploratoire (EDA)")
     if filtered_df.empty:
         st.warning("Aucune donnée disponible avec les filtres sélectionnés.")
-    else:
-        # 1. Statistiques descriptives
-        st.subheader("Statistiques descriptives")
-        st.write(filtered_df.describe(include='all'))
 
         # 2. Distribution de l'impact perçu
         st.subheader("Distribution de l’impact perçu")
