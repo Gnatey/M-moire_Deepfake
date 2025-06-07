@@ -1101,22 +1101,11 @@ with tab3:
     ])
     X_proc = pipeline.fit_transform(X)
 
-    # 2.3 VarianceThreshold (seuil 1%)
+    # 2.3 VarianceThreshold
     vt    = VarianceThreshold(threshold=0.01)
     X_sel = vt.fit_transform(X_proc)
     st.markdown(f"- Avant sélection : **{X_proc.shape[1]}** features  \n"
                 f"- Après VarianceThreshold : **{X_sel.shape[1]}** features")
-
-    # === Construire la liste des noms de features sélectionnées ===
-    # noms OHE
-    ohe = pipeline.named_steps["pre"].named_transformers_["ohe"]
-    ohe_feats = ohe.get_feature_names_out(cat_cols)
-    # noms pass-through (les colonnes de plat_df)
-    passthru_feats = plat_df.columns.to_list()
-    # concaténation puis filtration
-    all_feats = np.concatenate([ohe_feats, passthru_feats])
-    sel_mask  = vt.get_support()
-    feat_names = all_feats[sel_mask]
 
     # 3️⃣ Recherche d’hyper-paramètres & entraînement
     X_train, X_test, y_train, y_test = train_test_split(
@@ -1157,13 +1146,23 @@ with tab3:
     st.subheader("Rapport de classification")
     st.text(classification_report(
         y_test, y_pred,
-        target_names=["Négatif", "Neutre", "Positif"]
+        target_names=["Négatif","Neutre","Positif"]
     ))
 
     # 5️⃣ Interprétabilité avec SHAP
     st.subheader("Interprétabilité avec SHAP")
     explainer   = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(X_test)
+
+    # Construction correcte des noms de features sélectionnées
+    ohe = pipeline.named_steps["pre"].named_transformers_["ohe"]
+    ohe_feats     = ohe.get_feature_names_out(cat_cols)
+    passthru_feats = plat_df.columns.to_list()
+    all_feats     = np.concatenate([ohe_feats, passthru_feats])
+    sel_mask      = vt.get_support()
+    feat_names    = [f for f, keep in zip(all_feats, sel_mask) if keep]
+
+    # Tracé SHAP
     fig_shap, ax_shap = plt.subplots(figsize=(8, 6))
     shap.summary_plot(
         shap_values, X_test,
@@ -1174,6 +1173,7 @@ with tab3:
         ax=ax_shap
     )
     st.pyplot(fig_shap)
+
 
 
 # =============================================
