@@ -32,6 +32,8 @@ import shap
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import SelectFromModel
+from sklearn.preprocessing import MultiLabelBinarizer
+
 # =============================================
 # INITIALISATION ET CONFIGURATION DE BASE
 # =============================================
