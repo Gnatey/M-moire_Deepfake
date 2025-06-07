@@ -1095,8 +1095,7 @@ with tab3 :
 
     # Application du pipeline
     X_proc = pipeline.fit_transform(X)
-    st.markdown(f"Données transformées : {X_proc.shape[0]} échantillons × {X_proc.shape[1]} caractéristiques")
-
+    
 # =============================================
 # SECTION COMMENTAIRES
 # =============================================
