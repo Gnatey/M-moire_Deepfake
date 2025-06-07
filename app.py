@@ -1057,10 +1057,12 @@ with tab2:
 # ONGLET 3 - MACHINE LEARNING
 # =============================================
 
+# Section ML améliorée pour remplacer votre onglet 3
+
 with tab3:
     st.header("📈 Machine Learning & Predictive Analytics")
     
-    if not df.empty:
+    if not filtered_df.empty:
         # Section 1: Data Preparation
         with st.expander("🔧 Data Preparation", expanded=True):
             st.subheader("Feature Engineering")
@@ -1070,86 +1072,333 @@ with tab3:
             target_var = st.selectbox("Select target variable:", target_options)
             
             # Feature selection
-            feature_options = [col for col in df.columns if col not in target_options + ["Plateformes", "Date de saisie"]]
-            selected_features = st.multiselect("Select features:", feature_options, default=feature_options[:5])
+            numeric_cols = filtered_df.select_dtypes(include=[np.number]).columns.tolist()
+            categorical_cols = [col for col in filtered_df.columns 
+                             if filtered_df[col].dtype == 'object' and col != target_var 
+                             and filtered_df[col].nunique() < 10]
             
-            # Encoding strategy
-            encode_method = st.radio("Encoding method:", ["One-Hot Encoding", "Ordinal Encoding"])
+            feature_options = numeric_cols + categorical_cols
+            selected_features = st.multiselect("Select features:", feature_options, 
+                                             default=feature_options[:min(5, len(feature_options))])
             
-            st.success("Data prepared for modeling!")
+            if selected_features:
+                # Show data quality
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Total Samples", len(filtered_df))
+                with col2:
+                    missing_pct = filtered_df[selected_features + [target_var]].isnull().sum().sum() / (len(filtered_df) * len(selected_features + [target_var])) * 100
+                    st.metric("Missing Data %", f"{missing_pct:.1f}%")
+                with col3:
+                    if target_var in filtered_df.columns:
+                        balance = filtered_df[target_var].value_counts().min() / filtered_df[target_var].value_counts().max()
+                        st.metric("Class Balance", f"{balance:.2f}")
         
-        # Section 2: Model Selection
-        with st.expander("🤖 Model Selection", expanded=True):
-            model_type = st.selectbox("Select model type:", 
-                                    ["Logistic Regression", "Random Forest", "XGBoost"])
+        # Section 2: Model Configuration
+        with st.expander("🤖 Model Configuration", expanded=True):
+            col_model, col_params = st.columns([1, 2])
             
-            # Hyperparameter tuning
-            if model_type == "Logistic Regression":
-                C_value = st.slider("Regularization (C):", 0.01, 10.0, 1.0)
-                penalty = st.radio("Penalty:", ["l2", "none"])
+            with col_model:
+                model_type = st.selectbox("Select model:", 
+                                        ["Logistic Regression", "Random Forest", "Support Vector Machine"])
                 
-            elif model_type == "Random Forest":
-                n_estimators = st.slider("Number of trees:", 10, 200, 100)
-                max_depth = st.slider("Max depth:", 2, 20, 5)
+                test_size = st.slider("Test set size:", 0.1, 0.5, 0.2)
+                random_state = st.number_input("Random seed:", value=42)
+            
+            with col_params:
+                st.write("**Hyperparameters:**")
                 
-            elif model_type == "XGBoost":
-                learning_rate = st.slider("Learning rate:", 0.01, 1.0, 0.1)
-                n_estimators = st.slider("Number of trees:", 10, 200, 100)
+                if model_type == "Logistic Regression":
+                    C_value = st.slider("Regularization (C):", 0.01, 10.0, 1.0)
+                    penalty = st.selectbox("Penalty:", ["l2", "l1"])
+                    max_iter = st.slider("Max iterations:", 100, 1000, 500)
+                    
+                elif model_type == "Random Forest":
+                    n_estimators = st.slider("Number of trees:", 10, 200, 100)
+                    max_depth = st.slider("Max depth:", 2, 20, 5)
+                    min_samples_split = st.slider("Min samples split:", 2, 20, 2)
+                    
+                elif model_type == "Support Vector Machine":
+                    kernel = st.selectbox("Kernel:", ["rbf", "linear", "poly"])
+                    C_value = st.slider("C parameter:", 0.1, 10.0, 1.0)
+                    gamma = st.selectbox("Gamma:", ["scale", "auto"])
         
         # Section 3: Model Training & Evaluation
-        with st.expander("📊 Model Evaluation", expanded=True):
-            if st.button("Train Model"):
-                with st.spinner("Training model..."):
-                    # Placeholder for actual model training code
-                    # This would include:
-                    # 1. Data preprocessing
-                    # 2. Train/test split
-                    # 3. Model training
-                    # 4. Evaluation metrics
-                    
-                    # Display placeholder results
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.metric("Accuracy", "0.82")
-                        st.metric("Precision", "0.79")
-                    with col2:
-                        st.metric("Recall", "0.85")
-                        st.metric("F1 Score", "0.82")
-                    
-                    # Feature importance plot
-                    st.subheader("Feature Importance")
-                    importance_data = pd.DataFrame({
-                        "Feature": selected_features[:5],
-                        "Importance": [0.25, 0.20, 0.18, 0.15, 0.12]
-                    })
-                    fig_importance = px.bar(importance_data, x="Importance", y="Feature", orientation='h')
-                    st.plotly_chart(fig_importance, use_container_width=True)
-                    
-                    # SHAP values explanation
-                    st.subheader("SHAP Values Explanation")
-                    st.info("This would show how each feature contributes to predictions")
+        with st.expander("📊 Model Training & Results", expanded=True):
+            if st.button("🚀 Train Model", type="primary"):
+                if not selected_features:
+                    st.error("Please select at least one feature!")
+                else:
+                    with st.spinner("Training model..."):
+                        try:
+                            # Data preparation
+                            X = filtered_df[selected_features].copy()
+                            y = filtered_df[target_var].copy()
+                            
+                            # Handle missing values
+                            X = X.fillna(X.mode().iloc[0] if X.select_dtypes(include='object').shape[1] > 0 else X.mean())
+                            y = y.fillna(y.mode().iloc[0])
+                            
+                            # Encode categorical variables
+                            categorical_features = X.select_dtypes(include='object').columns
+                            if len(categorical_features) > 0:
+                                encoder = OneHotEncoder(drop='first', sparse_output=False)
+                                X_cat_encoded = encoder.fit_transform(X[categorical_features])
+                                X_cat_df = pd.DataFrame(X_cat_encoded, 
+                                                      columns=encoder.get_feature_names_out(categorical_features),
+                                                      index=X.index)
+                                X = pd.concat([X.drop(categorical_features, axis=1), X_cat_df], axis=1)
+                            
+                            # Encode target if categorical
+                            if y.dtype == 'object':
+                                y_encoded = (y == 'Oui').astype(int) if 'Oui' in y.values else pd.Categorical(y).codes
+                            else:
+                                y_encoded = y
+                            
+                            # Train/test split
+                            X_train, X_test, y_train, y_test = train_test_split(
+                                X, y_encoded, test_size=test_size, random_state=random_state, stratify=y_encoded
+                            )
+                            
+                            # Model selection and training
+                            if model_type == "Logistic Regression":
+                                model = LogisticRegression(C=C_value, penalty=penalty, max_iter=max_iter, random_state=random_state)
+                            elif model_type == "Random Forest":
+                                model = RandomForestClassifier(
+                                    n_estimators=n_estimators, max_depth=max_depth, 
+                                    min_samples_split=min_samples_split, random_state=random_state
+                                )
+                            elif model_type == "Support Vector Machine":
+                                from sklearn.svm import SVC
+                                model = SVC(kernel=kernel, C=C_value, gamma=gamma, probability=True, random_state=random_state)
+                            
+                            # Scale features for SVM and Logistic Regression
+                            if model_type in ["Support Vector Machine", "Logistic Regression"]:
+                                scaler = StandardScaler()
+                                X_train_scaled = scaler.fit_transform(X_train)
+                                X_test_scaled = scaler.transform(X_test)
+                                model.fit(X_train_scaled, y_train)
+                                y_pred = model.predict(X_test_scaled)
+                                y_pred_proba = model.predict_proba(X_test_scaled)[:, 1]
+                            else:
+                                model.fit(X_train, y_train)
+                                y_pred = model.predict(X_test)
+                                y_pred_proba = model.predict_proba(X_test)[:, 1]
+                            
+                            # Evaluation metrics
+                            from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+                            accuracy = accuracy_score(y_test, y_pred)
+                            precision = precision_score(y_test, y_pred, average='weighted')
+                            recall = recall_score(y_test, y_pred, average='weighted')
+                            f1 = f1_score(y_test, y_pred, average='weighted')
+                            
+                            # Display results
+                            st.success("✅ Model trained successfully!")
+                            
+                            # Metrics
+                            col1, col2, col3, col4 = st.columns(4)
+                            with col1:
+                                st.metric("Accuracy", f"{accuracy:.3f}")
+                            with col2:
+                                st.metric("Precision", f"{precision:.3f}")
+                            with col3:
+                                st.metric("Recall", f"{recall:.3f}")
+                            with col4:
+                                st.metric("F1 Score", f"{f1:.3f}")
+                            
+                            # Confusion Matrix
+                            st.subheader("📊 Confusion Matrix")
+                            cm = confusion_matrix(y_test, y_pred)
+                            fig_cm = px.imshow(cm, text_auto=True, aspect="auto",
+                                             title="Confusion Matrix",
+                                             color_continuous_scale='Blues')
+                            st.plotly_chart(fig_cm, use_container_width=True)
+                            
+                            # ROC Curve
+                            if len(np.unique(y_test)) == 2:  # Binary classification
+                                st.subheader("📈 ROC Curve")
+                                fpr, tpr, _ = roc_curve(y_test, y_pred_proba)
+                                auc_score = roc_auc_score(y_test, y_pred_proba)
+                                
+                                fig_roc = go.Figure()
+                                fig_roc.add_trace(go.Scatter(x=fpr, y=tpr, name=f'ROC Curve (AUC = {auc_score:.3f})'))
+                                fig_roc.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode='lines', name='Random'))
+                                fig_roc.update_layout(
+                                    title='ROC Curve',
+                                    xaxis_title='False Positive Rate',
+                                    yaxis_title='True Positive Rate'
+                                )
+                                st.plotly_chart(fig_roc, use_container_width=True)
+                            
+                            # Feature Importance
+                            if hasattr(model, 'feature_importances_'):
+                                st.subheader("🎯 Feature Importance")
+                                importance_df = pd.DataFrame({
+                                    'Feature': X.columns,
+                                    'Importance': model.feature_importances_
+                                }).sort_values('Importance', ascending=True)
+                                
+                                fig_importance = px.bar(importance_df, x='Importance', y='Feature', 
+                                                      orientation='h', title="Feature Importance")
+                                st.plotly_chart(fig_importance, use_container_width=True)
+                            
+                            elif hasattr(model, 'coef_'):
+                                st.subheader("📊 Coefficients")
+                                coef_df = pd.DataFrame({
+                                    'Feature': X.columns,
+                                    'Coefficient': model.coef_[0] if model.coef_.ndim > 1 else model.coef_
+                                }).sort_values('Coefficient', key=abs, ascending=True)
+                                
+                                fig_coef = px.bar(coef_df, x='Coefficient', y='Feature', 
+                                                orientation='h', title="Model Coefficients")
+                                st.plotly_chart(fig_coef, use_container_width=True)
+                            
+                            # Store model in session state for predictions
+                            st.session_state['trained_model'] = model
+                            st.session_state['feature_columns'] = X.columns.tolist()
+                            st.session_state['scaler'] = scaler if model_type in ["Support Vector Machine", "Logistic Regression"] else None
+                            st.session_state['encoder'] = encoder if len(categorical_features) > 0 else None
+                            st.session_state['categorical_features'] = categorical_features.tolist()
+                            
+                        except Exception as e:
+                            st.error(f"❌ Error during training: {str(e)}")
+                            st.error("Please check your data and feature selection.")
         
         # Section 4: Prediction Interface
         with st.expander("🔮 Make Predictions", expanded=False):
             st.subheader("Predict on New Data")
             
-            # Create input form based on selected features
-            input_values = {}
-            for feature in selected_features:
-                if df[feature].dtype == 'object':
-                    unique_vals = df[feature].unique()
-                    input_values[feature] = st.selectbox(feature, unique_vals)
-                else:
-                    min_val = float(df[feature].min())
-                    max_val = float(df[feature].max())
-                    input_values[feature] = st.slider(feature, min_val, max_val, (min_val + max_val)/2)
+            if 'trained_model' in st.session_state:
+                st.success("✅ Model ready for predictions!")
+                
+                # Create input form
+                input_values = {}
+                col1, col2 = st.columns(2)
+                
+                for i, feature in enumerate(st.session_state['feature_columns'][:len(selected_features)]):
+                    with col1 if i % 2 == 0 else col2:
+                        if feature in st.session_state.get('categorical_features', []):
+                            unique_vals = filtered_df[feature].dropna().unique()
+                            input_values[feature] = st.selectbox(f"{feature}:", unique_vals, key=f"pred_{feature}")
+                        else:
+                            if feature in filtered_df.columns:
+                                min_val = float(filtered_df[feature].min())
+                                max_val = float(filtered_df[feature].max())
+                                mean_val = float(filtered_df[feature].mean())
+                                input_values[feature] = st.slider(f"{feature}:", min_val, max_val, mean_val, key=f"pred_{feature}")
+                
+                if st.button("🎯 Predict", type="primary"):
+                    try:
+                        # Prepare input data
+                        input_df = pd.DataFrame([input_values])
+                        
+                        # Apply same preprocessing as training
+                        if st.session_state.get('encoder'):
+                            categorical_features = st.session_state['categorical_features']
+                            if len(categorical_features) > 0:
+                                X_cat_encoded = st.session_state['encoder'].transform(input_df[categorical_features])
+                                X_cat_df = pd.DataFrame(X_cat_encoded, 
+                                                      columns=st.session_state['encoder'].get_feature_names_out(categorical_features))
+                                input_df = pd.concat([input_df.drop(categorical_features, axis=1), X_cat_df], axis=1)
+                        
+                        # Ensure same feature order
+                        input_df = input_df.reindex(columns=st.session_state['feature_columns'], fill_value=0)
+                        
+                        # Scale if needed
+                        if st.session_state.get('scaler'):
+                            input_scaled = st.session_state['scaler'].transform(input_df)
+                            prediction = st.session_state['trained_model'].predict(input_scaled)[0]
+                            probability = st.session_state['trained_model'].predict_proba(input_scaled)[0]
+                        else:
+                            prediction = st.session_state['trained_model'].predict(input_df)[0]
+                            probability = st.session_state['trained_model'].predict_proba(input_df)[0]
+                        
+                        # Display results
+                        col_pred1, col_pred2 = st.columns(2)
+                        with col_pred1:
+                            pred_label = "Oui" if prediction == 1 else "Non"
+                            st.metric("Prediction", pred_label)
+                        with col_pred2:
+                            confidence = max(probability)
+                            st.metric("Confidence", f"{confidence:.2%}")
+                        
+                        # Probability distribution
+                        prob_df = pd.DataFrame({
+                            'Class': ['Non', 'Oui'],
+                            'Probability': probability
+                        })
+                        fig_prob = px.bar(prob_df, x='Class', y='Probability', 
+                                        title="Prediction Probabilities")
+                        st.plotly_chart(fig_prob, use_container_width=True)
+                        
+                    except Exception as e:
+                        st.error(f"❌ Prediction error: {str(e)}")
+            else:
+                st.info("👆 Please train a model first!")
+        
+        # Section 5: Model Comparison
+        with st.expander("⚖️ Model Comparison", expanded=False):
+            st.subheader("Cross-Validation Results")
             
-            if st.button("Predict"):
-                # Placeholder for prediction logic
-                st.success(f"Prediction: {np.random.choice(['Positive', 'Negative'])} (confidence: {np.random.uniform(0.7, 0.95):.2f})")
+            if st.button("🔄 Compare Models"):
+                if not selected_features:
+                    st.error("Please select features first!")
+                else:
+                    with st.spinner("Comparing models..."):
+                        try:
+                            from sklearn.model_selection import cross_val_score
+                            from sklearn.ensemble import RandomForestClassifier
+                            from sklearn.svm import SVC
+                            
+                            # Prepare data
+                            X = filtered_df[selected_features].copy()
+                            y = filtered_df[target_var].copy()
+                            
+                            # Handle missing values and encoding (simplified)
+                            X = X.fillna(X.mode().iloc[0] if X.select_dtypes(include='object').shape[1] > 0 else X.mean())
+                            y = y.fillna(y.mode().iloc[0])
+                            
+                            if y.dtype == 'object':
+                                y = (y == 'Oui').astype(int) if 'Oui' in y.values else pd.Categorical(y).codes
+                            
+                            # Simple encoding for categorical features
+                            for col in X.select_dtypes(include='object').columns:
+                                X[col] = pd.Categorical(X[col]).codes
+                            
+                            # Models to compare
+                            models = {
+                                'Logistic Regression': LogisticRegression(random_state=42),
+                                'Random Forest': RandomForestClassifier(random_state=42),
+                                'SVM': SVC(random_state=42)
+                            }
+                            
+                            # Cross-validation
+                            results = {}
+                            for name, model in models.items():
+                                cv_scores = cross_val_score(model, X, y, cv=5, scoring='accuracy')
+                                results[name] = {
+                                    'Mean CV Score': cv_scores.mean(),
+                                    'Std CV Score': cv_scores.std()
+                                }
+                            
+                            # Display results
+                            results_df = pd.DataFrame(results).T
+                            st.dataframe(results_df, use_container_width=True)
+                            
+                            # Visualization
+                            fig_comparison = px.bar(
+                                x=results_df.index, 
+                                y=results_df['Mean CV Score'],
+                                error_y=results_df['Std CV Score'],
+                                title="Model Comparison (5-Fold CV)"
+                            )
+                            st.plotly_chart(fig_comparison, use_container_width=True)
+                            
+                        except Exception as e:
+                            st.error(f"❌ Comparison error: {str(e)}")
     
     else:
-        st.warning("Please load data first in the EDA tab")
+        st.warning("⚠️ Please load and filter data first in the EDA tab")
 
 # =============================================
 # SECTION COMMENTAIRES
