@@ -1088,7 +1088,7 @@ with tab3:
         columns=mlb.classes_,
         index=X.index
     )
-    X = pd.concat([X.drop(columns=["Plateformes","Plateformes_list"]), plat_df], axis=1)
+    X = pd.concat([X.drop(columns=["Plateformes", "Plateformes_list"]), plat_df], axis=1)
 
     # 2.2 Pipeline OHE + scaling
     cat_cols = X.select_dtypes(include="object").columns.tolist()
@@ -1101,8 +1101,8 @@ with tab3:
     ])
     X_proc = pipeline.fit_transform(X)
 
-    # 2.3 VarianceThreshold
-    vt    = VarianceThreshold(threshold=0.01)
+    # 2.3 VarianceThreshold (seuil 1%)
+    vt = VarianceThreshold(threshold=0.01)
     X_sel = vt.fit_transform(X_proc)
     st.markdown(f"- Avant sélection : **{X_proc.shape[1]}** features  \n"
                 f"- Après VarianceThreshold : **{X_sel.shape[1]}** features")
@@ -1146,7 +1146,7 @@ with tab3:
     st.subheader("Rapport de classification")
     st.text(classification_report(
         y_test, y_pred,
-        target_names=["Négatif","Neutre","Positif"]
+        target_names=["Négatif", "Neutre", "Positif"]
     ))
 
     # 5️⃣ Interprétabilité avec SHAP
@@ -1157,9 +1157,9 @@ with tab3:
     shap.summary_plot(
         shap_values, X_test,
         feature_names=np.hstack([
-            mlb.classes_,
             pipeline.named_steps["pre"]
-                    .get_feature_names_out(cat_cols)
+                    .get_feature_names_out(cat_cols),
+            mlb.classes_
         ]),
         max_display=10,
         plot_type="bar",
@@ -1167,6 +1167,7 @@ with tab3:
         ax=ax_shap
     )
     st.pyplot(fig_shap)
+
 
 
 
