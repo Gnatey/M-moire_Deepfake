@@ -1020,46 +1020,7 @@ with tab2:
 with tab3:
         st.header("📊 Analyse exploratoire (EDA)")
 
-        # 2. Distribution de l'impact perçu
-        st.subheader("Distribution de l’impact perçu")
-        impact_order = ["Très négatif", "Négatif", "Neutre", "Positif", "Très positif"]
-        fig_impact_dist = px.histogram(
-            filtered_df,
-            x="Impact société",
-            category_orders={"Impact société": impact_order},
-            color="Impact société",
-            labels={"Impact société": "Impact perçu"},
-            title="Histogramme de l'impact perçu"
-        )
-        st.plotly_chart(fig_impact_dist, use_container_width=True)
 
-        # 3. Répartition par genre
-        st.subheader("Répartition par genre")
-        genre_counts = filtered_df["Genre"].value_counts().reset_index()
-        genre_counts.columns = ["Genre", "Count"]
-        fig_genre = px.bar(
-            genre_counts,
-            x="Genre",
-            y="Count",
-            text="Count",
-            title="Nombre de répondants par genre"
-        )
-        st.plotly_chart(fig_genre, use_container_width=True)
-
-        # 4. Boxplot : Impact vs Tranche d'âge
-        st.subheader("Impact perçu selon la tranche d’âge")
-        # encoder l’impact pour le boxplot
-        impact_map = {k: i for i, k in enumerate(impact_order)}
-        df_box = filtered_df.copy()
-        df_box["Impact_code"] = df_box["Impact société"].map(impact_map)
-        fig_box = px.box(
-            df_box,
-            x="Tranche d'âge",
-            y="Impact_code",
-            labels={"Impact_code": "Impact (codé)", "Tranche d'âge": "Âge"},
-            title="Boxplot : Impact perçu par tranche d’âge"
-        )
-        st.plotly_chart(fig_box, use_container_width=True)
 
 
 # =============================================
