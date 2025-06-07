@@ -262,9 +262,9 @@ with tab1:
         st.plotly_chart(fig_trust_age, use_container_width=True)
         
         # =============================================
-        # VISUALISATION GENRE VS PLATEFORMES (ONGLET 1 SEULEMENT)
+        # VISUALISATION GENRE VS PLATEFORMES (ONGLET 1)
         # =============================================
-        st.header("👥 Genre vs Plateformes (Amélioré)")
+        st.header("👥 Genre vs Plateformes")
         
         if "Plateformes" in filtered_df.columns:
             # Expansion des plateformes
@@ -296,6 +296,34 @@ with tab1:
             st.plotly_chart(fig, use_container_width=True)
         else:
             st.warning("La colonne 'Plateformes' n'est pas disponible")
+
+        # 3. Répartition par genre
+        st.subheader("Répartition par genre")
+        genre_counts = filtered_df["Genre"].value_counts().reset_index()
+        genre_counts.columns = ["Genre", "Count"]
+        fig_genre = px.bar(
+            genre_counts,
+            x="Genre",
+            y="Count",
+            text="Count",
+            title="Nombre de répondants par genre"
+        )
+        st.plotly_chart(fig_genre, use_container_width=True)
+
+        # 4. Boxplot : Impact vs Tranche d'âge
+        st.subheader("Impact perçu selon la tranche d’âge")
+        # encoder l’impact pour le boxplot
+        impact_map = {k: i for i, k in enumerate(impact_order)}
+        df_box = filtered_df.copy()
+        df_box["Impact_code"] = df_box["Impact société"].map(impact_map)
+        fig_box = px.box(
+            df_box,
+            x="Tranche d'âge",
+            y="Impact_code",
+            labels={"Impact_code": "Impact (codé)", "Tranche d'âge": "Âge"},
+            title="Boxplot : Impact perçu par tranche d’âge"
+        )
+        st.plotly_chart(fig_box, use_container_width=True)
 
         # =============================================
         # MATRICE DE CORRELATION (ONGLET 1 SEULEMENT)
@@ -1015,71 +1043,8 @@ with tab2:
 # ONGLET 3 : ANALYSE STATISTIQUE & REGRESSION
 # =============================================
 
-#EDA
-
 with tab3:
-        st.header("📊 Analyse exploratoire (EDA)")
-
-        # 2. Distribution de l'impact perçu
-        st.subheader("Distribution de l’impact perçu")
-        impact_order = ["Très négatif", "Négatif", "Neutre", "Positif", "Très positif"]
-        fig_impact_dist = px.histogram(
-            filtered_df,
-            x="Impact société",
-            category_orders={"Impact société": impact_order},
-            color="Impact société",
-            labels={"Impact société": "Impact perçu"},
-            title="Histogramme de l'impact perçu"
-        )
-        st.plotly_chart(fig_impact_dist, use_container_width=True)
-
-        # 3. Répartition par genre
-        st.subheader("Répartition par genre")
-        genre_counts = filtered_df["Genre"].value_counts().reset_index()
-        genre_counts.columns = ["Genre", "Count"]
-        fig_genre = px.bar(
-            genre_counts,
-            x="Genre",
-            y="Count",
-            text="Count",
-            title="Nombre de répondants par genre"
-        )
-        st.plotly_chart(fig_genre, use_container_width=True)
-
-        # 4. Boxplot : Impact vs Tranche d'âge
-        st.subheader("Impact perçu selon la tranche d’âge")
-        # encoder l’impact pour le boxplot
-        impact_map = {k: i for i, k in enumerate(impact_order)}
-        df_box = filtered_df.copy()
-        df_box["Impact_code"] = df_box["Impact société"].map(impact_map)
-        fig_box = px.box(
-            df_box,
-            x="Tranche d'âge",
-            y="Impact_code",
-            labels={"Impact_code": "Impact (codé)", "Tranche d'âge": "Âge"},
-            title="Boxplot : Impact perçu par tranche d’âge"
-        )
-        st.plotly_chart(fig_box, use_container_width=True)
-
-        # 5. Matrice de corrélation
-        st.subheader("Matrice de corrélation des variables clés")
-        cols_corr = ["Impact société", "Niveau connaissance", "Confiance réseaux sociaux", "Tranche d'âge", "Genre"]
-        df_corr = filtered_df[cols_corr].copy()
-        for col in cols_corr:
-            df_corr[col] = df_corr[col].astype("category").cat.codes
-        corr = df_corr.corr()
-        fig_corr = px.imshow(
-            corr,
-            text_auto=True,
-            color_continuous_scale="RdBu",
-            zmin=-1,
-            zmax=1,
-            labels={"color": "Corrélation"},
-            title="Heatmap de corrélation"
-        )
-        st.plotly_chart(fig_corr, use_container_width=True)
-
-
+        
 
 
 # =============================================
