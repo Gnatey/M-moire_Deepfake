@@ -180,62 +180,59 @@ with tab1:
         st.warning("Aucune donnée disponible avec les filtres sélectionnés.")
     else:
         st.header("🔍 Indicateurs Clés")
-
+        
         # Métriques en colonnes
         col1, col2, col3, col4 = st.columns(4)
-
+        
         with col1:
             total_respondents = len(filtered_df)
             st.metric("Nombre de Répondants", total_respondents)
-
+        
         with col2:
             aware_yes = filtered_df["Connaissance DeepFakes"].value_counts(normalize=True).get('Oui', 0) * 100
             st.metric("% Connaissance DeepFakes", f"{aware_yes:.1f}%")
-
+        
         with col3:
             seen_yes = filtered_df["Exposition DeepFakes"].value_counts(normalize=True).get('Oui', 0) * 100
             st.metric("% Ayant vu un DeepFake", f"{seen_yes:.1f}%")
-
+        
         with col4:
             trust_mean = filtered_df["Confiance réseaux sociaux"].apply(lambda x: 1 if x == 'Oui' else 0).mean() * 100
             st.metric("Confiance moyenne (réseaux)", f"{trust_mean:.1f}%")
-
+        
         # Visualisations principales
         st.header("📈 Visualisations Clés")
-
+        
         # 1. Niveau de connaissance
         st.subheader("Niveau de Connaissance des DeepFakes")
         knowledge_counts = filtered_df["Niveau connaissance"].value_counts().reset_index()
         fig_knowledge = px.bar(
-            knowledge_counts,
-            x="Niveau connaissance",
-            y="count",
+            knowledge_counts, 
+            x="Niveau connaissance", 
+            y="count", 
             text="count",
             color="Niveau connaissance",
             template="plotly_white"
         )
         st.plotly_chart(fig_knowledge, use_container_width=True)
-
+        
         # 2. Plateformes de DeepFakes
         st.subheader("Plateformes où les DeepFakes sont vus")
         if "Plateformes" in filtered_df.columns:
             platform_series = filtered_df["Plateformes"].dropna().str.split(';')
-            platform_flat = [
-                item.strip()
-                for sublist in platform_series
-                for item in sublist
-            ]
+            platform_flat = [item.strip() for sublist in platform_series for item in sublist]
             platform_counts = pd.Series(platform_flat).value_counts().reset_index()
             fig_platforms = px.pie(
-                platform_counts,
-                names='index',
+            platform_counts, 
+                names='index', 
                 values='count',
                 hole=0.3,
                 labels={'index': 'Plateforme', 'count': 'Occurrences'},
                 color_discrete_sequence=px.colors.qualitative.Alphabet
-            )
-            st.plotly_chart(fig_platforms, use_container_width=True)
+        )
 
+            st.plotly_chart(fig_platforms, use_container_width=True)
+        
         # 3. Impact perçu
         st.subheader("Impact perçu des DeepFakes")
         impact_counts = filtered_df["Impact société"].value_counts().reset_index()
@@ -248,18 +245,13 @@ with tab1:
             color_discrete_sequence=px.colors.qualitative.D3
         )
         st.plotly_chart(fig_impact, use_container_width=True)
-
+        
         # 4. Analyse croisée
         st.subheader("Analyse Croisée")
-
+        
         # Confiance par tranche d'âge
         st.markdown("**Confiance par Tranche d'âge**")
-        trust_age = (
-            filtered_df
-            .groupby("Tranche d'âge")["Confiance réseaux sociaux"]
-            .value_counts(normalize=True)
-            .unstack() * 100
-        )
+        trust_age = filtered_df.groupby("Tranche d'âge")["Confiance réseaux sociaux"].value_counts(normalize=True).unstack() * 100
         fig_trust_age = px.bar(
             trust_age,
             barmode="group",
@@ -268,27 +260,25 @@ with tab1:
             color_discrete_sequence=px.colors.qualitative.Plotly
         )
         st.plotly_chart(fig_trust_age, use_container_width=True)
-
+        
         # =============================================
-        # VISUALISATION GENRE VS PLATEFORMES (ONGLET 1)
+        # VISUALISATION GENRE VS PLATEFORMES (ONGLET 1 SEULEMENT)
         # =============================================
-        st.header("👥 Genre vs Plateformes")
+        st.header("👥 Genre vs Plateformes (Amélioré)")
+        
         if "Plateformes" in filtered_df.columns:
             # Expansion des plateformes
-            platform_series = (
-                filtered_df[["Plateformes", "Genre"]]
-                .dropna()
-                .assign(Plateformes=lambda df: df["Plateformes"].str.split(';'))
-                .explode("Plateformes")
-            )
-            platform_series["Plateformes"] = platform_series["Plateformes"].str.strip()
-
+            platform_series = filtered_df[["Plateformes", "Genre"]].dropna()
+            platform_series["Plateformes"] = platform_series["Plateformes"].str.split(';')
+            platform_exploded = platform_series.explode("Plateformes").dropna()
+            platform_exploded["Plateformes"] = platform_exploded["Plateformes"].str.strip()
+            
             # Table de contingence
             cross_tab = pd.crosstab(
-                platform_series["Genre"],
-                platform_series["Plateformes"]
+                platform_exploded["Genre"],
+                platform_exploded["Plateformes"]
             )
-
+            
             # Heatmap améliorée
             fig = px.imshow(
                 cross_tab,
@@ -302,55 +292,38 @@ with tab1:
                 yaxis_title="Genre",
                 margin=dict(t=50, b=100)
             )
+            
             st.plotly_chart(fig, use_container_width=True)
         else:
             st.warning("La colonne 'Plateformes' n'est pas disponible")
 
-        # 3. Répartition par genre
-        st.subheader("Répartition par genre")
-        genre_counts = filtered_df["Genre"].value_counts().reset_index()
-        genre_counts.columns = ["Genre", "Count"]
-        fig_genre = px.bar(
-            genre_counts,
-            x="Genre",
-            y="Count",
-            text="Count",
-            title="Nombre de répondants par genre"
-        )
-        st.plotly_chart(fig_genre, use_container_width=True)
-
-        # 4. Boxplot : Impact vs Tranche d'âge
-        st.subheader("Impact perçu selon la tranche d’âge")
-        impact_map = {k: i for i, k in enumerate(impact_order)}
-        df_box = filtered_df.copy()
-        df_box["Impact_code"] = df_box["Impact société"].map(impact_map)
-        fig_box = px.box(
-            df_box,
-            x="Tranche d'âge",
-            y="Impact_code",
-            labels={"Impact_code": "Impact (codé)", "Tranche d'âge": "Âge"},
-            title="Boxplot : Impact perçu par tranche d’âge"
-        )
-        st.plotly_chart(fig_box, use_container_width=True)
-
         # =============================================
-        # MATRICE DE CORRELATION (ONGLET 1)
+        # MATRICE DE CORRELATION (ONGLET 1 SEULEMENT)
         # =============================================
         st.header("🔗 Matrice de Corrélation")
+        
+        # Sélection des colonnes pertinentes
         selected_cols = [
             "Connaissance DeepFakes",
-            "Niveau connaissance",
+            "Niveau connaissance", 
             "Confiance réseaux sociaux",
             "Impact société",
             "Tranche d'âge",
             "Genre"
         ]
+        
+        # Vérification que les colonnes existent
         if all(col in filtered_df.columns for col in selected_cols):
             df_corr = filtered_df[selected_cols].copy()
+            
+            # Conversion des catégories en codes numériques
             for col in df_corr.columns:
                 df_corr[col] = df_corr[col].astype('category').cat.codes
-
+            
+            # Calcul de la matrice de corrélation
             corr_matrix = df_corr.corr()
+            
+            # Labels courts pour les axes
             short_labels = {
                 "Connaissance DeepFakes": "Connaissance DF",
                 "Niveau connaissance": "Niveau Connaissance",
@@ -359,7 +332,8 @@ with tab1:
                 "Tranche d'âge": "Âge",
                 "Genre": "Genre"
             }
-
+            
+            # Visualisation avec Plotly
             fig_corr = px.imshow(
                 corr_matrix,
                 text_auto=True,
@@ -372,6 +346,7 @@ with tab1:
                 aspect="auto",
                 title="Matrice de Corrélation (Variables Pertinentes)"
             )
+            
             fig_corr.update_layout(
                 width=800,
                 height=600,
@@ -379,6 +354,7 @@ with tab1:
                 font=dict(size=12),
                 margin=dict(t=50, b=100)
             )
+            
             st.plotly_chart(fig_corr, use_container_width=True)
         else:
             st.warning("Certaines colonnes nécessaires pour la matrice de corrélation sont manquantes")
@@ -1039,8 +1015,51 @@ with tab2:
 # ONGLET 3 : ANALYSE STATISTIQUE & REGRESSION
 # =============================================
 
+#EDA
 
-        
+with tab3:
+        st.header("📊 Analyse exploratoire (EDA)")
+
+        # 2. Distribution de l'impact perçu
+        st.subheader("Distribution de l’impact perçu")
+        impact_order = ["Très négatif", "Négatif", "Neutre", "Positif", "Très positif"]
+        fig_impact_dist = px.histogram(
+            filtered_df,
+            x="Impact société",
+            category_orders={"Impact société": impact_order},
+            color="Impact société",
+            labels={"Impact société": "Impact perçu"},
+            title="Histogramme de l'impact perçu"
+        )
+        st.plotly_chart(fig_impact_dist, use_container_width=True)
+
+        # 3. Répartition par genre
+        st.subheader("Répartition par genre")
+        genre_counts = filtered_df["Genre"].value_counts().reset_index()
+        genre_counts.columns = ["Genre", "Count"]
+        fig_genre = px.bar(
+            genre_counts,
+            x="Genre",
+            y="Count",
+            text="Count",
+            title="Nombre de répondants par genre"
+        )
+        st.plotly_chart(fig_genre, use_container_width=True)
+
+        # 4. Boxplot : Impact vs Tranche d'âge
+        st.subheader("Impact perçu selon la tranche d’âge")
+        # encoder l’impact pour le boxplot
+        impact_map = {k: i for i, k in enumerate(impact_order)}
+        df_box = filtered_df.copy()
+        df_box["Impact_code"] = df_box["Impact société"].map(impact_map)
+        fig_box = px.box(
+            df_box,
+            x="Tranche d'âge",
+            y="Impact_code",
+            labels={"Impact_code": "Impact (codé)", "Tranche d'âge": "Âge"},
+            title="Boxplot : Impact perçu par tranche d’âge"
+        )
+        st.plotly_chart(fig_box, use_container_width=True)
 
 
 # =============================================
