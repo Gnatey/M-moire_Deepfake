@@ -1015,241 +1015,160 @@ with tab2:
 # ONGLET 3 : ANALYSE STATISTIQUE & REGRESSION
 # =============================================
 
-def run_tab3(filtered_df):
-    st.header("📈 Analyse Statistique Avancée")
+# Onglet 3 - Analyse Avancée et Machine Learning
+def onglet3_analysis(df):
+    # Section 1: Préparation des données
+    print("Préparation des données pour le Machine Learning...")
     
-    # Section 1: Bootstrap Confidence Intervals
-    with st.expander("🔎 Intervalle de Confiance par Bootstrap", expanded=True):
-        st.subheader("Estimation par Bootstrap")
+    # Encodage des variables catégorielles
+    le = LabelEncoder()
+    categorical_cols = df.select_dtypes(include=['object']).columns
+    for col in categorical_cols:
+        try:
+            df[col] = le.fit_transform(df[col].astype(str))
+        except:
+            df[col] = df[col].astype('category').cat.codes
+    
+    # Sélection des features et target
+    features = df.drop(columns=['Selon vous, quel est l\'impact global des Deep Fakes sur la société ?'])
+    target = df['Selon vous, quel est l\'impact global des Deep Fakes sur la société ?']
+    
+    # Split des données
+    X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.3, random_state=42)
+    
+    # Section 2: Modèle de Machine Learning
+    print("\nEntraînement du modèle Random Forest...")
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
+    
+    # Prédictions
+    y_pred = model.predict(X_test)
+    
+    # Évaluation
+    print("\nPerformance du modèle:")
+    print(f"Accuracy: {accuracy_score(y_test, y_pred):.2f}")
+    print("\nMatrice de confusion:")
+    print(confusion_matrix(y_test, y_pred))
+    print("\nRapport de classification:")
+    print(classification_report(y_test, y_pred))
+    
+    # Importance des features
+    feature_importance = pd.DataFrame({
+        'Feature': features.columns,
+        'Importance': model.feature_importances_
+    }).sort_values('Importance', ascending=False).head(10)
+    
+    # Section 3: Visualisations
+    plt.figure(figsize=(15, 10))
+    
+    # 1. Importance des features
+    plt.subplot(2, 2, 1)
+    sns.barplot(x='Importance', y='Feature', data=feature_importance)
+    plt.title('Top 10 des variables les plus importantes')
+    
+    # 2. Nuage de mots pour les plateformes
+    plt.subplot(2, 2, 2)
+    platforms = df['_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)'].astype(str)
+    wordcloud = WordCloud(width=800, height=400, background_color='white').generate(' '.join(platforms))
+    plt.imshow(wordcloud, interpolation='bilinear')
+    plt.axis('off')
+    plt.title('Plateformes où les DeepFakes sont vus')
+    
+    # 3. Distribution de l'impact perçu
+    plt.subplot(2, 2, 3)
+    impact_mapping = {0: 'Très négatif', 1: 'Négatif', 2: 'Neutre', 3: 'Positif', 4: 'Très positif'}
+    impact = target.map(impact_mapping)
+    sns.countplot(x=impact, order=['Très négatif', 'Négatif', 'Neutre', 'Positif', 'Très positif'])
+    plt.title('Distribution de l\'impact perçu des DeepFakes')
+    plt.xticks(rotation=45)
+    
+    # 4. Corrélation entre confiance et impact
+    plt.subplot(2, 2, 4)
+    sns.scatterplot(x=df['Depuis que vous avez entendu parler des Deep Fakes, votre confiance dans les médias sociaux a-t-elle changé ?'],
+                   y=target)
+    plt.title('Relation entre confiance et impact perçu')
+    
+    plt.tight_layout()
+    plt.savefig('onglet3_visualisations.png')
+    plt.show()
+    
+    # Section 4: Analyse textuelle avancée
+    print("\nAnalyse textuelle des commentaires...")
+    try:
+        # Exemple avec une colonne de texte (à adapter selon vos données)
+        text_data = df['Quelles sont vos méthodes de vérification des informations en ligne ? (Plusieurs choix possibles)'].dropna()
         
-        if "Confiance réseaux sociaux" in filtered_df.columns:
-            # Convert to binary
-            confiance_series = filtered_df["Confiance réseaux sociaux"].apply(
-                lambda x: 1 if str(x).strip().lower() == 'oui' else 0
-            ).dropna()
-            
-            # Bootstrap
-            bootstrap_means = [
-                resample(confiance_series, replace=True).mean() 
-                for _ in range(1000)
-            ]
-            
-            # Metrics
-            mean_estimate = np.mean(bootstrap_means) * 100
-            ci_lower = np.percentile(bootstrap_means, 2.5) * 100
-            ci_upper = np.percentile(bootstrap_means, 97.5) * 100
-            
-            # Visualization
-            fig = px.histogram(
-                x=bootstrap_means,
-                nbins=50,
-                labels={'x': 'Proportion de confiance', 'y': 'Fréquence'},
-                title="Distribution Bootstrap de la Confiance"
-            )
-            fig.add_vline(x=mean_estimate/100, line_dash="dash", line_color="red")
-            fig.add_vline(x=ci_lower/100, line_color="green")
-            fig.add_vline(x=ci_upper/100, line_color="green")
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # Metrics display
-            col1, col2, col3 = st.columns(3)
-            col1.metric("Estimation Moyenne", f"{mean_estimate:.1f}%")
-            col2.metric("IC 95% Inférieur", f"{ci_lower:.1f}%")
-            col3.metric("IC 95% Supérieur", f"{ci_upper:.1f}%")
-        else:
-            st.warning("La colonne 'Confiance réseaux sociaux' est manquante")
-
-    # Section 2: Logistic Regression
-    with st.expander("🧮 Modélisation par Régression Logistique", expanded=True):
-        st.subheader("Prédicteurs de la Confiance")
+        # Vectorisation du texte
+        vectorizer = CountVectorizer(max_features=50, stop_words='french')
+        X_text = vectorizer.fit_transform(text_data)
         
-        # Prepare data
-        target_col = "Confiance réseaux sociaux"
-        features = [
-            "Tranche d'âge", "Genre", "Niveau connaissance", 
-            "Exposition DeepFakes", "Impact société"
-        ]
+        # Mots les plus fréquents
+        words = vectorizer.get_feature_names_out()
+        frequencies = X_text.sum(axis=0).A1
+        word_freq = pd.DataFrame({'Word': words, 'Frequency': frequencies}).sort_values('Frequency', ascending=False)
         
-        # Filter and clean
-        df_model = filtered_df[[target_col] + features].dropna()
-        df_model["target"] = df_model[target_col].apply(
-            lambda x: 1 if str(x).strip().lower() == 'oui' else 0
-        )
-        
-        if len(df_model) > 50:  # Minimum sample size
-            X = df_model[features]
-            y = df_model["target"]
-            
-            # Preprocessing pipeline
-            categorical_features = features
-            preprocessor = ColumnTransformer(
-                transformers=[
-                    ('cat', OneHotEncoder(drop='first'), categorical_features)
-                ],
-                remainder='passthrough'
-            )
-            
-            # Model pipeline
-            model = Pipeline([
-                ('preprocessor', preprocessor),
-                ('classifier', LogisticRegression(max_iter=1000))
-            ])
-            
-            # Train-test split
-            X_train, X_test, y_train, y_test = train_test_split(
-                X, y, test_size=0.3, random_state=42
-            )
-            
-            # Fit model
-            model.fit(X_train, y_train)
-            
-            # Model evaluation
-            st.subheader("Performance du Modèle")
-            
-            # Metrics
-            y_pred = model.predict(X_test)
-            y_proba = model.predict_proba(X_test)[:, 1]
-            auc = roc_auc_score(y_test, y_proba)
-            
-            col1, col2 = st.columns(2)
-            col1.metric("AUC-ROC", f"{auc:.3f}")
-            col2.metric("Exactitude", f"{model.score(X_test, y_test):.2f}")
-            
-            # Confusion matrix
-            st.subheader("Matrice de Confusion")
-            cm = confusion_matrix(y_test, y_pred)
-            fig_cm = px.imshow(
-                cm,
-                labels=dict(x="Prédit", y="Réel", color="Count"),
-                x=['Non', 'Oui'],
-                y=['Non', 'Oui'],
-                text_auto=True
-            )
-            st.plotly_chart(fig_cm, use_container_width=True)
-            
-            # ROC Curve
-            st.subheader("Courbe ROC")
-            fpr, tpr, _ = roc_curve(y_test, y_proba)
-            fig_roc = px.area(
-                x=fpr, y=tpr,
-                labels=dict(x="Taux Faux Positifs", y="Taux Vrais Positifs"),
-                title=f"Courbe ROC (AUC = {auc:.3f})"
-            )
-            fig_roc.add_shape(type='line', line=dict(dash='dash'), x0=0, x1=1, y0=0, y1=1)
-            st.plotly_chart(fig_roc, use_container_width=True)
-            
-            # Feature importance
-            st.subheader("Importance des Variables")
-            try:
-                # Get feature names after one-hot encoding
-                feature_names = model.named_steps['preprocessor'].transformers_[0][1].get_feature_names_out(input_features=features)
-                
-                # SHAP values
-                explainer = shap.Explainer(
-                    model.named_steps['classifier'], 
-                    model.named_steps['preprocessor'].transform(X_train)
-                )
-                shap_values = explainer.shap_values(model.named_steps['preprocessor'].transform(X_test))
-                
-                # Summary plot
-                fig_shap = go.Figure()
-                for i, name in enumerate(feature_names):
-                    fig_shap.add_trace(go.Box(
-                        y=shap_values[:, i],
-                        name=name,
-                        boxpoints=False
-                    ))
-                fig_shap.update_layout(
-                    title="Impact des Variables (SHAP Values)",
-                    yaxis_title="Valeur SHAP",
-                    showlegend=False
-                )
-                st.plotly_chart(fig_shap, use_container_width=True)
-                
-            except Exception as e:
-                st.warning(f"SHAP non disponible : {str(e)}")
+        # Visualisation interactive
+        fig = px.bar(word_freq.head(20), x='Word', y='Frequency', 
+                     title='Mots les plus fréquents dans les méthodes de vérification',
+                     color='Frequency', color_continuous_scale='Blues')
+        fig.show()
+    except Exception as e:
+        print(f"Erreur dans l'analyse textuelle: {e}")
+    
+    # Section 5: Recommandations automatisées
+    print("\nGénération de recommandations personnalisées...")
+    
+    # Analyse des groupes à risque
+    high_risk = df[df['Selon vous, quel est l\'impact global des Deep Fakes sur la société ?'] <= 1]  # Très négatif/Négatif
+    
+    recommendations = {
+        'Plateformes': "Renforcer les mécanismes de détection sur " + ', '.join(high_risk['_Sur quelles plateformes avez-vous principalement vu des Deep Fakes ? (Plusieurs choix possibles)'].mode()),
+        'Éducation': f"{len(high_risk)} utilisateurs à haut risque identifiés - Campagnes de sensibilisation ciblées recommandées",
+        'Détection': "Investir dans des outils de détection automatisée pour " + high_risk['Parmi les 4 photos, laquelle est un Deepfakes ?'].mode()[0],
+        'Confiance': "Programmes de restauration de confiance pour les utilisateurs dont la confiance a diminué"
+    }
+    
+    print("\nRecommandations stratégiques:")
+    for key, value in recommendations.items():
+        print(f"- {key}: {value}")
+    
+    # Sauvegarde des résultats
+    results = {
+        'model': model,
+        'feature_importance': feature_importance,
+        'accuracy': accuracy_score(y_test, y_pred),
+        'recommendations': recommendations
+    }
+    
+    return results
 
-                # Récupération des noms de variables après transformation + sélection
-                feature_names_raw = model.named_steps['preprocessor'].transformers_[0][1].get_feature_names_out(input_features=features)
-                selected_mask = model.named_steps['feature_selection'].get_support()
-                selected_features = feature_names_raw[selected_mask]
+# Exécution de l'analyse
+results = onglet3_analysis(df)
 
-                # Création du DataFrame des coefficients
-                coefs = pd.DataFrame({
-                    'Variable': selected_features,
-                    'Coefficient': model.named_steps['classifier'].coef_[0]
-                }).sort_values('Coefficient', ascending=False)
+# Fonction supplémentaire pour l'automatisation des rapports
+def generate_report(results):
+    report = f"""
+    RAPPORT D'ANALYSE DES DEEPFAKES - ONGLET 3
+    ===========================================
+    
+    Performances du modèle:
+    - Exactitude: {results['accuracy']:.2%}
+    
+    Top 5 des variables les plus importantes:
+    {results['feature_importance'].head(5).to_string()}
+    
+    Recommandations:
+    """
+    for key, value in results['recommendations'].items():
+        report += f"\n- {key}: {value}"
+    
+    with open('deepfakes_report_onglet3.txt', 'w', encoding='utf-8') as f:
+        f.write(report)
+    
+    return report
 
-                # Affichage des coefficients sous forme de graphique
-                fig_coef = px.bar(
-                    coefs,
-                    x='Coefficient',
-                    y='Variable',
-                    orientation='h',
-                    title="Coefficients de Régression"
-                )
-                st.plotly_chart(fig_coef, use_container_width=True)
-
-            # Model interpretation
-            st.subheader("Interprétation du Modèle")
-            st.markdown("""
-            - **Coefficients positifs** : Augmentent la probabilité de confiance
-            - **Coefficients négatifs** : Diminuent la probabilité de confiance
-            """)
-            
-            # Export model
-            #st.download_button(
-                #label="📥 Télécharger les coefficients",
-                #data=coefs.to_csv(index=False),
-                #file_name="coefficients_regression.csv",
-                #mime="text/csv"
-            #)
-            
-        else:
-            st.warning("Échantillon trop petit pour la modélisation (n < 50)")
-
-    # Section 3: Advanced Diagnostics
-    with st.expander("🔍 Diagnostics Avancés", expanded=False):
-        st.subheader("Validation du Modèle")
-        
-        if len(df_model) > 50:
-            # VIF Analysis
-            st.markdown("**Analyse de Multicolinéarité (VIF)**")
-            try:
-                # Get design matrix
-                X_design = model.named_steps['preprocessor'].transform(X)
-                
-                # Calculate VIF
-                vif_data = pd.DataFrame()
-                vif_data["Variable"] = feature_names
-                vif_data["VIF"] = [variance_inflation_factor(X_design, i) 
-                                   for i in range(X_design.shape[1])]
-                
-                st.dataframe(
-                    vif_data.style.applymap(
-                        lambda x: 'background-color: yellow' if x > 5 else ''
-                    ),
-                    height=300
-                )
-                st.markdown("> Un VIF > 5 indique une possible multicolinéarité")
-                
-            except Exception as e:
-                st.error(f"Erreur VIF : {str(e)}")
-            
-            # Precision-Recall Curve
-            st.subheader("Courbe Precision-Rappel")
-            precision, recall, _ = precision_recall_curve(y_test, y_proba)
-            fig_pr = px.line(
-                x=recall, y=precision,
-                labels=dict(x="Rappel", y="Précision"),
-                title="Courbe Precision-Rappel"
-            )
-            st.plotly_chart(fig_pr, use_container_width=True)
-
-# Example usage in your Streamlit app:
-# In your main app where you have tabs:
-with tab3:
-     run_tab3(filtered_df)
+# Génération du rapport
+print(generate_report(results))
 
 
 # =============================================
