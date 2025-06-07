@@ -1058,8 +1058,6 @@ with tab2:
 # =============================================
 
 with tab3 : 
-    # 3. Prétraitement & pipeline unifié
-    st.subheader("Prétraitement des données & pipeline")
 
     # Séparation target / features
     impact_map = {"Très négatif":0, "Négatif":1, "Neutre":2, "Positif":3, "Très positif":4}
