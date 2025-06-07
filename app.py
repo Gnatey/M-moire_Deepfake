@@ -1018,9 +1018,7 @@ with tab2:
 #EDA
 
 with tab3:
-    st.header("📊 Analyse exploratoire (EDA)")
-    if filtered_df.empty:
-        st.warning("Aucune donnée disponible avec les filtres sélectionnés.")
+        st.header("📊 Analyse exploratoire (EDA)")
 
         # 2. Distribution de l'impact perçu
         st.subheader("Distribution de l’impact perçu")
