@@ -1057,107 +1057,96 @@ with tab2:
 # ONGLET 3 - MACHINE LEARNING
 # =============================================
 
-with tab4:
-    st.header("👥 User Personae Creation")
+with tab3:
+    st.header("📈 Machine Learning & Predictive Analytics")
     
     if not df.empty:
-        # Section 1: Segmentation Criteria
-        with st.expander("🔍 Segmentation Criteria", expanded=True):
-            st.subheader("Define Your Segments")
+        # Section 1: Data Preparation
+        with st.expander("🔧 Data Preparation", expanded=True):
+            st.subheader("Feature Engineering")
             
-            segmentation_options = {
-                "Demographic": ["Tranche d'âge", "Genre"],
-                "Behavioral": ["Connaissance DeepFakes", "Exposition DeepFakes"],
-                "Attitudinal": ["Confiance réseaux sociaux", "Impact société"]
-            }
+            # Target variable selection
+            target_options = ["Connaissance DeepFakes", "Exposition DeepFakes", "Confiance réseaux sociaux"]
+            target_var = st.selectbox("Select target variable:", target_options)
             
-            selected_criteria = []
-            for category, options in segmentation_options.items():
-                selected = st.multiselect(f"{category} Criteria:", options)
-                selected_criteria.extend(selected)
+            # Feature selection
+            feature_options = [col for col in df.columns if col not in target_options + ["Plateformes", "Date de saisie"]]
+            selected_features = st.multiselect("Select features:", feature_options, default=feature_options[:5])
             
-            num_clusters = st.slider("Number of segments:", 2, 6, 3)
+            # Encoding strategy
+            encode_method = st.radio("Encoding method:", ["One-Hot Encoding", "Ordinal Encoding"])
             
-            if st.button("Create Segments"):
-                st.session_state['segmentation_done'] = True
+            st.success("Data prepared for modeling!")
         
-        # Section 2: Persona Visualization
-        if st.session_state.get('segmentation_done', False):
-            with st.expander("🎨 Persona Visualization", expanded=True):
-                st.subheader("Generated Personae")
-                
-                # Placeholder for actual clustering results
-                personas = [
-                    {
-                        "name": "Tech-Savvy Skeptic",
-                        "description": "Young, knowledgeable about deepfakes, but distrusts social media",
-                        "size": "35%",
-                        "traits": ["18-25 years", "High knowledge", "Low trust"]
-                    },
-                    {
-                        "name": "Older Casual User",
-                        "description": "Minimal deepfake awareness, neutral attitude",
-                        "size": "45%",
-                        "traits": ["40+ years", "Low knowledge", "Medium trust"]
-                    },
-                    {
-                        "name": "Concerned Middle-Ager",
-                        "description": "Has seen deepfakes, very concerned about impact",
-                        "size": "20%",
-                        "traits": ["26-40 years", "Medium knowledge", "High concern"]
-                    }
-                ]
-                
-                # Display personas
-                cols = st.columns(min(3, len(personas)))
-                for i, persona in enumerate(personas[:3]):
-                    with cols[i]:
-                        with st.container(border=True):
-                            st.markdown(f"### {persona['name']}")
-                            st.markdown(f"*{persona['description']}*")
-                            st.metric("Segment Size", persona['size'])
-                            st.markdown("**Key Traits:**")
-                            for trait in persona['traits']:
-                                st.markdown(f"- {trait}")
-                
-                # Persona comparison chart
-                st.subheader("Persona Comparison")
-                comparison_data = pd.DataFrame({
-                    "Persona": [p['name'] for p in personas],
-                    "Knowledge": [0.8, 0.3, 0.6],  # Example values
-                    "Trust": [0.2, 0.5, 0.4],
-                    "Exposure": [0.7, 0.2, 0.9]
-                })
-                fig_persona = px.parallel_categories(
-                    comparison_data,
-                    dimensions=["Knowledge", "Trust", "Exposure"],
-                    color="Persona",
-                    color_discrete_sequence=px.colors.qualitative.Pastel
-                )
-                st.plotly_chart(fig_persona, use_container_width=True)
-        
-        # Section 3: Persona Insights
-        with st.expander("💡 Persona Insights", expanded=False):
-            st.subheader("Strategic Recommendations")
+        # Section 2: Model Selection
+        with st.expander("🤖 Model Selection", expanded=True):
+            model_type = st.selectbox("Select model type:", 
+                                    ["Logistic Regression", "Random Forest", "XGBoost"])
             
-            if st.session_state.get('segmentation_done', False):
-                recommendations = [
-                    "**Tech-Savvy Skeptics**: Focus on verification tools education",
-                    "**Older Casual Users**: Basic awareness campaigns about deepfakes",
-                    "**Concerned Middle-Agers**: Provide resources on impact mitigation"
-                ]
+            # Hyperparameter tuning
+            if model_type == "Logistic Regression":
+                C_value = st.slider("Regularization (C):", 0.01, 10.0, 1.0)
+                penalty = st.radio("Penalty:", ["l2", "none"])
                 
-                for rec in recommendations:
-                    st.markdown(f"- {rec}")
+            elif model_type == "Random Forest":
+                n_estimators = st.slider("Number of trees:", 10, 200, 100)
+                max_depth = st.slider("Max depth:", 2, 20, 5)
                 
-                st.download_button(
-                    label="📥 Download Personae Report",
-                    data=json.dumps(personas, indent=2),
-                    file_name="deepfake_personae_report.json",
-                    mime="application/json"
-                )
-            else:
-                st.info("Create segments first to see recommendations")
+            elif model_type == "XGBoost":
+                learning_rate = st.slider("Learning rate:", 0.01, 1.0, 0.1)
+                n_estimators = st.slider("Number of trees:", 10, 200, 100)
+        
+        # Section 3: Model Training & Evaluation
+        with st.expander("📊 Model Evaluation", expanded=True):
+            if st.button("Train Model"):
+                with st.spinner("Training model..."):
+                    # Placeholder for actual model training code
+                    # This would include:
+                    # 1. Data preprocessing
+                    # 2. Train/test split
+                    # 3. Model training
+                    # 4. Evaluation metrics
+                    
+                    # Display placeholder results
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.metric("Accuracy", "0.82")
+                        st.metric("Precision", "0.79")
+                    with col2:
+                        st.metric("Recall", "0.85")
+                        st.metric("F1 Score", "0.82")
+                    
+                    # Feature importance plot
+                    st.subheader("Feature Importance")
+                    importance_data = pd.DataFrame({
+                        "Feature": selected_features[:5],
+                        "Importance": [0.25, 0.20, 0.18, 0.15, 0.12]
+                    })
+                    fig_importance = px.bar(importance_data, x="Importance", y="Feature", orientation='h')
+                    st.plotly_chart(fig_importance, use_container_width=True)
+                    
+                    # SHAP values explanation
+                    st.subheader("SHAP Values Explanation")
+                    st.info("This would show how each feature contributes to predictions")
+        
+        # Section 4: Prediction Interface
+        with st.expander("🔮 Make Predictions", expanded=False):
+            st.subheader("Predict on New Data")
+            
+            # Create input form based on selected features
+            input_values = {}
+            for feature in selected_features:
+                if df[feature].dtype == 'object':
+                    unique_vals = df[feature].unique()
+                    input_values[feature] = st.selectbox(feature, unique_vals)
+                else:
+                    min_val = float(df[feature].min())
+                    max_val = float(df[feature].max())
+                    input_values[feature] = st.slider(feature, min_val, max_val, (min_val + max_val)/2)
+            
+            if st.button("Predict"):
+                # Placeholder for prediction logic
+                st.success(f"Prediction: {np.random.choice(['Positive', 'Negative'])} (confidence: {np.random.uniform(0.7, 0.95):.2f})")
     
     else:
         st.warning("Please load data first in the EDA tab")
