@@ -39,6 +39,7 @@ import seaborn as sns
 # =============================================
 # INITIALISATION ET CONFIGURATION DE BASE
 # =============================================
+st.set_option('deprecation.showPyplotGlobalUse', False)
 st.set_page_config(
     page_title="Dashboard DeepFakes",
     page_icon="📊",
@@ -1062,15 +1063,14 @@ with tab2:
 # =============================================
 
 with tab3:
-    st.header("📈 Analyse Statistique & Machine Learning")
+    st.header("📈 Machine Learning")
 
-    # 3. Prétraitement & pipeline unifié
+    # Prétraitement & pipeline
     st.subheader("Prétraitement des données & pipeline")
     impact_map = {"Très négatif":0, "Négatif":1, "Neutre":2, "Positif":3, "Très positif":4}
     y = filtered_df["Impact société"].map(impact_map)
     X = filtered_df.drop(columns=["Impact société"])
-
-    # Décomposer la multi-sélection des plateformes
+    # plateformes multi‐sélection
     X["Plateformes_list"] = (
         X["Plateformes"].fillna("")
          .str.split(";")
@@ -1082,18 +1082,12 @@ with tab3:
         columns=mlb.classes_,
         index=X.index
     )
-    X = pd.concat([X.drop(columns=["Plateformes", "Plateformes_list"]), plat_df], axis=1)
+    X = pd.concat([X.drop(columns=["Plateformes","Plateformes_list"]), plat_df], axis=1)
 
-    # Colonnes catégorielles restantes
     cat_cols = X.select_dtypes(include="object").columns.tolist()
-
-    # Pipeline de prétraitement
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ("ohe", OneHotEncoder(handle_unknown="ignore", sparse_output=False), cat_cols)
-        ],
-        remainder="passthrough"
-    )
+    preprocessor = ColumnTransformer([
+        ("ohe", OneHotEncoder(handle_unknown="ignore", sparse_output=False), cat_cols)
+    ], remainder="passthrough")
     pipeline = Pipeline([
         ("preprocessor", preprocessor),
         ("scaler", StandardScaler(with_mean=False))
@@ -1101,21 +1095,15 @@ with tab3:
     X_proc = pipeline.fit_transform(X)
     st.markdown(f"Données transformées : {X_proc.shape[0]} échantillons × {X_proc.shape[1]} caractéristiques")
 
-    # 4. Recherche d’hyperparamètres + entraînement
-    st.subheader("Recherche d’hyperparamètres & entraînement")
+    # Recherche d’hyperparamètres
+    st.subheader("Recherche d’hyperparamètres")
     param_grid = {
         "n_estimators": [100, 200],
         "max_depth": [None, 10],
         "min_samples_leaf": [1, 2]
     }
     base = RandomForestClassifier(random_state=42, class_weight="balanced_subsample")
-    grid = GridSearchCV(
-        base,
-        param_grid,
-        cv=3,
-        scoring="f1_weighted",
-        n_jobs=-1
-    )
+    grid = GridSearchCV(base, param_grid, cv=3, scoring="f1_weighted", n_jobs=-1)
     X_train, X_test, y_train, y_test = train_test_split(
         X_proc, y, test_size=0.3, random_state=42, stratify=y
     )
@@ -1123,7 +1111,7 @@ with tab3:
     model = grid.best_estimator_
     st.write("Meilleurs paramètres :", grid.best_params_)
 
-    # 5. Évaluation
+    # Évaluation
     st.subheader("Évaluation du modèle")
     y_pred = model.predict(X_test)
     acc = accuracy_score(y_test, y_pred)
@@ -1137,22 +1125,21 @@ with tab3:
     ax.set_ylabel("Vérité terrain")
     st.pyplot(fig_cm)
 
+    # Rapport de classification
     st.subheader("Rapport de classification")
     st.text(classification_report(y_test, y_pred, target_names=list(impact_map.keys())))
 
-    # 6. Importance des features
-    st.subheader("Top 10 des variables importantes")
-    feat_names = grid.best_estimator_.feature_names_in_ if hasattr(grid.best_estimator_, "feature_names_in_") else None
-    importances = pd.Series(model.feature_importances_, index=feat_names).nlargest(10)
-    st.bar_chart(importances)
-
-    # 7. Analyse SHAP
+    # Interprétabilité avec SHAP
     st.subheader("Interprétabilité avec SHAP")
     explainer = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(X_test)
-    plt.figure(figsize=(8, 6))
-    shap.summary_plot(shap_values, X_test, feature_names=feat_names, show=False)
-    st.pyplot(bbox_inches="tight")
+    fig_shap, ax_shap = plt.subplots(figsize=(8,6))
+    shap.summary_plot(
+        shap_values, X_test, feature_names=mlb.classes_.tolist() + list(pipeline.named_steps["preprocessor"]
+                                                                          .get_feature_names_out(cat_cols)),
+        show=False, plot_type="bar", max_display=10, ax=ax_shap
+    )
+    st.pyplot(fig_shap)
 
 
 # =============================================
