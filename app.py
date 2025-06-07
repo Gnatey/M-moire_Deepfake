@@ -33,6 +33,7 @@ from statsmodels.stats.outliers_influence import variance_inflation_factor
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import SelectFromModel
 from sklearn.preprocessing import MultiLabelBinarizer
+import seaborn as sns
 
 # =============================================
 # INITIALISATION ET CONFIGURATION DE BASE
