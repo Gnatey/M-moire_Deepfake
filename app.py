@@ -1056,6 +1056,19 @@ with tab2:
 # =============================================
 # ONGLET 3 - ANALYSE STATISTIQUE & MACHINE LEARNING
 # =============================================
+def calculate_cramers_v(contingency_table):
+    """
+    Calcule le V de Cramer pour mesurer l'association entre variables catégorielles
+    Valeurs entre 0 (aucune association) et 1 (association parfaite)
+    """
+    chi2 = chi2_contingency(contingency_table)[0]
+    n = contingency_table.sum().sum()
+    phi2 = chi2 / n
+    r, k = contingency_table.shape
+    phi2corr = max(0, phi2 - ((k-1)*(r-1))/(n-1))
+    rcorr = r - ((r-1)**2)/(n-1)
+    kcorr = k - ((k-1)**2)/(n-1)
+    return np.sqrt(phi2corr / min((kcorr-1), (rcorr-1)))
 
 with tab3:
     st.header("📈 Analyse Statistique & Machine Learning")
