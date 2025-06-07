@@ -1059,6 +1059,14 @@ with tab2:
 
 with tab3 : 
 
+    st.header("📈 Entraînement et évaluation du modèle")
+
+# =============================================
+# ONGLET 3 - MACHINE LEARNING
+# =============================================
+
+with tab3 : 
+
     # Séparation target / features
     impact_map = {"Très négatif":0, "Négatif":1, "Neutre":2, "Positif":3, "Très positif":4}
     y = filtered_df["Impact société"].map(impact_map)
@@ -1096,7 +1104,7 @@ with tab3 :
     # Application du pipeline
     X_proc = pipeline.fit_transform(X)
 
-    # Split stratifié
+    # 4. Split train/test
     X_train, X_test, y_train, y_test = train_test_split(
         X_proc, y,
         test_size=0.3,
@@ -1118,8 +1126,8 @@ with tab3 :
     st.metric("Accuracy (test)", f"{acc:.2%}")
 
     # Matrice de confusion
-    cm = confusion_matrix(y_test, y_pred)
     st.subheader("Matrice de confusion")
+    cm = confusion_matrix(y_test, y_pred)
     fig_cm, ax = plt.subplots()
     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax)
     ax.set_xlabel("Prédiction")
