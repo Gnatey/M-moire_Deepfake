@@ -1063,14 +1063,22 @@ with tab2:
 # =============================================
 
 with tab3:
-    st.header("📈 Machine Learning")
+    st.header("📈 Analyse Statistique & Machine Learning")
 
-    # Prétraitement & pipeline
-    st.subheader("Prétraitement des données & pipeline")
-    impact_map = {"Très négatif":0, "Négatif":1, "Neutre":2, "Positif":3, "Très positif":4}
-    y = filtered_df["Impact société"].map(impact_map)
+    # 1. Fusionner les classes en 3 catégories
+    st.subheader("1️⃣ Fusion des classes extrêmes")
+    impact_map_3 = {
+        "Très négatif": 0, "Négatif": 0,
+        "Neutre":      1,
+        "Positif":     2, "Très positif": 2
+    }
+    y = filtered_df["Impact société"].map(impact_map_3)
+
+    # 2. Prétraitement & pipeline
+    st.subheader("2️⃣ Prétraitement & réduction de dimension")
     X = filtered_df.drop(columns=["Impact société"])
-    # plateformes multi‐sélection
+
+    # 2.1. Décomposer la multi-sélection des plateformes
     X["Plateformes_list"] = (
         X["Plateformes"].fillna("")
          .str.split(";")
@@ -1084,62 +1092,80 @@ with tab3:
     )
     X = pd.concat([X.drop(columns=["Plateformes","Plateformes_list"]), plat_df], axis=1)
 
+    # 2.2. Pipeline OneHot + scaling
     cat_cols = X.select_dtypes(include="object").columns.tolist()
     preprocessor = ColumnTransformer([
         ("ohe", OneHotEncoder(handle_unknown="ignore", sparse_output=False), cat_cols)
     ], remainder="passthrough")
     pipeline = Pipeline([
-        ("preprocessor", preprocessor),
-        ("scaler", StandardScaler(with_mean=False))
+        ("pre", preprocessor),
+        ("scale", StandardScaler(with_mean=False))
     ])
     X_proc = pipeline.fit_transform(X)
-    st.markdown(f"Données transformées : {X_proc.shape[0]} échantillons × {X_proc.shape[1]} caractéristiques")
 
-    # Recherche d’hyperparamètres
-    st.subheader("Recherche d’hyperparamètres")
-    param_grid = {
-        "n_estimators": [100, 200],
-        "max_depth": [None, 10],
-        "min_samples_leaf": [1, 2]
-    }
-    base = RandomForestClassifier(random_state=42, class_weight="balanced_subsample")
-    grid = GridSearchCV(base, param_grid, cv=3, scoring="f1_weighted", n_jobs=-1)
+    # 2.3. VarianceThreshold pour virer les colonnes quasi-constantes
+    vt = VarianceThreshold(threshold=0.01)
+    X_sel = vt.fit_transform(X_proc)
+
+    st.markdown(f"- Avant sélection : {X_proc.shape[1]} features\n"
+                f"- Après VarianceThreshold : {X_sel.shape[1]} features")
+
+    # 3. Recherche d’hyper-paramètres & entraînement
+    st.subheader("3️⃣ Recherche d’hyper-paramètres & entraînement")
     X_train, X_test, y_train, y_test = train_test_split(
-        X_proc, y, test_size=0.3, random_state=42, stratify=y
+        X_sel, y, test_size=0.3, random_state=42, stratify=y
     )
+
+    param_grid = {
+        "n_estimators":    [100, 200],
+        "max_depth":       [None, 10],
+        "min_samples_leaf":[1, 2]
+    }
+    base_rf = RandomForestClassifier(random_state=42, class_weight="balanced_subsample")
+    grid = GridSearchCV(base_rf, param_grid, cv=3, scoring="f1_weighted", n_jobs=-1)
     grid.fit(X_train, y_train)
     model = grid.best_estimator_
-    st.write("Meilleurs paramètres :", grid.best_params_)
+    st.write("**Meilleurs paramètres :**", grid.best_params_)
 
-    # Évaluation
-    st.subheader("Évaluation du modèle")
+    # 4. Évaluation du modèle
+    st.subheader("4️⃣ Évaluation du modèle")
     y_pred = model.predict(X_test)
     acc = accuracy_score(y_test, y_pred)
     st.metric("Accuracy (test)", f"{acc:.2%}")
 
     # Matrice de confusion
     cm = confusion_matrix(y_test, y_pred)
-    fig_cm, ax = plt.subplots()
-    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax)
-    ax.set_xlabel("Prédiction")
-    ax.set_ylabel("Vérité terrain")
+    fig_cm, ax_cm = plt.subplots()
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax_cm)
+    ax_cm.set_xlabel("Prédiction")
+    ax_cm.set_ylabel("Vérité terrain")
     st.pyplot(fig_cm)
 
     # Rapport de classification
     st.subheader("Rapport de classification")
-    st.text(classification_report(y_test, y_pred, target_names=list(impact_map.keys())))
+    st.text(classification_report(
+        y_test, y_pred,
+        target_names=["Négatif","Neutre","Positif"]
+    ))
 
-    # Interprétabilité avec SHAP
-    st.subheader("Interprétabilité avec SHAP")
+    # 5. Interprétabilité avec SHAP
+    st.subheader("5️⃣ Interprétabilité avec SHAP")
     explainer = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(X_test)
-    fig_shap, ax_shap = plt.subplots(figsize=(8,6))
+    fig_shap, ax_shap = plt.subplots(figsize=(8, 6))
+    # Top 10 features SHAP
     shap.summary_plot(
-        shap_values, X_test, feature_names=mlb.classes_.tolist() + list(pipeline.named_steps["preprocessor"]
-                                                                          .get_feature_names_out(cat_cols)),
-        show=False, plot_type="bar", max_display=10, ax=ax_shap
+        shap_values, X_test,
+        feature_names=[
+            *mlb.classes_,
+            *pipeline.named_steps["pre"]
+                      .get_feature_names_out(cat_cols)
+        ],
+        max_display=10, plot_type="bar",
+        show=False, ax=ax_shap
     )
     st.pyplot(fig_shap)
+
 
 
 # =============================================
