@@ -1053,10 +1053,11 @@ with tab2:
 </div>
 """, unsafe_allow_html=True)
 
+# =============================================
+# ONGLET 3 - MACHINE LEARNING
+# =============================================
 
-with tab3:
-    st.header("📊 Machine learning")
-
+with tab3 : 
     # 3. Prétraitement & pipeline unifié
     st.subheader("Prétraitement des données & pipeline")
 
@@ -1068,8 +1069,8 @@ with tab3:
     # Décomposer la multi-sélection des plateformes
     X["Plateformes_list"] = (
         X["Plateformes"].fillna("")
-         .str.split(";")
-         .apply(lambda lst: [p.strip() for p in lst if p.strip()])
+        .str.split(";")
+        .apply(lambda lst: [p.strip() for p in lst if p.strip()])
     )
     mlb = MultiLabelBinarizer()
     plat_df = pd.DataFrame(
