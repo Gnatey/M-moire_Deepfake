@@ -1111,7 +1111,7 @@ with tab3 :
     # Instanciation et entraînement
     model = RandomForestClassifier(
         n_estimators=100,
-        random_state=50,
+        random_state=10,
         class_weight="balanced"
     )
     model.fit(X_train, y_train)
