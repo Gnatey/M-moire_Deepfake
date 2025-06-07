@@ -1095,7 +1095,42 @@ with tab3 :
 
     # Application du pipeline
     X_proc = pipeline.fit_transform(X)
-    
+
+    # Split stratifié
+    X_train, X_test, y_train, y_test = train_test_split(
+        X_proc, y,
+        test_size=0.3,
+        random_state=42,
+        stratify=y
+    )
+
+    # Instanciation et entraînement
+    model = RandomForestClassifier(
+        n_estimators=100,
+        random_state=42,
+        class_weight="balanced"
+    )
+    model.fit(X_train, y_train)
+
+    # Prédictions & évaluation
+    y_pred = model.predict(X_test)
+    acc = accuracy_score(y_test, y_pred)
+    st.metric("Accuracy (test)", f"{acc:.2%}")
+
+    # Matrice de confusion
+    cm = confusion_matrix(y_test, y_pred)
+    st.subheader("Matrice de confusion")
+    fig_cm, ax = plt.subplots()
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax)
+    ax.set_xlabel("Prédiction")
+    ax.set_ylabel("Vérité terrain")
+    st.pyplot(fig_cm)
+
+    # Rapport de classification
+    st.subheader("Rapport de classification")
+    st.text(classification_report(y_test, y_pred, target_names=list(impact_map.keys())))
+
+
 # =============================================
 # SECTION COMMENTAIRES
 # =============================================
