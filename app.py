@@ -32,6 +32,11 @@ import shap
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import SelectFromModel
+from sklearn.preprocessing    import LabelEncoder
+from sklearn.model_selection  import train_test_split
+from sklearn.ensemble         import RandomForestClassifier
+from sklearn.metrics         import accuracy_score, confusion_matrix, classification_report
+from sklearn.feature_extraction.text import CountVectorizer
 # =============================================
 # INITIALISATION ET CONFIGURATION DE BASE
 # =============================================
@@ -1015,7 +1020,6 @@ with tab2:
 # ONGLET 3 : ANALYSE STATISTIQUE & REGRESSION
 # =============================================
 
-# Onglet 3 - Analyse Avancée et Machine Learning
 def onglet3_analysis(df):
     # Section 1: Préparation des données
     print("Préparation des données pour le Machine Learning...")
