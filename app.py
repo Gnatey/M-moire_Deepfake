@@ -31,12 +31,11 @@ from sklearn.utils import resample
 import shap
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.feature_selection import SelectFromModel
+from sklearn.feature_selection import (SelectFromModel,VarianceThreshold)
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.model_selection import GridSearchCV
 import seaborn as sns
 import shap
-
 # =============================================
 # INITIALISATION ET CONFIGURATION DE BASE
 # =============================================
