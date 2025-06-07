@@ -1057,47 +1057,46 @@ with tab2:
 # =============================================
 # ONGLET 3 : MACHINE LEARNING
 # =============================================
-
 with tab3:
-        st.header("📊 Machine learning")
+    st.header("📊 Machine learning")
 
-# Séparation target / features
-impact_map = {"Très négatif":0, "Négatif":1, "Neutre":2, "Positif":3, "Très positif":4}
-y = filtered_df["Impact société"].map(impact_map)
-X = filtered_df.drop(columns=["Impact société"])
+    # Séparation target / features
+    impact_map = {"Très négatif":0, "Négatif":1, "Neutre":2, "Positif":3, "Très positif":4}
+    y = filtered_df["Impact société"].map(impact_map)
+    X = filtered_df.drop(columns=["Impact société"])
 
-# Décomposer la multi-sélection des plateformes
-X["Plateformes_list"] = (
-    X["Plateformes"].fillna("")
-     .str.split(";")
-     .apply(lambda lst: [p.strip() for p in lst if p.strip()])
-)
-mlb = MultiLabelBinarizer()
-plat_df = pd.DataFrame(
-    mlb.fit_transform(X["Plateformes_list"]),
-    columns=mlb.classes_,
-    index=X.index
-)
-X = pd.concat([X.drop(columns=["Plateformes", "Plateformes_list"]), plat_df], axis=1)
+    # Décomposer la multi-sélection des plateformes
+    X["Plateformes_list"] = (
+        X["Plateformes"].fillna("")
+         .str.split(";")
+         .apply(lambda lst: [p.strip() for p in lst if p.strip()])
+    )
+    mlb = MultiLabelBinarizer()
+    plat_df = pd.DataFrame(
+        mlb.fit_transform(X["Plateformes_list"]),
+        columns=mlb.classes_,
+        index=X.index
+    )
+    X = pd.concat([X.drop(columns=["Plateformes", "Plateformes_list"]), plat_df], axis=1)
 
-# Colonnes catégorielles restantes
-cat_cols = X.select_dtypes(include="object").columns.tolist()
+    # Colonnes catégorielles restantes
+    cat_cols = X.select_dtypes(include="object").columns.tolist()
 
-# Pipeline de prétraitement
-preprocessor = ColumnTransformer(
-    transformers=[
-        ("ohe", OneHotEncoder(handle_unknown="ignore", sparse=False), cat_cols)
-    ],
-    remainder="passthrough"
-)
-pipeline = Pipeline(steps=[
-    ("preprocessor", preprocessor),
-    ("scaler", StandardScaler(with_mean=False))
-])
+    # Pipeline de prétraitement
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ("ohe", OneHotEncoder(handle_unknown="ignore", sparse=False), cat_cols)
+        ],
+        remainder="passthrough"
+    )
+    pipeline = Pipeline(steps=[
+        ("preprocessor", preprocessor),
+        ("scaler", StandardScaler(with_mean=False))
+    ])
 
-# Application du pipeline
-X_proc = pipeline.fit_transform(X)
-st.markdown(f"Données transformées : {X_proc.shape[0]} échantillons × {X_proc.shape[1]} caractéristiques")
+    # Application du pipeline
+    X_proc = pipeline.fit_transform(X)
+    st.markdown(f"Données transformées : {X_proc.shape[0]} échantillons × {X_proc.shape[1]} caractéristiques")
 
 
 # =============================================
