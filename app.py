@@ -1054,11 +1054,11 @@ with tab2:
 """, unsafe_allow_html=True)
 
 
-# =============================================
-# ONGLET 3 : MACHINE LEARNING
-# =============================================
 with tab3:
     st.header("📊 Machine learning")
+
+    # 3. Prétraitement & pipeline unifié
+    st.subheader("Prétraitement des données & pipeline")
 
     # Séparation target / features
     impact_map = {"Très négatif":0, "Négatif":1, "Neutre":2, "Positif":3, "Très positif":4}
