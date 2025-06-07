@@ -1061,10 +1061,11 @@ with tab2:
 # ONGLET 3 - MACHINE LEARNING
 # =============================================
 
-with tab3 : 
-    st.header("📈 Entraînement et évaluation du modèle")
+with tab3:
+    st.header("📈 Analyse Statistique & Machine Learning")
 
-    # Séparation target / features
+    # 3. Prétraitement & pipeline unifié
+    st.subheader("Prétraitement des données & pipeline")
     impact_map = {"Très négatif":0, "Négatif":1, "Neutre":2, "Positif":3, "Très positif":4}
     y = filtered_df["Impact société"].map(impact_map)
     X = filtered_df.drop(columns=["Impact société"])
@@ -1072,8 +1073,8 @@ with tab3 :
     # Décomposer la multi-sélection des plateformes
     X["Plateformes_list"] = (
         X["Plateformes"].fillna("")
-        .str.split(";")
-        .apply(lambda lst: [p.strip() for p in lst if p.strip()])
+         .str.split(";")
+         .apply(lambda lst: [p.strip() for p in lst if p.strip()])
     )
     mlb = MultiLabelBinarizer()
     plat_df = pd.DataFrame(
@@ -1086,44 +1087,49 @@ with tab3 :
     # Colonnes catégorielles restantes
     cat_cols = X.select_dtypes(include="object").columns.tolist()
 
-    # Pipeline de prétraitement (mise à jour pour scikit-learn ≥1.2)
+    # Pipeline de prétraitement
     preprocessor = ColumnTransformer(
         transformers=[
             ("ohe", OneHotEncoder(handle_unknown="ignore", sparse_output=False), cat_cols)
         ],
         remainder="passthrough"
     )
-    pipeline = Pipeline(steps=[
+    pipeline = Pipeline([
         ("preprocessor", preprocessor),
         ("scaler", StandardScaler(with_mean=False))
     ])
-
-    # Application du pipeline
     X_proc = pipeline.fit_transform(X)
+    st.markdown(f"Données transformées : {X_proc.shape[0]} échantillons × {X_proc.shape[1]} caractéristiques")
 
-    # 4. Split train/test
+    # 4. Recherche d’hyperparamètres + entraînement
+    st.subheader("Recherche d’hyperparamètres & entraînement")
+    param_grid = {
+        "n_estimators": [100, 200],
+        "max_depth": [None, 10],
+        "min_samples_leaf": [1, 2]
+    }
+    base = RandomForestClassifier(random_state=42, class_weight="balanced_subsample")
+    grid = GridSearchCV(
+        base,
+        param_grid,
+        cv=3,
+        scoring="f1_weighted",
+        n_jobs=-1
+    )
     X_train, X_test, y_train, y_test = train_test_split(
-        X_proc, y,
-        test_size=0.3,
-        random_state=42,
-        stratify=y
+        X_proc, y, test_size=0.3, random_state=42, stratify=y
     )
+    grid.fit(X_train, y_train)
+    model = grid.best_estimator_
+    st.write("Meilleurs paramètres :", grid.best_params_)
 
-    # Instanciation et entraînement
-    model = RandomForestClassifier(
-        n_estimators=100,
-        random_state=42,
-        class_weight="balanced"
-    )
-    model.fit(X_train, y_train)
-
-    # Prédictions & évaluation
+    # 5. Évaluation
+    st.subheader("Évaluation du modèle")
     y_pred = model.predict(X_test)
     acc = accuracy_score(y_test, y_pred)
     st.metric("Accuracy (test)", f"{acc:.2%}")
 
     # Matrice de confusion
-    st.subheader("Matrice de confusion")
     cm = confusion_matrix(y_test, y_pred)
     fig_cm, ax = plt.subplots()
     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax)
@@ -1131,9 +1137,22 @@ with tab3 :
     ax.set_ylabel("Vérité terrain")
     st.pyplot(fig_cm)
 
-    # Rapport de classification
     st.subheader("Rapport de classification")
     st.text(classification_report(y_test, y_pred, target_names=list(impact_map.keys())))
+
+    # 6. Importance des features
+    st.subheader("Top 10 des variables importantes")
+    feat_names = grid.best_estimator_.feature_names_in_ if hasattr(grid.best_estimator_, "feature_names_in_") else None
+    importances = pd.Series(model.feature_importances_, index=feat_names).nlargest(10)
+    st.bar_chart(importances)
+
+    # 7. Analyse SHAP
+    st.subheader("Interprétabilité avec SHAP")
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(X_test)
+    plt.figure(figsize=(8, 6))
+    shap.summary_plot(shap_values, X_test, feature_names=feat_names, show=False)
+    st.pyplot(bbox_inches="tight")
 
 
 # =============================================
