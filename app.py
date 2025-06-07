@@ -1083,10 +1083,10 @@ with tab3 :
     # Colonnes catégorielles restantes
     cat_cols = X.select_dtypes(include="object").columns.tolist()
 
-    # Pipeline de prétraitement
+    # Pipeline de prétraitement (mise à jour pour scikit-learn ≥1.2)
     preprocessor = ColumnTransformer(
         transformers=[
-            ("ohe", OneHotEncoder(handle_unknown="ignore", sparse=False), cat_cols)
+            ("ohe", OneHotEncoder(handle_unknown="ignore", sparse_output=False), cat_cols)
         ],
         remainder="passthrough"
     )
@@ -1098,7 +1098,6 @@ with tab3 :
     # Application du pipeline
     X_proc = pipeline.fit_transform(X)
     st.markdown(f"Données transformées : {X_proc.shape[0]} échantillons × {X_proc.shape[1]} caractéristiques")
-
 
 # =============================================
 # SECTION COMMENTAIRES
