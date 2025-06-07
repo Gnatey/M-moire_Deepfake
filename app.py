@@ -1102,10 +1102,21 @@ with tab3:
     X_proc = pipeline.fit_transform(X)
 
     # 2.3 VarianceThreshold (seuil 1%)
-    vt = VarianceThreshold(threshold=0.01)
+    vt    = VarianceThreshold(threshold=0.01)
     X_sel = vt.fit_transform(X_proc)
     st.markdown(f"- Avant sélection : **{X_proc.shape[1]}** features  \n"
                 f"- Après VarianceThreshold : **{X_sel.shape[1]}** features")
+
+    # === Construire la liste des noms de features sélectionnées ===
+    # noms OHE
+    ohe = pipeline.named_steps["pre"].named_transformers_["ohe"]
+    ohe_feats = ohe.get_feature_names_out(cat_cols)
+    # noms pass-through (les colonnes de plat_df)
+    passthru_feats = plat_df.columns.to_list()
+    # concaténation puis filtration
+    all_feats = np.concatenate([ohe_feats, passthru_feats])
+    sel_mask  = vt.get_support()
+    feat_names = all_feats[sel_mask]
 
     # 3️⃣ Recherche d’hyper-paramètres & entraînement
     X_train, X_test, y_train, y_test = train_test_split(
@@ -1156,19 +1167,13 @@ with tab3:
     fig_shap, ax_shap = plt.subplots(figsize=(8, 6))
     shap.summary_plot(
         shap_values, X_test,
-        feature_names=np.hstack([
-            pipeline.named_steps["pre"]
-                    .get_feature_names_out(cat_cols),
-            mlb.classes_
-        ]),
+        feature_names=feat_names,
         max_display=10,
         plot_type="bar",
         show=False,
         ax=ax_shap
     )
     st.pyplot(fig_shap)
-
-
 
 
 # =============================================
