@@ -1057,6 +1057,110 @@ with tab2:
 # ONGLET 3 - MACHINE LEARNING
 # =============================================
 
+with tab4:
+    st.header("👥 User Personae Creation")
+    
+    if not df.empty:
+        # Section 1: Segmentation Criteria
+        with st.expander("🔍 Segmentation Criteria", expanded=True):
+            st.subheader("Define Your Segments")
+            
+            segmentation_options = {
+                "Demographic": ["Tranche d'âge", "Genre"],
+                "Behavioral": ["Connaissance DeepFakes", "Exposition DeepFakes"],
+                "Attitudinal": ["Confiance réseaux sociaux", "Impact société"]
+            }
+            
+            selected_criteria = []
+            for category, options in segmentation_options.items():
+                selected = st.multiselect(f"{category} Criteria:", options)
+                selected_criteria.extend(selected)
+            
+            num_clusters = st.slider("Number of segments:", 2, 6, 3)
+            
+            if st.button("Create Segments"):
+                st.session_state['segmentation_done'] = True
+        
+        # Section 2: Persona Visualization
+        if st.session_state.get('segmentation_done', False):
+            with st.expander("🎨 Persona Visualization", expanded=True):
+                st.subheader("Generated Personae")
+                
+                # Placeholder for actual clustering results
+                personas = [
+                    {
+                        "name": "Tech-Savvy Skeptic",
+                        "description": "Young, knowledgeable about deepfakes, but distrusts social media",
+                        "size": "35%",
+                        "traits": ["18-25 years", "High knowledge", "Low trust"]
+                    },
+                    {
+                        "name": "Older Casual User",
+                        "description": "Minimal deepfake awareness, neutral attitude",
+                        "size": "45%",
+                        "traits": ["40+ years", "Low knowledge", "Medium trust"]
+                    },
+                    {
+                        "name": "Concerned Middle-Ager",
+                        "description": "Has seen deepfakes, very concerned about impact",
+                        "size": "20%",
+                        "traits": ["26-40 years", "Medium knowledge", "High concern"]
+                    }
+                ]
+                
+                # Display personas
+                cols = st.columns(min(3, len(personas)))
+                for i, persona in enumerate(personas[:3]):
+                    with cols[i]:
+                        with st.container(border=True):
+                            st.markdown(f"### {persona['name']}")
+                            st.markdown(f"*{persona['description']}*")
+                            st.metric("Segment Size", persona['size'])
+                            st.markdown("**Key Traits:**")
+                            for trait in persona['traits']:
+                                st.markdown(f"- {trait}")
+                
+                # Persona comparison chart
+                st.subheader("Persona Comparison")
+                comparison_data = pd.DataFrame({
+                    "Persona": [p['name'] for p in personas],
+                    "Knowledge": [0.8, 0.3, 0.6],  # Example values
+                    "Trust": [0.2, 0.5, 0.4],
+                    "Exposure": [0.7, 0.2, 0.9]
+                })
+                fig_persona = px.parallel_categories(
+                    comparison_data,
+                    dimensions=["Knowledge", "Trust", "Exposure"],
+                    color="Persona",
+                    color_discrete_sequence=px.colors.qualitative.Pastel
+                )
+                st.plotly_chart(fig_persona, use_container_width=True)
+        
+        # Section 3: Persona Insights
+        with st.expander("💡 Persona Insights", expanded=False):
+            st.subheader("Strategic Recommendations")
+            
+            if st.session_state.get('segmentation_done', False):
+                recommendations = [
+                    "**Tech-Savvy Skeptics**: Focus on verification tools education",
+                    "**Older Casual Users**: Basic awareness campaigns about deepfakes",
+                    "**Concerned Middle-Agers**: Provide resources on impact mitigation"
+                ]
+                
+                for rec in recommendations:
+                    st.markdown(f"- {rec}")
+                
+                st.download_button(
+                    label="📥 Download Personae Report",
+                    data=json.dumps(personas, indent=2),
+                    file_name="deepfake_personae_report.json",
+                    mime="application/json"
+                )
+            else:
+                st.info("Create segments first to see recommendations")
+    
+    else:
+        st.warning("Please load data first in the EDA tab")
 
 # =============================================
 # SECTION COMMENTAIRES
