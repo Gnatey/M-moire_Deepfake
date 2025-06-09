@@ -1054,493 +1054,811 @@ with tab2:
 """, unsafe_allow_html=True)
 
 # =============================================
-# ONGLET 3 - ANALYSE MACHINE LEARNING SUPERVISÉ
+# ONGLET 3 - MACHINE LEARNING SIMPLIFIÉ ET VISUEL
 # =============================================
 
 with tab3:
-    st.header("🤖 Machine Learning Supervisé")
+    st.header("🤖 Machine Learning : Prédire le Comportement face aux DeepFakes")
+    
+    # Introduction pédagogique
+    st.markdown("""
+    ### 🎯 **Objectif Simple**
+    Nous allons **prédire** qui a déjà vu un DeepFake en analysant le profil des utilisateurs.
+    Avec **{} observations**, nous pouvons créer un modèle prédictif efficace !
+    """.format(len(filtered_df) if not filtered_df.empty else 0))
     
     if filtered_df.empty:
-        st.warning("Aucune donnée disponible pour l'analyse ML")
-    else:
-        # Configuration ML
-        st.subheader("⚙️ Configuration de l'analyse")
-        
-        col_config1, col_config2, col_config3 = st.columns(3)
-        
-        with col_config1:
-            # Choix de la variable cible
-            target_options = {
-                "Exposition DeepFakes": "Prédire qui a déjà vu un DeepFake",
-                "Connaissance DeepFakes": "Prédire qui connaît les DeepFakes", 
-                "Niveau connaissance": "Prédire le niveau de connaissance",
-                "Confiance réseaux sociaux": "Prédire la confiance dans les RS"
-            }
-            
-            target_var = st.selectbox(
-                "🎯 Variable à prédire :",
-                options=list(target_options.keys()),
-                help="Choisissez ce que vous voulez prédire"
-            )
-        
-        with col_config2:
-            # Choix des algorithmes
-            models_to_use = st.multiselect(
-                "🔬 Algorithmes à comparer :",
-                options=["Régression Logistique", "Random Forest", "SVM", "Gradient Boosting"],
-                default=["Régression Logistique", "Random Forest"],
-                help="Sélectionnez les modèles à entraîner"
-            )
-        
-        with col_config3:
-            # Paramètres
-            test_size = st.slider("📊 Taille test set (%)", 20, 40, 30) / 100
-            cv_folds = st.slider("🔄 Validation croisée (folds)", 3, 10, 5)
-        
-        # =============================================
-        # PREPROCESSING DES DONNÉES
-        # =============================================
-        
-        @st.cache_data
-        def prepare_ml_data(df, target):
-            """Prépare les données pour le machine learning"""
-            
-            # Colonnes features (exclure la target et colonnes non pertinentes)
-            exclude_cols = [target, 'Date de saisie', 'Plateformes']  # Plateformes sera traitée séparément
-            feature_cols = [col for col in df.columns if col not in exclude_cols]
-            
-            # Créer le dataset
-            ml_data = df[feature_cols + [target]].copy()
-            
-            # Traitement des plateformes (encodage multi-label)
-            if "Plateformes" in df.columns:
-                # Extraction des plateformes individuelles
-                platform_series = df["Plateformes"].fillna("Aucune").str.split(';')
-                all_platforms = sorted(set(p.strip() for sublist in platform_series.dropna() for p in sublist if p.strip()))
-                
-                # Encodage binaire pour chaque plateforme
-                for platform in all_platforms[:5]:  # Limiter aux 5 principales
-                    ml_data[f"Platform_{platform}"] = df["Plateformes"].fillna("").str.contains(platform, na=False).astype(int)
-            
-            # Nettoyage des valeurs manquantes
-            ml_data = ml_data.dropna(subset=[target])
-            
-            return ml_data, feature_cols
-        
-        # Préparation des données
-        with st.spinner("🔄 Préparation des données..."):
-            ml_data, feature_cols = prepare_ml_data(filtered_df, target_var)
-            
-            if len(ml_data) < 50:
-                st.error("❌ Dataset trop petit pour l'analyse ML (minimum 50 observations)")
-                st.stop()
-        
-        # Affichage des statistiques
-        st.markdown("### 📊 Aperçu des données ML")
-        col_stats1, col_stats2, col_stats3, col_stats4 = st.columns(4)
-        
-        with col_stats1:
-            st.metric("📈 Observations", len(ml_data))
-        with col_stats2:
-            st.metric("🔢 Features", len([col for col in ml_data.columns if col != target_var]))
-        with col_stats3:
-            missing_pct = (ml_data.isnull().sum().sum() / (len(ml_data) * len(ml_data.columns))) * 100
-            st.metric("❓ Valeurs manquantes", f"{missing_pct:.1f}%")
-        with col_stats4:
-            if ml_data[target_var].dtype == 'object':
-                n_classes = ml_data[target_var].nunique()
-                st.metric("🎯 Classes", n_classes)
-            else:
-                st.metric("📊 Distribution", "Continue")
-        
-        # Distribution de la variable cible
-        st.markdown("### 🎯 Distribution de la variable cible")
-        target_counts = ml_data[target_var].value_counts()
-        fig_target = px.bar(
-            x=target_counts.index,
-            y=target_counts.values,
-            labels={'x': target_var, 'y': 'Count'},
-            title=f"Distribution de '{target_var}'"
+        st.warning("⚠️ Aucune donnée disponible - Ajustez les filtres dans la sidebar")
+        st.stop()
+    
+    # =============================================
+    # ÉTAPE 1: CHOIX DE LA CIBLE (SIMPLIFIÉ)
+    # =============================================
+    
+    st.markdown("### 📊 **Étape 1 : Que voulons-nous prédire ?**")
+    
+    # Options de prédiction simplifiées
+    prediction_options = {
+        "Exposition DeepFakes": {
+            "question": "Qui a déjà vu un DeepFake ?",
+            "why": "Identifier les profils les plus exposés pour cibler les campagnes de sensibilisation"
+        },
+        "Connaissance DeepFakes": {
+            "question": "Qui connaît les DeepFakes ?", 
+            "why": "Comprendre qui est informé sur cette technologie"
+        },
+        "Confiance réseaux sociaux": {
+            "question": "Qui fait confiance aux réseaux sociaux ?",
+            "why": "Identifier les utilisateurs les plus vulnérables à la désinformation"
+        }
+    }
+    
+    col_choice, col_info = st.columns([1, 2])
+    
+    with col_choice:
+        target_var = st.selectbox(
+            "🎯 **Choisissez votre prédiction :**",
+            options=list(prediction_options.keys()),
+            format_func=lambda x: prediction_options[x]["question"]
+        )
+    
+    with col_info:
+        st.info(f"**Pourquoi cette prédiction ?**\n{prediction_options[target_var]['why']}")
+    
+    # Vérification des données
+    if target_var not in filtered_df.columns:
+        st.error(f"❌ La colonne '{target_var}' n'existe pas dans vos données")
+        st.stop()
+    
+    # =============================================
+    # ÉTAPE 2: ANALYSE DES DONNÉES CIBLES
+    # =============================================
+    
+    st.markdown("### 📈 **Étape 2 : Analyse de nos données**")
+    
+    # Nettoyage et préparation
+    target_data = filtered_df[target_var].dropna()
+    
+    if len(target_data) < 30:
+        st.error("❌ Pas assez de données (minimum 30 observations nécessaires)")
+        st.stop()
+    
+    # Visualisation de la distribution
+    col_dist, col_stats = st.columns([2, 1])
+    
+    with col_dist:
+        target_counts = target_data.value_counts()
+        fig_target = px.pie(
+            values=target_counts.values,
+            names=target_counts.index,
+            title=f"🎯 Distribution de '{target_var}'",
+            color_discrete_sequence=['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4']
         )
         st.plotly_chart(fig_target, use_container_width=True)
+    
+    with col_stats:
+        st.markdown("**📊 Statistiques :**")
+        for classe, count in target_counts.items():
+            pct = (count / len(target_data)) * 100
+            st.metric(f"Classe '{classe}'", f"{count} ({pct:.1f}%)")
         
-        # Vérification déséquilibre des classes
-        if ml_data[target_var].dtype == 'object':
-            class_ratios = ml_data[target_var].value_counts(normalize=True)
-            min_class_pct = class_ratios.min() * 100
-            if min_class_pct < 10:
-                st.warning(f"⚠️ Déséquilibre des classes détecté (classe minoritaire: {min_class_pct:.1f}%)")
+        # Vérification équilibre
+        min_class_pct = target_counts.min() / len(target_data) * 100
+        if min_class_pct < 20:
+            st.warning(f"⚠️ Classes déséquilibrées (min: {min_class_pct:.1f}%)")
+        else:
+            st.success("✅ Classes équilibrées")
+    
+    # =============================================
+    # ÉTAPE 3: PRÉPARATION AUTOMATIQUE DES DONNÉES
+    # =============================================
+    
+    def prepare_smart_dataset(df, target):
+        """Préparation intelligente des données pour petit dataset"""
         
-        # =============================================
-        # ENTRAÎNEMENT DES MODÈLES
-        # =============================================
+        st.markdown("### 🔧 **Étape 3 : Préparation automatique des données**")
         
-        if st.button("🚀 Lancer l'analyse ML"):
-            with st.spinner("🤖 Entraînement des modèles en cours..."):
-                
-                # Séparation features/target
-                feature_columns = [col for col in ml_data.columns if col != target_var]
-                X = ml_data[feature_columns]
-                y = ml_data[target_var]
-                
-                # Preprocessing pipeline
-                # Identification des colonnes numériques et catégorielles
-                numeric_columns = X.select_dtypes(include=[np.number]).columns.tolist()
-                categorical_columns = X.select_dtypes(include=['object']).columns.tolist()
-                
-                # Pipeline de preprocessing
-                preprocessor = ColumnTransformer(
-                    transformers=[
-                        ('num', StandardScaler(), numeric_columns),
-                        ('cat', OneHotEncoder(drop='first', sparse_output=False), categorical_columns)
-                    ]
-                )
-                
-                # Split train/test
-                X_train, X_test, y_train, y_test = train_test_split(
-                    X, y, test_size=test_size, random_state=42, stratify=y if y.dtype == 'object' else None
-                )
-                
-                # Définition des modèles
-                models = {}
-                
-                if "Régression Logistique" in models_to_use:
-                    models["Logistic Regression"] = Pipeline([
-                        ('preprocessor', preprocessor),
-                        ('classifier', LogisticRegression(random_state=42, max_iter=1000))
-                    ])
-                
-                if "Random Forest" in models_to_use:
-                    models["Random Forest"] = Pipeline([
-                        ('preprocessor', preprocessor),
-                        ('classifier', RandomForestClassifier(n_estimators=100, random_state=42))
-                    ])
-                
-                if "SVM" in models_to_use:
-                    from sklearn.svm import SVC
-                    models["SVM"] = Pipeline([
-                        ('preprocessor', preprocessor),
-                        ('classifier', SVC(probability=True, random_state=42))
-                    ])
-                
-                if "Gradient Boosting" in models_to_use:
-                    from sklearn.ensemble import GradientBoostingClassifier
-                    models["Gradient Boosting"] = Pipeline([
-                        ('preprocessor', preprocessor),
-                        ('classifier', GradientBoostingClassifier(random_state=42))
-                    ])
-                
-                # Entraînement et évaluation
-                results = {}
-                
-                for name, model in models.items():
-                    # Entraînement
-                    model.fit(X_train, y_train)
-                    
-                    # Prédictions
-                    y_pred = model.predict(X_test)
-                    y_pred_proba = model.predict_proba(X_test)[:, 1] if hasattr(model, 'predict_proba') else None
-                    
-                    # Métriques
-                    from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
-                    
-                    accuracy = accuracy_score(y_test, y_pred)
-                    precision = precision_score(y_test, y_pred, average='weighted')
-                    recall = recall_score(y_test, y_pred, average='weighted')
-                    f1 = f1_score(y_test, y_pred, average='weighted')
-                    
-                    # AUC seulement pour classification binaire
-                    auc = None
-                    if y.nunique() == 2 and y_pred_proba is not None:
-                        auc = roc_auc_score(y_test, y_pred_proba)
-                    
-                    results[name] = {
-                        'model': model,
-                        'accuracy': accuracy,
-                        'precision': precision,
-                        'recall': recall,
-                        'f1': f1,
-                        'auc': auc,
-                        'y_pred': y_pred,
-                        'y_pred_proba': y_pred_proba
-                    }
-                
-                # =============================================
-                # VISUALISATION DES RÉSULTATS
-                # =============================================
-                
-                st.markdown("### 📈 Résultats des modèles")
-                
-                # Tableau comparatif
-                results_df = pd.DataFrame({
-                    model: {
-                        'Accuracy': f"{metrics['accuracy']:.3f}",
-                        'Precision': f"{metrics['precision']:.3f}",
-                        'Recall': f"{metrics['recall']:.3f}",
-                        'F1-Score': f"{metrics['f1']:.3f}",
-                        'AUC': f"{metrics['auc']:.3f}" if metrics['auc'] else "N/A"
-                    }
-                    for model, metrics in results.items()
-                }).T
-                
-                st.dataframe(results_df, use_container_width=True)
-                
-                # Graphique comparatif des performances
-                metrics_comparison = pd.DataFrame({
-                    'Model': list(results.keys()),
-                    'Accuracy': [results[m]['accuracy'] for m in results.keys()],
-                    'Precision': [results[m]['precision'] for m in results.keys()],
-                    'Recall': [results[m]['recall'] for m in results.keys()],
-                    'F1-Score': [results[m]['f1'] for m in results.keys()]
-                })
-                
-                fig_comparison = px.bar(
-                    metrics_comparison.melt(id_vars='Model', var_name='Metric', value_name='Score'),
-                    x='Model',
-                    y='Score',
-                    color='Metric',
-                    barmode='group',
-                    title="Comparaison des performances des modèles",
-                    range_y=[0, 1]
-                )
-                st.plotly_chart(fig_comparison, use_container_width=True)
-                
-                # =============================================
-                # MATRICE DE CONFUSION
-                # =============================================
-                
-                st.markdown("### 🎯 Matrices de confusion")
-                
-                # Sélection du meilleur modèle
-                best_model_name = max(results.keys(), key=lambda x: results[x]['f1'])
-                best_model = results[best_model_name]
-                
-                st.write(f"**Meilleur modèle**: {best_model_name} (F1-Score: {best_model['f1']:.3f})")
-                
-                # Matrice de confusion
-                from sklearn.metrics import confusion_matrix
-                cm = confusion_matrix(y_test, best_model['y_pred'])
-                
-                fig_cm = px.imshow(
-                    cm,
-                    text_auto=True,
-                    aspect="auto",
-                    color_continuous_scale='Blues',
-                    title=f"Matrice de confusion - {best_model_name}"
-                )
-                fig_cm.update_layout(
-                    xaxis_title="Prédictions",
-                    yaxis_title="Valeurs réelles"
-                )
-                st.plotly_chart(fig_cm, use_container_width=True)
-                
-                # =============================================
-                # COURBES ROC (si binaire)
-                # =============================================
-                
-                if y.nunique() == 2:
-                    st.markdown("### 📊 Courbes ROC")
-                    
-                    fig_roc = go.Figure()
-                    
-                    for name, metrics in results.items():
-                        if metrics['y_pred_proba'] is not None:
-                            fpr, tpr, _ = roc_curve(y_test, metrics['y_pred_proba'])
-                            fig_roc.add_trace(go.Scatter(
-                                x=fpr, y=tpr,
-                                mode='lines',
-                                name=f"{name} (AUC = {metrics['auc']:.3f})"
-                            ))
-                    
-                    # Ligne de référence
-                    fig_roc.add_trace(go.Scatter(
-                        x=[0, 1], y=[0, 1],
-                        mode='lines',
-                        line=dict(dash='dash'),
-                        name='Aléatoire (AUC = 0.5)'
-                    ))
-                    
-                    fig_roc.update_layout(
-                        title="Courbes ROC",
-                        xaxis_title="Taux de faux positifs",
-                        yaxis_title="Taux de vrais positifs"
-                    )
-                    st.plotly_chart(fig_roc, use_container_width=True)
-                
-                # =============================================
-                # IMPORTANCE DES FEATURES
-                # =============================================
-                
-                st.markdown("### 🔍 Importance des variables")
-                
-                # Feature importance pour Random Forest
-                if "Random Forest" in results:
-                    rf_model = results["Random Forest"]['model']
-                    
-                    # Récupération des noms de features après preprocessing
-                    preprocessor_fitted = rf_model.named_steps['preprocessor']
-                    feature_names = []
-                    
-                    # Features numériques
-                    if numeric_columns:
-                        feature_names.extend(numeric_columns)
-                    
-                    # Features catégorielles encodées
-                    if categorical_columns:
-                        cat_encoder = preprocessor_fitted.named_transformers_['cat']
-                        cat_feature_names = cat_encoder.get_feature_names_out(categorical_columns)
-                        feature_names.extend(cat_feature_names)
-                    
-                    # Importance des features
-                    importances = rf_model.named_steps['classifier'].feature_importances_
-                    
-                    feature_importance_df = pd.DataFrame({
-                        'Feature': feature_names,
-                        'Importance': importances
-                    }).sort_values('Importance', ascending=True).tail(15)
-                    
-                    fig_importance = px.bar(
-                        feature_importance_df,
-                        x='Importance',
-                        y='Feature',
-                        orientation='h',
-                        title="Top 15 - Importance des variables (Random Forest)"
-                    )
-                    st.plotly_chart(fig_importance, use_container_width=True)
-                
-                # =============================================
-                # ANALYSE SHAP (EXPLICABILITÉ)
-                # =============================================
-                
-                st.markdown("### 🧠 Analyse d'explicabilité (SHAP)")
-                
-                try:
-                    # SHAP pour le meilleur modèle
-                    explainer = shap.Explainer(best_model['model'].named_steps['classifier'], 
-                                             best_model['model'].named_steps['preprocessor'].transform(X_train))
-                    shap_values = explainer(best_model['model'].named_steps['preprocessor'].transform(X_test[:100]))  # Limité à 100 pour la performance
-                    
-                    # Summary plot
-                    st.write("**Importance SHAP (échantillon de 100 observations)**")
-                    
-                    # Conversion en DataFrame pour visualisation
-                    shap_df = pd.DataFrame({
-                        'Feature': feature_names,
-                        'SHAP_mean': np.abs(shap_values.values).mean(0)
-                    }).sort_values('SHAP_mean', ascending=True).tail(10)
-                    
-                    fig_shap = px.bar(
-                        shap_df,
-                        x='SHAP_mean',
-                        y='Feature',
-                        orientation='h',
-                        title="Top 10 - Valeurs SHAP moyennes"
-                    )
-                    st.plotly_chart(fig_shap, use_container_width=True)
-                    
-                except Exception as e:
-                    st.warning(f"Analyse SHAP non disponible: {str(e)}")
-                
-                # =============================================
-                # VALIDATION CROISÉE
-                # =============================================
-                
-                st.markdown("### 🔄 Validation croisée")
-                
-                from sklearn.model_selection import cross_val_score
-                
-                cv_results = {}
-                for name, model in models.items():
-                    cv_scores = cross_val_score(model, X, y, cv=cv_folds, scoring='f1_weighted')
-                    cv_results[name] = {
-                        'mean': cv_scores.mean(),
-                        'std': cv_scores.std(),
-                        'scores': cv_scores
-                    }
-                
-                # Graphique validation croisée
-                cv_data = pd.DataFrame({
-                    'Model': list(cv_results.keys()),
-                    'Mean_F1': [cv_results[m]['mean'] for m in cv_results.keys()],
-                    'Std_F1': [cv_results[m]['std'] for m in cv_results.keys()]
-                })
-                
-                fig_cv = px.bar(
-                    cv_data,
-                    x='Model',
-                    y='Mean_F1',
-                    error_y='Std_F1',
-                    title=f"Validation croisée ({cv_folds} folds) - Score F1",
-                    range_y=[0, 1]
-                )
-                st.plotly_chart(fig_cv, use_container_width=True)
-                
-                # =============================================
-                # RECOMMANDATIONS
-                # =============================================
-                
-                st.markdown("### 💡 Recommandations")
-                
-                best_f1 = max([cv_results[m]['mean'] for m in cv_results.keys()])
-                best_cv_model = max(cv_results.keys(), key=lambda x: cv_results[x]['mean'])
-                
-                st.success(f"""
-                **Modèle recommandé**: {best_cv_model}
-                - F1-Score moyen: {best_f1:.3f}
-                - Stabilité: {cv_results[best_cv_model]['std']:.3f}
-                """)
-                
-                if best_f1 > 0.8:
-                    st.success("✅ Excellente performance prédictive")
-                elif best_f1 > 0.7:
-                    st.info("ℹ️ Bonne performance prédictive")
-                elif best_f1 > 0.6:
-                    st.warning("⚠️ Performance modérée - envisager plus de données")
-                else:
-                    st.error("❌ Performance faible - revoir les features")
-        
-        # =============================================
-        # SECTION INSIGHTS MÉTIER
-        # =============================================
-        
-        st.markdown("### 💼 Insights Métier")
-        
-        insights_col1, insights_col2 = st.columns(2)
-        
-        with insights_col1:
-            st.markdown("""
-            **🎯 Applications pratiques:**
-            - Ciblage des campagnes de sensibilisation
-            - Identification des profils à risque
-            - Personnalisation des contenus éducatifs
-            - Optimisation des stratégies de communication
-            """)
-        
-        with insights_col2:
-            st.markdown("""
-            **🔍 Variables prédictives clés:**
-            - Âge et genre des utilisateurs
-            - Habitudes sur les réseaux sociaux
-            - Niveau d'éducation technologique
-            - Exposition médiatique précédente
-            """)
-        
-        # Export des résultats
-        if st.button("💾 Exporter les résultats ML"):
-            export_data = {
-                'target_variable': target_var,
-                'models_used': models_to_use,
-                'dataset_size': len(ml_data),
-                'test_size': test_size,
-                'cv_folds': cv_folds
-            }
+        # Étapes de nettoyage
+        with st.expander("🔍 Voir les détails du nettoyage", expanded=False):
+            st.write("**1. Sélection des variables pertinentes**")
             
-            st.download_button(
-                label="📥 Télécharger le rapport ML",
-                data=json.dumps(export_data, indent=2),
-                file_name="ml_analysis_results.json",
-                mime="application/json"
+            # Variables à garder (les plus importantes pour DeepFakes)
+            keep_cols = [
+                "Tranche d'âge", "Genre", "Connaissance DeepFakes", 
+                "Exposition DeepFakes", "Niveau connaissance",
+                "Confiance réseaux sociaux", "Impact société"
+            ]
+            
+            # Garder seulement les colonnes qui existent
+            available_cols = [col for col in keep_cols if col in df.columns and col != target]
+            
+            st.write(f"Variables sélectionnées : {available_cols}")
+            
+            # Création du dataset
+            ml_data = df[available_cols + [target]].copy()
+            initial_size = len(ml_data)
+            
+            st.write(f"**2. Nettoyage des valeurs manquantes**")
+            st.write(f"Taille initiale : {initial_size} observations")
+            
+            # Supprimer les lignes avec target manquant
+            ml_data = ml_data.dropna(subset=[target])
+            st.write(f"Après suppression target manquante : {len(ml_data)} observations")
+            
+            # Pour les autres colonnes, remplacer par le mode
+            for col in available_cols:
+                if ml_data[col].isnull().sum() > 0:
+                    mode_val = ml_data[col].mode()[0] if len(ml_data[col].mode()) > 0 else "Inconnu"
+                    ml_data[col] = ml_data[col].fillna(mode_val)
+                    st.write(f"Colonne '{col}': {ml_data[col].isnull().sum()} valeurs manquantes remplacées")
+            
+            st.write(f"**3. Résultat final : {len(ml_data)} observations prêtes pour l'analyse**")
+        
+        return ml_data, available_cols
+    
+    # Préparation des données
+    ml_data, feature_cols = prepare_smart_dataset(filtered_df, target_var)
+    
+    if len(ml_data) < 20:
+        st.error(f"❌ Dataset trop petit après nettoyage : {len(ml_data)} observations")
+        st.stop()
+    
+    # =============================================
+    # ÉTAPE 4: MODÈLES OPTIMISÉS POUR PETIT DATASET
+    # =============================================
+    
+    st.markdown("### 🚀 **Étape 4 : Entraînement des modèles**")
+    
+    # Sélection des modèles adaptés aux petits datasets
+    st.markdown("**Modèles sélectionnés** (optimisés pour {} observations) :".format(len(ml_data)))
+    
+    col_m1, col_m2, col_m3 = st.columns(3)
+    with col_m1:
+        st.info("**🎯 Régression Logistique**\nSimple et efficace")
+    with col_m2:
+        st.info("**🌳 Random Forest**\nGère bien les interactions")
+    with col_m3:
+        st.info("**🔍 SVM**\nTrouve les frontières complexes")
+    
+    if st.button("🚀 **LANCER L'ANALYSE COMPLÈTE**", type="primary"):
+        
+        # Préparation train/test
+        X = ml_data[feature_cols]
+        y = ml_data[target_var]
+        
+        # Encodage des variables catégorielles
+        from sklearn.preprocessing import LabelEncoder
+        
+        # Sauvegarde des encodeurs pour l'interprétation
+        encoders = {}
+        X_encoded = X.copy()
+        
+        for col in X.columns:
+            if X[col].dtype == 'object':
+                le = LabelEncoder()
+                X_encoded[col] = le.fit_transform(X[col])
+                encoders[col] = le
+        
+        # Encodage de la target si nécessaire
+        y_encoded = y
+        target_encoder = None
+        if y.dtype == 'object':
+            target_encoder = LabelEncoder()
+            y_encoded = target_encoder.fit_transform(y)
+        
+        # Split optimisé pour petit dataset (70/30)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X_encoded, y_encoded, test_size=0.3, random_state=42, stratify=y_encoded
+        )
+        
+        st.success(f"✅ Données préparées : {len(X_train)} pour entraînement, {len(X_test)} pour test")
+        
+        # =============================================
+        # MODÈLES OPTIMISÉS
+        # =============================================
+        
+        from sklearn.linear_model import LogisticRegression
+        from sklearn.ensemble import RandomForestClassifier
+        from sklearn.svm import SVC
+        from sklearn.metrics import accuracy_score, classification_report, roc_auc_score, roc_curve
+        from sklearn.preprocessing import StandardScaler
+        
+        # Standardisation (importante pour SVM et LogReg)
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_test_scaled = scaler.transform(X_test)
+        
+        # Définition des modèles optimisés
+        models = {
+            "Régression Logistique": LogisticRegression(
+                random_state=42, 
+                max_iter=1000,
+                C=0.1,  # Régularisation plus forte pour éviter l'overfitting
+                solver='liblinear'
+            ),
+            "Random Forest": RandomForestClassifier(
+                n_estimators=50,  # Moins d'arbres pour éviter l'overfitting
+                max_depth=5,      # Profondeur limitée
+                min_samples_split=10,  # Plus conservateur
+                random_state=42
+            ),
+            "SVM": SVC(
+                probability=True,
+                random_state=42,
+                C=0.5,  # Régularisation
+                kernel='rbf'
             )
+        }
+        
+        # =============================================
+        # ENTRAÎNEMENT ET ÉVALUATION
+        # =============================================
+        
+        results = {}
+        
+        progress_bar = st.progress(0)
+        for i, (name, model) in enumerate(models.items()):
+            
+            progress_bar.progress((i + 1) / len(models))
+            
+            try:
+                # Choix des données (scaled pour LogReg et SVM)
+                if name in ["Régression Logistique", "SVM"]:
+                    X_train_model, X_test_model = X_train_scaled, X_test_scaled
+                else:
+                    X_train_model, X_test_model = X_train, X_test
+                
+                # Entraînement
+                model.fit(X_train_model, y_train)
+                
+                # Prédictions
+                y_pred = model.predict(X_test_model)
+                y_pred_proba = model.predict_proba(X_test_model)
+                
+                # Métriques
+                accuracy = accuracy_score(y_test, y_pred)
+                
+                # AUC pour binaire uniquement
+                auc = None
+                if len(np.unique(y_encoded)) == 2:
+                    auc = roc_auc_score(y_test, y_pred_proba[:, 1])
+                
+                results[name] = {
+                    'model': model,
+                    'accuracy': accuracy,
+                    'auc': auc,
+                    'y_pred': y_pred,
+                    'y_pred_proba': y_pred_proba,
+                    'X_test': X_test_model
+                }
+                
+            except Exception as e:
+                st.warning(f"⚠️ Erreur avec {name}: {str(e)}")
+        
+        # =============================================
+        # VISUALISATION DES RÉSULTATS
+        # =============================================
+        
+        st.markdown("### 🏆 **Résultats de Performance**")
+        
+        if results:
+            # Tableau de résultats
+            perf_data = []
+            for name, metrics in results.items():
+                perf_data.append({
+                    'Modèle': name,
+                    'Accuracy': f"{metrics['accuracy']:.1%}",
+                    'AUC': f"{metrics['auc']:.3f}" if metrics['auc'] else "N/A"
+                })
+            
+            perf_df = pd.DataFrame(perf_data)
+            
+            # Affichage avec style
+            col_table, col_best = st.columns([2, 1])
+            
+            with col_table:
+                st.dataframe(
+                    perf_df,
+                    hide_index=True,
+                    use_container_width=True
+                )
+            
+            with col_best:
+                best_model_name = max(results.keys(), key=lambda x: results[x]['accuracy'])
+                best_accuracy = results[best_model_name]['accuracy']
+                
+                if best_accuracy >= 0.85:
+                    st.success(f"🎉 **Objectif atteint !**\n{best_model_name}\n**{best_accuracy:.1%}**")
+                elif best_accuracy >= 0.75:
+                    st.info(f"👍 **Bonne performance**\n{best_model_name}\n**{best_accuracy:.1%}**")
+                else:
+                    st.warning(f"📈 **Performance modérée**\n{best_model_name}\n**{best_accuracy:.1%}**")
+            
+            # =============================================
+            # COURBE ROC (SI BINAIRE)
+            # =============================================
+            
+            if len(np.unique(y_encoded)) == 2:
+                st.markdown("### 📊 **Courbe ROC : Qualité de Discrimination**")
+                
+                fig_roc = go.Figure()
+                
+                # Ligne de référence
+                fig_roc.add_trace(go.Scatter(
+                    x=[0, 1], y=[0, 1],
+                    mode='lines',
+                    line=dict(dash='dash', color='gray'),
+                    name='Hasard (AUC = 0.5)',
+                    hovertemplate='Ligne de hasard<extra></extra>'
+                ))
+                
+                # Courbes pour chaque modèle
+                colors = ['#FF6B6B', '#4ECDC4', '#45B7D1']
+                for i, (name, metrics) in enumerate(results.items()):
+                    if metrics['auc']:
+                        fpr, tpr, _ = roc_curve(y_test, metrics['y_pred_proba'][:, 1])
+                        
+                        fig_roc.add_trace(go.Scatter(
+                            x=fpr, y=tpr,
+                            mode='lines',
+                            line=dict(color=colors[i], width=3),
+                            name=f"{name} (AUC = {metrics['auc']:.3f})",
+                            hovertemplate=f'{name}<br>FPR: %{{x:.3f}}<br>TPR: %{{y:.3f}}<extra></extra>'
+                        ))
+                
+                fig_roc.update_layout(
+                    title="Courbe ROC - Capacité à distinguer les classes",
+                    xaxis_title="Taux de Faux Positifs (FPR)",
+                    yaxis_title="Taux de Vrais Positifs (TPR)",
+                    width=700,
+                    height=500,
+                    hovermode='closest'
+                )
+                
+                st.plotly_chart(fig_roc, use_container_width=True)
+                
+                st.info("💡 **Interprétation** : Plus la courbe est proche du coin supérieur gauche, meilleur est le modèle !")
+            
+            # =============================================
+            # COURBES D'APPRENTISSAGE
+            # =============================================
+            
+            st.markdown("### 📈 **Courbes d'Apprentissage : Éviter le Surapprentissage**")
+            
+            from sklearn.model_selection import learning_curve
+            
+            # Prendre le meilleur modèle
+            best_model = results[best_model_name]['model']
+            
+            # Données pour le meilleur modèle
+            if best_model_name in ["Régression Logistique", "SVM"]:
+                X_for_learning = X_encoded
+                X_for_learning = scaler.fit_transform(X_for_learning)
+            else:
+                X_for_learning = X_encoded
+            
+            # Calcul des courbes d'apprentissage
+            train_sizes, train_scores, val_scores = learning_curve(
+                best_model, X_for_learning, y_encoded,
+                train_sizes=np.linspace(0.3, 1.0, 5),
+                cv=3,  # 3-fold CV pour petit dataset
+                scoring='accuracy',
+                random_state=42
+            )
+            
+            # Moyennes et écart-types
+            train_mean = train_scores.mean(axis=1)
+            train_std = train_scores.std(axis=1)
+            val_mean = val_scores.mean(axis=1)
+            val_std = val_scores.std(axis=1)
+            
+            # Visualisation
+            fig_learning = go.Figure()
+            
+            # Courbe d'entraînement
+            fig_learning.add_trace(go.Scatter(
+                x=train_sizes,
+                y=train_mean,
+                mode='lines+markers',
+                name='Score Entraînement',
+                line=dict(color='#FF6B6B', width=3),
+                error_y=dict(
+                    type='data',
+                    array=train_std,
+                    visible=True
+                )
+            ))
+            
+            # Courbe de validation
+            fig_learning.add_trace(go.Scatter(
+                x=train_sizes,
+                y=val_mean,
+                mode='lines+markers',
+                name='Score Validation',
+                line=dict(color='#4ECDC4', width=3),
+                error_y=dict(
+                    type='data',
+                    array=val_std,
+                    visible=True
+                )
+            ))
+            
+            fig_learning.update_layout(
+                title=f"Courbes d'Apprentissage - {best_model_name}",
+                xaxis_title="Nombre d'échantillons d'entraînement",
+                yaxis_title="Score d'Accuracy",
+                yaxis=dict(range=[0, 1]),
+                height=500
+            )
+            
+            st.plotly_chart(fig_learning, use_container_width=True)
+            
+            # Diagnostic
+            final_gap = train_mean[-1] - val_mean[-1]
+            if final_gap < 0.05:
+                st.success("✅ **Bon équilibre** : Pas de surapprentissage détecté")
+            elif final_gap < 0.15:
+                st.warning("⚠️ **Surapprentissage modéré** : Le modèle pourrait être simplifié")
+            else:
+                st.error("❌ **Surapprentissage important** : Le modèle mémorise trop les données")
+            
+            # =============================================
+            # ANALYSE D'EXPLICABILITÉ ROBUSTE
+            # =============================================
+            
+            st.markdown("### 🧠 **Explicabilité du Modèle : Pourquoi ces prédictions ?**")
+            
+            # Analyse de l'importance des variables
+            if best_model_name == "Random Forest":
+                rf_model = results[best_model_name]['model']
+                importances = rf_model.feature_importances_
+                
+                # Feature importance avec statistiques
+                feature_importance_df = pd.DataFrame({
+                    'Variable': feature_cols,
+                    'Importance': importances,
+                    'Pourcentage': (importances / importances.sum()) * 100
+                }).sort_values('Importance', ascending=True)
+                
+                # Visualisation principale
+                fig_importance = px.bar(
+                    feature_importance_df,
+                    x='Importance',
+                    y='Variable',
+                    orientation='h',
+                    title="🎯 Impact des Variables sur les Prédictions",
+                    color='Importance',
+                    color_continuous_scale='Viridis',
+                    text='Pourcentage'
+                )
+                
+                fig_importance.update_traces(
+                    texttemplate='%{text:.1f}%',
+                    textposition='outside'
+                )
+                
+                fig_importance.update_layout(
+                    height=400,
+                    xaxis_title="Importance (Contribution au Modèle)",
+                    yaxis_title="Variables"
+                )
+                
+                st.plotly_chart(fig_importance, use_container_width=True)
+                
+                # Interprétation automatique
+                top_variable = feature_importance_df.iloc[-1]
+                second_variable = feature_importance_df.iloc[-2] if len(feature_importance_df) > 1 else None
+                
+                col_interp1, col_interp2 = st.columns(2)
+                
+                with col_interp1:
+                    st.success(f"""
+                    🏆 **Variable la plus influente :**
+                    **{top_variable['Variable']}** ({top_variable['Pourcentage']:.1f}% de l'impact)
+                    
+                    Cette variable est cruciale pour les prédictions !
+                    """)
+                
+                with col_interp2:
+                    if second_variable is not None:
+                        st.info(f"""
+                        🥈 **Deuxième variable clé :**
+                        **{second_variable['Variable']}** ({second_variable['Pourcentage']:.1f}% de l'impact)
+                        
+                        Complète efficacement la première !
+                        """)
+                
+                # Score Out-of-Bag si disponible
+                if hasattr(rf_model, 'oob_score_') and rf_model.oob_score_ is not None:
+                    st.info(f"📊 **Score Out-of-Bag (validation interne)** : {rf_model.oob_score_:.1%}")
+            
+            elif best_model_name == "Régression Logistique":
+                lr_model = results[best_model_name]['model']
+                coeffs = lr_model.coef_[0] if len(lr_model.coef_.shape) > 1 else lr_model.coef_
+                
+                coeff_df = pd.DataFrame({
+                    'Variable': feature_cols,
+                    'Coefficient': coeffs,
+                    'Impact_Abs': np.abs(coeffs),
+                    'Direction': ['Positif ⬆️' if x > 0 else 'Négatif ⬇️' for x in coeffs]
+                }).sort_values('Impact_Abs', ascending=True)
+                
+                fig_coeff = px.bar(
+                    coeff_df,
+                    x='Coefficient',
+                    y='Variable',
+                    orientation='h',
+                    title="📊 Coefficients de la Régression Logistique",
+                    color='Coefficient',
+                    color_continuous_scale='RdBu',
+                    text='Direction'
+                )
+                
+                fig_coeff.add_vline(x=0, line_dash="dash", line_color="gray")
+                fig_coeff.update_layout(height=400)
+                
+                st.plotly_chart(fig_coeff, use_container_width=True)
+                
+                # Interprétation des coefficients
+                st.markdown("**📝 Interprétation :**")
+                st.write("• **Coefficient positif** : Augmente la probabilité de la classe cible")
+                st.write("• **Coefficient négatif** : Diminue la probabilité de la classe cible")
+                st.write("• **Plus le coefficient est grand en valeur absolue**, plus l'impact est fort")
+            
+            # =============================================
+            # ANALYSE DE CAS CONCRETS
+            # =============================================
+            
+            st.markdown("### 🔍 **Analyse de 3 Cas Concrets**")
+            st.markdown("*Exemples réels pour comprendre le comportement du modèle*")
+            
+            # Sélectionner 3 cas intéressants
+            y_pred_proba_best = results[best_model_name]['y_pred_proba']
+            y_pred_best = results[best_model_name]['y_pred']
+            
+            # Critères : 1 très confiant correct, 1 incertain, 1 erreur
+            confidence_scores = np.max(y_pred_proba_best, axis=1)
+            correct_predictions = y_pred_best == y_test
+            
+            cases_to_show = []
+            
+            # Cas 1 : Prédiction très confiante et correcte
+            high_conf_correct = np.where((confidence_scores > 0.8) & correct_predictions)[0]
+            if len(high_conf_correct) > 0:
+                cases_to_show.append(("✅ Prédiction Excellente", high_conf_correct[0], "green"))
+            
+            # Cas 2 : Prédiction incertaine
+            uncertain = np.where((confidence_scores > 0.4) & (confidence_scores < 0.7))[0]
+            if len(uncertain) > 0:
+                cases_to_show.append(("🤔 Cas Limite", uncertain[0], "orange"))
+            
+            # Cas 3 : Erreur de prédiction
+            incorrect = np.where(~correct_predictions)[0]
+            if len(incorrect) > 0:
+                cases_to_show.append(("❌ Erreur du Modèle", incorrect[0], "red"))
+            
+            # Affichage des cas
+            for i, (title, idx, color) in enumerate(cases_to_show):
+                with st.container():
+                    st.markdown(f"""
+                    <div style="border: 2px solid {color}; border-radius: 10px; padding: 15px; margin: 10px 0;">
+                    <h4>{title}</h4>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    col_profile, col_prediction = st.columns([1, 1])
+                    
+                    with col_profile:
+                        st.markdown("**👤 Profil :**")
+                        individual_features = X_test.iloc[idx] if hasattr(X_test, 'iloc') else X_test[idx]
+                        
+                        if hasattr(individual_features, 'items'):
+                            for feature, value in individual_features.items():
+                                if feature in encoders:
+                                    try:
+                                        value_decoded = encoders[feature].inverse_transform([int(value)])[0]
+                                        st.write(f"• **{feature}** : {value_decoded}")
+                                    except:
+                                        st.write(f"• **{feature}** : {value}")
+                                else:
+                                    st.write(f"• **{feature}** : {value}")
+                        else:
+                            for j, feature in enumerate(feature_cols):
+                                value = individual_features[j]
+                                if feature in encoders:
+                                    try:
+                                        value_decoded = encoders[feature].inverse_transform([int(value)])[0]
+                                        st.write(f"• **{feature}** : {value_decoded}")
+                                    except:
+                                        st.write(f"• **{feature}** : {value}")
+                                else:
+                                    st.write(f"• **{feature}** : {value}")
+                    
+                    with col_prediction:
+                        st.markdown("**🎯 Prédiction :**")
+                        predicted_proba = y_pred_proba_best[idx]
+                        predicted_class = y_pred_best[idx]
+                        actual_class = y_test[idx] if hasattr(y_test, '__getitem__') else y_test.iloc[idx]
+                        
+                        # Décoder les classes
+                        if target_encoder:
+                            predicted_name = target_encoder.inverse_transform([predicted_class])[0]
+                            actual_name = target_encoder.inverse_transform([actual_class])[0]
+                        else:
+                            predicted_name = str(predicted_class)
+                            actual_name = str(actual_class)
+                        
+                        confidence = np.max(predicted_proba) * 100
+                        st.write(f"• **Prédite** : {predicted_name}")
+                        st.write(f"• **Confiance** : {confidence:.1f}%")
+                        st.write(f"• **Réelle** : {actual_name}")
+                        
+                        # Explication simple
+                        if best_model_name == "Random Forest":
+                            top_features = feature_importance_df.tail(2)['Variable'].values
+                            st.markdown("**💡 Facteurs clés :**")
+                            for feature in top_features:
+                                st.write(f"• {feature}")
+            
+            st.success("✨ **Ces exemples montrent comment le modèle 'raisonne' sur des cas réels !**")
+            
+            st.markdown("### 🔍 **Quelles variables sont les plus importantes ?**")
+            
+            # Feature importance pour Random Forest
+            if "Random Forest" in results and best_model_name == "Random Forest":
+                importances = results["Random Forest"]['model'].feature_importances_
+                feature_importance_df = pd.DataFrame({
+                    'Variable': feature_cols,
+                    'Importance': importances
+                }).sort_values('Importance', ascending=True)
+                
+                fig_importance = px.bar(
+                    feature_importance_df,
+                    x='Importance',
+                    y='Variable',
+                    orientation='h',
+                    title="Importance des Variables (Random Forest)",
+                    color='Importance',
+                    color_continuous_scale='Viridis'
+                )
+                
+                st.plotly_chart(fig_importance, use_container_width=True)
+            
+            # Pour les autres modèles, coefficients
+            elif best_model_name == "Régression Logistique":
+                coeffs = results["Régression Logistique"]['model'].coef_[0]
+                coeff_df = pd.DataFrame({
+                    'Variable': feature_cols,
+                    'Coefficient': np.abs(coeffs)
+                }).sort_values('Coefficient', ascending=True)
+                
+                fig_coeff = px.bar(
+                    coeff_df,
+                    x='Coefficient',
+                    y='Variable',
+                    orientation='h',
+                    title="Importance des Variables (Régression Logistique)",
+                    color='Coefficient',
+                    color_continuous_scale='Plasma'
+                )
+                
+                st.plotly_chart(fig_coeff, use_container_width=True)
+            
+            # =============================================
+            # MATRICE DE CONFUSION INTERACTIVE
+            # =============================================
+            
+            st.markdown("### 🎯 **Matrice de Confusion : Où le modèle se trompe-t-il ?**")
+            
+            from sklearn.metrics import confusion_matrix
+            
+            # Matrice pour le meilleur modèle
+            cm = confusion_matrix(y_test, results[best_model_name]['y_pred'])
+            
+            # Labels originaux si encodage
+            if target_encoder:
+                labels = target_encoder.classes_
+            else:
+                labels = np.unique(y_encoded)
+            
+            # Visualisation interactive
+            fig_cm = px.imshow(
+                cm,
+                text_auto=True,
+                aspect="auto",
+                color_continuous_scale='Blues',
+                title=f"Matrice de Confusion - {best_model_name}",
+                labels=dict(x="Prédictions", y="Vraies Valeurs", color="Nombre"),
+                x=labels,
+                y=labels
+            )
+            
+            fig_cm.update_layout(
+                width=500,
+                height=500
+            )
+            
+            st.plotly_chart(fig_cm, use_container_width=True)
+            
+            # Calcul de la précision par classe
+            diag = np.diag(cm)
+            row_sums = cm.sum(axis=1)
+            class_accuracy = diag / row_sums
+            
+            st.markdown("**Précision par classe :**")
+            for i, label in enumerate(labels):
+                st.metric(f"Classe '{label}'", f"{class_accuracy[i]:.1%}")
+            
+            # =============================================
+            # RECOMMANDATIONS FINALES
+            # =============================================
+            
+            st.markdown("### 💡 **Recommandations & Prochaines Étapes**")
+            
+            col_rec1, col_rec2 = st.columns(2)
+            
+            with col_rec1:
+                st.markdown("**🎯 Pour améliorer le modèle :**")
+                if best_accuracy < 0.8:
+                    st.write("• Collecter plus de données")
+                    st.write("• Ajouter des variables explicatives")
+                    st.write("• Essayer des techniques d'ensemble")
+                else:
+                    st.write("• Le modèle est déjà performant !")
+                    st.write("• Valider sur de nouvelles données")
+                    st.write("• Déployer en production")
+            
+            with col_rec2:
+                st.markdown("**💼 Applications pratiques :**")
+                st.write("• Cibler les campagnes de sensibilisation")
+                st.write("• Identifier les utilisateurs à risque")
+                st.write("• Personnaliser les contenus éducatifs")
+                st.write("• Optimiser les stratégies de communication")
+            
+            # Résumé final
+            st.success(f"""
+            🎉 **Analyse Terminée avec Succès !**
+            
+            ✅ **Meilleur modèle** : {best_model_name}  
+            ✅ **Performance** : {best_accuracy:.1%} d'accuracy  
+            ✅ **Dataset** : {len(ml_data)} observations analysées  
+            ✅ **Variables** : {len(feature_cols)} caractéristiques utilisées
+            """)
+        
+        else:
+            st.error("❌ Aucun modèle n'a pu être entraîné avec succès")
+    
+    # =============================================
+    # SECTION ÉDUCATIVE
+    # =============================================
+    
+    with st.expander("📚 **Comprendre le Machine Learning en 3 minutes**", expanded=False):
+        st.markdown("""
+        ### 🤔 **Qu'est-ce qu'on fait exactement ?**
+        
+        **1. 🎯 L'objectif :**
+        - On veut prédire une caractéristique (ex: "a vu un DeepFake") 
+        - À partir d'autres informations (âge, genre, etc.)
+        
+        **2. 🔧 Comment ça marche :**
+        - L'algorithme analyse les données d'entraînement
+        - Il trouve des "patterns" (motifs récurrents)
+        - Il utilise ces patterns pour prédire de nouveaux cas
+        
+        **3. 📊 Les métriques importantes :**
+        - **Accuracy** : % de prédictions correctes
+        - **AUC** : Capacité à distinguer les classes (0.5 = hasard, 1.0 = parfait)
+        - **Courbe ROC** : Visualise la qualité du modèle
+        
+        **4. ⚠️ Les pièges à éviter :**
+        - **Surapprentissage** : Le modèle mémorise au lieu d'apprendre
+        - **Sous-apprentissage** : Le modèle est trop simple
+        - **Biais** : Le modèle reproduit les biais des données
+        """)
+    
+    # Message final si pas encore lancé
+    if 'results' not in locals():
+        st.info("👆 **Cliquez sur 'LANCER L'ANALYSE COMPLÈTE' pour voir la magie opérer !**")
 
 
 # =============================================
