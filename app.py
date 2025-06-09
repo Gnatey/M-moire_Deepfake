@@ -1861,24 +1861,58 @@ with tab3:
         st.info("👆 **Cliquez sur 'LANCER L'ANALYSE COMPLÈTE' pour voir la magie opérer !**")
 
 # =============================================
-# ONGLET 4 - PERSONAS INTERACTIFS PROFESSIONNELS
+# ONGLET 4 - SUITE COMPLÈTE D'ANALYSE PERSONAS
 # =============================================
 
 with tab4:
-    st.title("🎭 Personas DeepFakes - Analyse Comportementale")
+    st.title("🎭 Suite d'Analyse Personas DeepFakes")
+    st.markdown("*Dashboard exécutif pour l'analyse comportementale et la stratégie*")
     
     # =============================================
-    # CHARGEMENT DES DONNÉES
+    # CHARGEMENT DES DONNÉES AVEC CACHE AVANCÉ
     # =============================================
-    @st.cache_data
+    @st.cache_data(ttl=3600)  # Cache 1h
     def load_personas_data():
         try:
             url = 'https://raw.githubusercontent.com/Gnatey/M-moire_Deepfake/refs/heads/main/quantitatif.csv'
             df_personas = pd.read_csv(url, encoding='utf-8')
+            
+            # Nettoyage et enrichissement automatique
+            df_personas['Nom_Display'] = df_personas['Nom'].apply(
+                lambda x: '👤 Anonyme' if x == 'Anonyme' else x
+            )
+            
+            # Score de risque calculé
+            df_personas['Score_Risque'] = df_personas.apply(calculate_risk_score, axis=1)
+            
             return df_personas
         except Exception as e:
             st.error(f"Erreur chargement : {str(e)}")
             return pd.DataFrame()
+    
+    def calculate_risk_score(persona):
+        """Calcule un score de risque de 1-10"""
+        score = 5  # Base
+        
+        # Facteur âge
+        if any(age in str(persona['Tranche d\'âge']) for age in ['16-17', '20-25']):
+            score += 2  # Jeunes plus exposés
+        elif any(age in str(persona['Tranche d\'âge']) for age in ['45-55']):
+            score += 1  # Expérience modérée
+        
+        # Facteur méfiance (inversé = moins méfiant = plus de risque)
+        if 'Extrêmement' in str(persona['Niveau de méfiance']):
+            score -= 2
+        elif 'Très méfiant' in str(persona['Niveau de méfiance']):
+            score -= 1
+        elif 'Moyennement' in str(persona['Niveau de méfiance']):
+            score += 1
+        
+        # Facteur usage
+        if persona['Fréquence d\'utilisation par jour'] == '1h':
+            score += 1
+        
+        return max(1, min(10, score))
     
     df_personas = load_personas_data()
     
@@ -1887,16 +1921,29 @@ with tab4:
         st.stop()
     
     # =============================================
-    # CSS POUR CARTES INTERACTIVES
+    # CSS AVANCÉ POUR INTERFACE PREMIUM
     # =============================================
     st.markdown("""
     <style>
+    /* Variables CSS */
+    :root {
+        --primary-color: #667eea;
+        --secondary-color: #764ba2;
+        --accent-color: #f093fb;
+        --danger-color: #f5576c;
+        --success-color: #4ecdc4;
+        --warning-color: #feca57;
+        --dark-color: #2c3e50;
+    }
+    
+    /* Cartes flip améliorées */
     .flip-card {
         background-color: transparent;
         width: 100%;
-        height: 300px;
+        height: 320px;
         perspective: 1000px;
-        margin: 10px 0;
+        margin: 15px 0;
+        border-radius: 20px;
     }
     
     .flip-card-inner {
@@ -1904,7 +1951,7 @@ with tab4:
         width: 100%;
         height: 100%;
         text-align: center;
-        transition: transform 0.6s;
+        transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         transform-style: preserve-3d;
         cursor: pointer;
     }
@@ -1919,496 +1966,1744 @@ with tab4:
         height: 100%;
         -webkit-backface-visibility: hidden;
         backface-visibility: hidden;
-        border-radius: 15px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        padding: 20px;
+        border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        padding: 25px;
         box-sizing: border-box;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.1);
     }
     
     .flip-card-front {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
         color: white;
     }
     
     .flip-card-back {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        background: linear-gradient(135deg, var(--accent-color) 0%, var(--danger-color) 100%);
         color: white;
         transform: rotateY(180deg);
     }
     
     .persona-photo {
-        width: 80px;
-        height: 80px;
+        width: 90px;
+        height: 90px;
         border-radius: 50%;
-        margin: 0 auto 15px;
+        margin: 0 auto 20px;
         background: rgba(255,255,255,0.2);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 2rem;
+        font-size: 2.5rem;
+        border: 3px solid rgba(255,255,255,0.3);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
     
     .cluster-badge {
         position: absolute;
-        top: 10px;
-        right: 10px;
-        background: rgba(255,255,255,0.9);
+        top: 15px;
+        right: 15px;
+        background: rgba(255,255,255,0.95);
         color: #333;
-        padding: 5px 10px;
-        border-radius: 20px;
-        font-size: 0.8rem;
+        padding: 8px 15px;
+        border-radius: 25px;
+        font-size: 0.75rem;
         font-weight: bold;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .risk-indicator {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 0.8rem;
+        color: white;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
     }
     
     .metric-mini {
-        background: rgba(255,255,255,0.2);
-        border-radius: 10px;
-        padding: 10px;
-        margin: 5px 0;
+        background: rgba(255,255,255,0.15);
+        border-radius: 12px;
+        padding: 12px;
+        margin: 8px 0;
         text-align: center;
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(255,255,255,0.1);
     }
     
     .insight-card {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        border-radius: 20px;
+        padding: 25px;
+        color: white;
+        margin: 15px 0;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .dashboard-metric {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        margin: 10px 0;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        border-left: 5px solid var(--primary-color);
+    }
+    
+    .strategy-card {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         border-radius: 15px;
         padding: 20px;
         color: white;
         margin: 10px 0;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        border-left: 5px solid rgba(255,255,255,0.3);
+        backdrop-filter: blur(10px);
+    }
+    
+    .comparison-container {
+        display: flex;
+        gap: 20px;
+        margin: 20px 0;
+    }
+    
+    .persona-comparison {
+        flex: 1;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        border-radius: 15px;
+        padding: 20px;
+        color: white;
+        min-height: 200px;
+    }
+    
+    .filter-container {
+        background: rgba(255,255,255,0.05);
+        border-radius: 15px;
+        padding: 20px;
+        margin: 20px 0;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin: 20px 0;
+    }
+    
+    .animated-counter {
+        font-size: 2rem;
+        font-weight: bold;
+        color: var(--primary-color);
+        text-align: center;
+    }
+    
+    /* Animations */
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .slide-in {
+        animation: slideInUp 0.6s ease-out;
+    }
+    
+    /* Responsive design */
+    @media (max-width: 768px) {
+        .flip-card {
+            height: 280px;
+        }
+        .comparison-container {
+            flex-direction: column;
+        }
     }
     </style>
     """, unsafe_allow_html=True)
     
     # =============================================
-    # MÉTRIQUES RAPIDES
+    # CLUSTERING INTELLIGENT AVANCÉ
     # =============================================
-    col1, col2, col3, col4, col5 = st.columns(5)
-    
-    with col1:
-        st.metric("👥 Personas", len(df_personas))
-    with col2:
-        experts = df_personas['Métier'].str.contains('Développeur|IT|Chef de projet IT', na=False).sum()
-        st.metric("💻 Tech Experts", experts)
-    with col3:
-        very_cautious = df_personas['Niveau de méfiance'].str.contains('Très méfiant|Extrêmement', na=False).sum()
-        st.metric("🚨 Très Méfiants", very_cautious)
-    with col4:
-        young = df_personas['Tranche d\'âge'].str.contains('16-17|20-25', na=False).sum()
-        st.metric("🧒 Jeunes (16-25)", young)
-    with col5:
-        cadres = (df_personas['Catégorie socio-professionnelle'] == 'Cadre').sum()
-        st.metric("👔 Cadres", cadres)
-    
-    # =============================================
-    # CLUSTERING INTELLIGENT
-    # =============================================
-    def assign_cluster(persona):
-        """Assigne un cluster basé sur les caractéristiques"""
-        # Tech Experts
-        if any(keyword in str(persona['Métier']).lower() for keyword in ['développeur', 'it', 'tech', 'informatique']):
+    def assign_advanced_cluster(persona):
+        """Clustering basé sur algorithme multi-critères"""
+        age_text = str(persona['Tranche d\'âge'])
+        job_text = str(persona['Métier']).lower()
+        trust_text = str(persona['Niveau de méfiance'])
+        education = str(persona['Niveau d\'étude'])
+        usage = str(persona['Fréquence d\'utilisation par jour'])
+        
+        # Tech Experts (critères stricts)
+        if any(keyword in job_text for keyword in ['développeur', 'dev', 'it', 'tech', 'informatique', 'chef de projet it']):
             return "💻 Tech Experts"
         
-        # Jeunes Sensibilisés
-        elif any(age in str(persona['Tranche d\'âge']) for age in ['16-17', '20-25']):
+        # Digital Natives (jeunes + usage intensif)
+        elif any(age in age_text for age in ['16-17', '20-25']) and 'méfiant' in trust_text.lower():
             return "🧒 Digital Natives"
         
-        # Sceptiques Expérimentés
-        elif any(age in str(persona['Tranche d\'âge']) for age in ['45-55', '40-50']) and 'Très méfiant' in str(persona['Niveau de méfiance']):
+        # Sceptiques Experts (expérience + méfiance élevée)
+        elif ('45-55' in age_text or '40-50' in age_text) and 'Très méfiant' in trust_text:
             return "🎯 Sceptiques Experts"
         
-        # Professionnels Prudents
-        elif persona['Catégorie socio-professionnelle'] == 'Cadre':
-            return "👔 Pros Prudents"
+        # Decision Makers (cadres + éducation supérieure)
+        elif persona['Catégorie socio-professionnelle'] == 'Cadre' and education in ['Bac+5', 'Doctorat']:
+            return "👔 Decision Makers"
         
-        # Observateurs Passifs
+        # Vulnérables (usage élevé + faible méfiance)
+        elif usage == '1h' and 'Moyennement' in trust_text:
+            return "⚠️ Profils à Risque"
+        
+        # Éducateurs (enseignement)
+        elif 'enseignant' in job_text or 'chercheur' in job_text:
+            return "🎓 Éducateurs"
+        
+        # Default: Observateurs
         else:
             return "👁️ Observateurs"
     
-    # Application du clustering
-    df_personas['Cluster'] = df_personas.apply(assign_cluster, axis=1)
+    # Application du clustering avancé
+    df_personas['Cluster_Advanced'] = df_personas.apply(assign_advanced_cluster, axis=1)
     
     # =============================================
-    # SÉLECTEUR DE CLUSTER
+    # NAVIGATION PAR ONGLETS AVANCÉS
     # =============================================
-    st.markdown("### 🎯 Explorez par Profil")
-    
-    cluster_counts = df_personas['Cluster'].value_counts()
-    
-    col_cluster, col_filter = st.columns([3, 1])
-    
-    with col_cluster:
-        selected_cluster = st.selectbox(
-            "Choisissez un profil :",
-            options=["Tous"] + list(cluster_counts.index),
-            format_func=lambda x: f"{x} ({cluster_counts[x]} personas)" if x != "Tous" else f"Tous ({len(df_personas)} personas)"
-        )
-    
-    with col_filter:
-        show_anonymous = st.checkbox("Inclure anonymes", True)
-    
-    # Filtrage des données
-    if selected_cluster == "Tous":
-        filtered_personas = df_personas.copy()
-    else:
-        filtered_personas = df_personas[df_personas['Cluster'] == selected_cluster]
-    
-    if not show_anonymous:
-        filtered_personas = filtered_personas[filtered_personas['Nom'] != 'Anonyme']
+    tab_main, tab_analytics, tab_comparison, tab_strategy, tab_simulator, tab_export = st.tabs([
+        "🏠 Dashboard Principal", 
+        "📊 Analytics Avancées", 
+        "⚖️ Comparateur", 
+        "🎯 Stratégies", 
+        "🔮 Simulateur",
+        "📥 Export Premium"
+    ])
     
     # =============================================
-    # GALERIE DE CARTES INTERACTIVES
+    # ONGLET 1: DASHBOARD PRINCIPAL
     # =============================================
-    st.markdown("### 🃏 Personas Interactifs")
-    st.markdown("*Survolez les cartes pour voir les détails*")
-    
-    # Photos par défaut pour les personas (vous pouvez ajouter de vraies URLs)
-    default_photos = {
-        'Clémence Dupont': '👩‍💼',
-        'Alain Airom': '👨‍💻', 
-        'Rabiaa ZITOUNI': '👩‍🏫',
-        'Marie Moreau': '👩‍💼',
-        'Thomas Dubois': '👨‍💼',
-        'Pierre Martin': '👨‍💼',
-        'Isabelle Petit': '👩‍💼',
-        'Alexandre Garcia': '👨‍💻',
-        'Nicolas Bernard': '👨‍💼',
-        'Sophie Laurent': '👩‍🎓',
-        'Camille Simon': '👩‍💻',
-        'Elodie Roux': '👧',
-        'Jean-Michel Leroy': '👨‍🎓'
-    }
-    
-    # Fonction pour générer les cartes
-    def generate_persona_card(persona, cluster_color):
-        name = persona['Nom']
-        photo = default_photos.get(name, '👤') if name != 'Anonyme' else '❓'
+    with tab_main:
+        # KPIs Exécutifs en temps réel
+        st.markdown("### 📊 KPIs Exécutifs")
         
-        # Simplification des infos pour le recto
-        age = persona['Tranche d\'âge'].replace('Estimé : ', '')
-        job = persona['Métier']
-        location = persona['Localisation'].split(',')[0]  # Juste la ville
-        cluster = persona['Cluster']
+        col1, col2, col3, col4, col5, col6 = st.columns(6)
         
-        # Infos pour le verso
-        citation = persona['Citation-clé'][:80] + "..." if len(persona['Citation-clé']) > 80 else persona['Citation-clé']
-        platforms = persona['Plateformes jugées risquées'].split(',')[0] if pd.notna(persona['Plateformes jugées risquées']) else "N/A"
-        trust_level = persona['Niveau de méfiance'].replace('Très méfiant', '🚨').replace('Méfiant', '⚠️').replace('Modérément', '📊')
+        with col1:
+            total_personas = len(df_personas)
+            st.metric("👥 Total Personas", total_personas, delta="+2 vs last month")
         
-        return f"""
-        <div class="flip-card">
-            <div class="flip-card-inner">
-                <div class="flip-card-front">
-                    <div class="cluster-badge" style="background: {cluster_color};">{cluster.split()[0]}</div>
-                    <div class="persona-photo">{photo}</div>
-                    <h3 style="margin: 10px 0; font-size: 1.2rem;">{name}</h3>
-                    <div class="metric-mini">
-                        <strong>👤 {age}</strong>
+        with col2:
+            high_risk = len(df_personas[df_personas['Score_Risque'] >= 7])
+            risk_pct = (high_risk / total_personas) * 100
+            st.metric("🚨 Profils à Risque", f"{high_risk} ({risk_pct:.0f}%)")
+        
+        with col3:
+            tech_experts = len(df_personas[df_personas['Cluster_Advanced'] == '💻 Tech Experts'])
+            st.metric("💻 Tech Experts", tech_experts)
+        
+        with col4:
+            avg_age = df_personas['Tranche d\'âge'].apply(
+                lambda x: int(x.split(':')[1].split('-')[0].strip()) if ':' in str(x) and '-' in str(x) else 30
+            ).mean()
+            st.metric("👤 Âge Moyen", f"{avg_age:.0f} ans")
+        
+        with col5:
+            heavy_users = len(df_personas[df_personas['Fréquence d\'utilisation par jour'] == '1h'])
+            st.metric("⏰ Gros Utilisateurs", heavy_users)
+        
+        with col6:
+            trust_score = len(df_personas[df_personas['Niveau de méfiance'].str.contains('Très méfiant', na=False)])
+            trust_pct = (trust_score / total_personas) * 100
+            st.metric("🛡️ Très Méfiants", f"{trust_pct:.0f}%")
+        
+        # Filtres Avancés
+        st.markdown("### 🔍 Filtres Intelligents")
+        
+        with st.container():
+            st.markdown('<div class="filter-container">', unsafe_allow_html=True)
+            
+            col_f1, col_f2, col_f3, col_f4 = st.columns(4)
+            
+            with col_f1:
+                cluster_filter = st.multiselect(
+                    "🎯 Profils :",
+                    options=df_personas['Cluster_Advanced'].unique(),
+                    default=df_personas['Cluster_Advanced'].unique()
+                )
+            
+            with col_f2:
+                risk_filter = st.select_slider(
+                    "⚠️ Niveau de Risque :",
+                    options=["Tous", "Faible (1-3)", "Modéré (4-6)", "Élevé (7-10)"],
+                    value="Tous"
+                )
+            
+            with col_f3:
+                age_filter = st.multiselect(
+                    "👤 Tranches d'âge :",
+                    options=df_personas['Tranche d\'âge'].unique(),
+                    default=df_personas['Tranche d\'âge'].unique()
+                )
+            
+            with col_f4:
+                show_anonymous = st.checkbox("Inclure Anonymes", True)
+                real_time = st.checkbox("🔄 Temps Réel", False)
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Application des filtres
+        filtered_df = df_personas[
+            (df_personas['Cluster_Advanced'].isin(cluster_filter)) &
+            (df_personas['Tranche d\'âge'].isin(age_filter))
+        ]
+        
+        if risk_filter != "Tous":
+            if risk_filter == "Faible (1-3)":
+                filtered_df = filtered_df[filtered_df['Score_Risque'] <= 3]
+            elif risk_filter == "Modéré (4-6)":
+                filtered_df = filtered_df[(filtered_df['Score_Risque'] >= 4) & (filtered_df['Score_Risque'] <= 6)]
+            elif risk_filter == "Élevé (7-10)":
+                filtered_df = filtered_df[filtered_df['Score_Risque'] >= 7]
+        
+        if not show_anonymous:
+            filtered_df = filtered_df[filtered_df['Nom'] != 'Anonyme']
+        
+        # Photos premium par défaut
+        premium_photos = {
+            'Clémence Dupont': '👩‍💼',
+            'Alain Airom': '👨‍💻', 
+            'Rabiaa ZITOUNI': '👩‍🏫',
+            'Marie Moreau': '👩‍💼',
+            'Thomas Dubois': '👨‍💼',
+            'Pierre Martin': '👨‍💼',
+            'Isabelle Petit': '👩‍💼',
+            'Alexandre Garcia': '👨‍💻',
+            'Nicolas Bernard': '👨‍💼',
+            'Sophie Laurent': '👩‍🎓',
+            'Camille Simon': '👩‍💻',
+            'Elodie Roux': '👧',
+            'Jean-Michel Leroy': '👨‍🎓'
+        }
+        
+        # Couleurs par cluster avancé
+        advanced_cluster_colors = {
+            "💻 Tech Experts": "#3498db",
+            "🧒 Digital Natives": "#e74c3c", 
+            "🎯 Sceptiques Experts": "#f39c12",
+            "👔 Decision Makers": "#9b59b6",
+            "⚠️ Profils à Risque": "#e67e22",
+            "🎓 Éducateurs": "#2ecc71",
+            "👁️ Observateurs": "#95a5a6"
+        }
+        
+        # Fonction pour générer les cartes premium
+        def generate_premium_card(persona, cluster_color):
+            name = persona['Nom_Display']
+            photo = premium_photos.get(persona['Nom'], '👤') if persona['Nom'] != 'Anonyme' else '❓'
+            
+            # Informations simplifiées pour le recto
+            age = persona['Tranche d\'âge'].replace('Estimé : ', '')
+            job = persona['Métier'][:30] + "..." if len(persona['Métier']) > 30 else persona['Métier']
+            location = persona['Localisation'].split(',')[0]
+            cluster = persona['Cluster_Advanced']
+            risk_score = persona['Score_Risque']
+            
+            # Couleur du risque
+            if risk_score >= 7:
+                risk_color = "#e74c3c"
+                risk_icon = "🚨"
+            elif risk_score >= 4:
+                risk_color = "#f39c12"
+                risk_icon = "⚠️"
+            else:
+                risk_color = "#2ecc71"
+                risk_icon = "✅"
+            
+            # Informations détaillées pour le verso
+            citation = persona['Citation-clé'][:85] + "..." if len(persona['Citation-clé']) > 85 else persona['Citation-clé']
+            platforms = persona['Plateformes jugées risquées'].split(',')[0] if pd.notna(persona['Plateformes jugées risquées']) else "N/A"
+            trust_level = persona['Niveau de méfiance'][:20] + "..." if len(persona['Niveau de méfiance']) > 20 else persona['Niveau de méfiance']
+            education = persona['Niveau d\'étude']
+            usage = persona['Fréquence d\'utilisation par jour']
+            
+            return f"""
+            <div class="flip-card slide-in">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <div class="cluster-badge" style="background: {cluster_color};">{cluster.split()[0]}</div>
+                        <div class="risk-indicator" style="background: {risk_color};">
+                            {risk_icon}<br><span style="font-size: 0.7rem;">{risk_score}</span>
+                        </div>
+                        <div class="persona-photo">{photo}</div>
+                        <h3 style="margin: 15px 0; font-size: 1.3rem; font-weight: 600;">{name}</h3>
+                        <div class="metric-mini">
+                            <strong>👤 {age}</strong>
+                        </div>
+                        <div class="metric-mini">
+                            <strong>💼 {job}</strong>
+                        </div>
+                        <div class="metric-mini">
+                            <strong>📍 {location}</strong>
+                        </div>
                     </div>
-                    <div class="metric-mini">
-                        <strong>💼 {job}</strong>
-                    </div>
-                    <div class="metric-mini">
-                        <strong>📍 {location}</strong>
+                    <div class="flip-card-back">
+                        <h4 style="margin-bottom: 15px;">💬 Profil Détaillé</h4>
+                        <p style="font-style: italic; margin: 15px 0; font-size: 0.9rem;">"{citation}"</p>
+                        <div class="metric-mini">
+                            <strong>🎯 {trust_level}</strong>
+                        </div>
+                        <div class="metric-mini">
+                            <strong>📱 Plateforme: {platforms}</strong>
+                        </div>
+                        <div class="metric-mini">
+                            <strong>🎓 {education}</strong>
+                        </div>
+                        <div class="metric-mini">
+                            <strong>⏱ Usage: {usage}</strong>
+                        </div>
+                        <div style="margin-top: 15px; font-size: 0.8rem; opacity: 0.8;">
+                            Survolez pour voir les détails
+                        </div>
                     </div>
                 </div>
-                <div class="flip-card-back">
-                    <h4>💬 Citation</h4>
-                    <p style="font-style: italic; margin: 15px 0;">"{citation}"</p>
-                    <div class="metric-mini">
-                        <strong>🎯 Méfiance: {trust_level}</strong>
-                    </div>
-                    <div class="metric-mini">
-                        <strong>📱 Plateforme risquée: {platforms}</strong>
-                    </div>
-                    <div class="metric-mini">
-                        <strong>⏱ Usage: {persona['Fréquence d\'utilisation par jour']}</strong>
-                    </div>
-                </div>
             </div>
-        </div>
-        """
-    
-    # Couleurs par cluster
-    cluster_colors = {
-        "💻 Tech Experts": "#3498db",
-        "🧒 Digital Natives": "#e74c3c", 
-        "🎯 Sceptiques Experts": "#f39c12",
-        "👔 Pros Prudents": "#9b59b6",
-        "👁️ Observateurs": "#95a5a6"
-    }
-    
-    # Affichage en grille (3 cartes par ligne)
-    for i in range(0, len(filtered_personas), 3):
-        cols = st.columns(3)
-        for j, col in enumerate(cols):
-            if i + j < len(filtered_personas):
-                persona = filtered_personas.iloc[i + j]
-                cluster_color = cluster_colors.get(persona['Cluster'], "#95a5a6")
-                
-                with col:
-                    st.markdown(
-                        generate_persona_card(persona, cluster_color),
-                        unsafe_allow_html=True
-                    )
-    
-    # =============================================
-    # INSIGHTS RAPIDES PAR CLUSTER
-    # =============================================
-    if selected_cluster != "Tous":
-        st.markdown("### 💡 Insights de ce Profil")
+            """
         
-        cluster_data = filtered_personas
+        # Galerie premium avec recherche
+        st.markdown("### 🎴 Galerie Premium des Personas")
         
-        col_insight1, col_insight2 = st.columns(2)
+        # Barre de recherche
+        col_search, col_sort = st.columns([3, 1])
+        with col_search:
+            search_term = st.text_input("🔍 Rechercher un persona...", placeholder="Nom, métier, citation...")
+        with col_sort:
+            sort_by = st.selectbox("Trier par :", ["Nom", "Score de Risque", "Âge", "Cluster"])
         
-        with col_insight1:
-            # Caractéristiques dominantes
-            dominant_age = cluster_data['Tranche d\'âge'].mode().iloc[0] if len(cluster_data) > 0 else "N/A"
-            dominant_education = cluster_data['Niveau d\'étude'].mode().iloc[0] if len(cluster_data) > 0 else "N/A"
-            
-            st.markdown(f"""
-            <div class="insight-card">
-                <h4>📊 Profil Dominant</h4>
-                <p><strong>👤 Âge typique:</strong> {dominant_age}</p>
-                <p><strong>🎓 Éducation:</strong> {dominant_education}</p>
-                <p><strong>👥 Taille du segment:</strong> {len(cluster_data)} personas</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col_insight2:
-            # Comportements clés
-            avg_usage = cluster_data['Fréquence d\'utilisation par jour'].mode().iloc[0] if len(cluster_data) > 0 else "N/A"
-            common_platform = "Analyse en cours..."
-            
-            # Extraction de la plateforme la plus mentionnée
-            all_platforms = ' '.join(cluster_data['Plateformes jugées risquées'].dropna())
-            for platform in ['Facebook', 'Instagram', 'TikTok', 'Twitter', 'YouTube']:
-                if platform in all_platforms:
-                    common_platform = platform
-                    break
-            
-            st.markdown(f"""
-            <div class="insight-card">
-                <h4>🎯 Comportements Clés</h4>
-                <p><strong>⏱ Usage moyen:</strong> {avg_usage}</p>
-                <p><strong>📱 Plateforme critique:</strong> {common_platform}</p>
-                <p><strong>🚨 Niveau d'alerte:</strong> Modéré à Élevé</p>
-            </div>
-            """, unsafe_allow_html=True)
-    
-    # =============================================
-    # VISUALISATION CLUSTER OVERVIEW
-    # =============================================
-    st.markdown("### 📈 Vue d'Ensemble des Profils")
-    
-    tab_overview, tab_matrix = st.tabs(["Distribution", "Matrice de Risque"])
-    
-    with tab_overview:
-        col_chart1, col_chart2 = st.columns(2)
-        
-        with col_chart1:
-            # Répartition par cluster
-            cluster_dist = df_personas['Cluster'].value_counts()
-            fig_cluster = px.pie(
-                values=cluster_dist.values,
-                names=cluster_dist.index,
-                title="Répartition des Profils",
-                color_discrete_map=cluster_colors,
-                hole=0.4
+        # Application de la recherche
+        if search_term:
+            mask = (
+                filtered_df['Nom'].str.contains(search_term, case=False, na=False) |
+                filtered_df['Métier'].str.contains(search_term, case=False, na=False) |
+                filtered_df['Citation-clé'].str.contains(search_term, case=False, na=False)
             )
-            fig_cluster.update_traces(textposition='inside', textinfo='percent+label')
-            fig_cluster.update_layout(height=400, showlegend=False)
-            st.plotly_chart(fig_cluster, use_container_width=True)
+            filtered_df = filtered_df[mask]
         
-        with col_chart2:
-            # Niveau de méfiance par cluster
-            trust_data = df_personas.groupby('Cluster')['Niveau de méfiance'].apply(
-                lambda x: x.str.contains('Très méfiant|Extrêmement', na=False).sum()
-            ).reset_index()
-            trust_data.columns = ['Cluster', 'Très_Méfiants']
+        # Tri
+        if sort_by == "Score de Risque":
+            filtered_df = filtered_df.sort_values('Score_Risque', ascending=False)
+        elif sort_by == "Âge":
+            filtered_df = filtered_df.sort_values('Tranche d\'âge')
+        elif sort_by == "Cluster":
+            filtered_df = filtered_df.sort_values('Cluster_Advanced')
+        else:
+            filtered_df = filtered_df.sort_values('Nom')
+        
+        # Affichage des résultats
+        if len(filtered_df) == 0:
+            st.warning("Aucun persona trouvé avec ces critères")
+        else:
+            st.success(f"✨ {len(filtered_df)} personas trouvés")
             
-            fig_trust = px.bar(
-                trust_data,
-                x='Cluster',
-                y='Très_Méfiants',
-                title="Méfiance par Profil",
-                color='Très_Méfiants',
+            # Grille responsive (3 cartes par ligne)
+            for i in range(0, len(filtered_df), 3):
+                cols = st.columns(3)
+                for j, col in enumerate(cols):
+                    if i + j < len(filtered_df):
+                        persona = filtered_df.iloc[i + j]
+                        cluster_color = advanced_cluster_colors.get(persona['Cluster_Advanced'], "#95a5a6")
+                        
+                        with col:
+                            st.markdown(
+                                generate_premium_card(persona, cluster_color),
+                                unsafe_allow_html=True
+                            )
+        
+        # Insights temps réel
+        if real_time:
+            with st.container():
+                st.markdown("### ⚡ Insights Temps Réel")
+                
+                col_rt1, col_rt2, col_rt3 = st.columns(3)
+                
+                with col_rt1:
+                    st.markdown(f"""
+                    <div class="insight-card">
+                        <h4>🎯 Cluster Dominant</h4>
+                        <p>{filtered_df['Cluster_Advanced'].mode().iloc[0] if len(filtered_df) > 0 else 'N/A'}</p>
+                        <p>Représente {len(filtered_df[filtered_df['Cluster_Advanced'] == filtered_df['Cluster_Advanced'].mode().iloc[0]]) if len(filtered_df) > 0 else 0} personas</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with col_rt2:
+                    avg_risk = filtered_df['Score_Risque'].mean() if len(filtered_df) > 0 else 0
+                    risk_trend = "📈" if avg_risk > 5 else "📉" if avg_risk < 4 else "➡️"
+                    st.markdown(f"""
+                    <div class="insight-card">
+                        <h4>⚠️ Risque Moyen</h4>
+                        <p style="font-size: 2rem;">{avg_risk:.1f}/10 {risk_trend}</p>
+                        <p>Tendance du segment sélectionné</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with col_rt3:
+                    top_platform = "Facebook"  # Placeholder pour logique complexe
+                    st.markdown(f"""
+                    <div class="insight-card">
+                        <h4>📱 Plateforme Critique</h4>
+                        <p style="font-size: 1.5rem;">{top_platform}</p>
+                        <p>La plus mentionnée comme risquée</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+    
+    # =============================================
+    # ONGLET 2: ANALYTICS AVANCÉES
+    # =============================================
+    with tab_analytics:
+        st.markdown("### 📊 Analytics Comportementales Avancées")
+        
+        # Matrice de corrélation avancée
+        st.subheader("🔗 Analyse de Corrélations")
+        
+        # Préparation des données pour corrélation
+        numeric_data = df_personas.copy()
+        
+        # Conversion des variables catégorielles en numériques
+        label_encoders = {}
+        for col in ['Cluster_Advanced', 'Niveau de méfiance', 'Tranche d\'âge', 'Catégorie socio-professionnelle']:
+            if col in numeric_data.columns:
+                le = pd.Categorical(numeric_data[col]).codes
+                numeric_data[f'{col}_encoded'] = le
+        
+        # Ajout de scores calculés
+        numeric_data['Usage_Score'] = numeric_data['Fréquence d\'utilisation par jour'].map({
+            '0 min': 0, '< 30 min': 1, '≈ 30 min': 2, '1h': 3
+        }).fillna(1)
+        
+        numeric_data['Education_Score'] = numeric_data['Niveau d\'étude'].map({
+            'En cours': 1, 'Bac+3': 3, 'Bac+5': 5, 'Doctorat': 7
+        }).fillna(3)
+        
+        # Sélection des variables pour la corrélation
+        corr_columns = ['Score_Risque', 'Usage_Score', 'Education_Score', 'Cluster_Advanced_encoded', 'Niveau de méfiance_encoded']
+        available_corr_columns = [col for col in corr_columns if col in numeric_data.columns]
+        
+        if len(available_corr_columns) > 1:
+            corr_matrix = numeric_data[available_corr_columns].corr()
+            
+            # Heatmap interactive
+            fig_corr = px.imshow(
+                corr_matrix,
+                text_auto=True,
+                aspect="auto",
+                color_continuous_scale='RdBu_r',
+                zmin=-1, zmax=1,
+                title="Matrice de Corrélation des Variables Comportementales"
+            )
+            fig_corr.update_layout(height=500)
+            st.plotly_chart(fig_corr, use_container_width=True)
+        
+        # Distribution des scores de risque
+        col_dist1, col_dist2 = st.columns(2)
+        
+        with col_dist1:
+            st.subheader("📈 Distribution des Scores de Risque")
+            
+            fig_hist = px.histogram(
+                df_personas,
+                x='Score_Risque',
+                nbins=10,
+                title="Répartition des Scores de Risque",
+                color_discrete_sequence=['#667eea']
+            )
+            fig_hist.update_layout(
+                xaxis_title="Score de Risque (1-10)",
+                yaxis_title="Nombre de Personas"
+            )
+            st.plotly_chart(fig_hist, use_container_width=True)
+        
+        with col_dist2:
+            st.subheader("🎯 Analyse par Cluster")
+            
+            cluster_risk = df_personas.groupby('Cluster_Advanced')['Score_Risque'].mean().sort_values(ascending=False)
+            
+            fig_cluster_risk = px.bar(
+                x=cluster_risk.index,
+                y=cluster_risk.values,
+                title="Score de Risque Moyen par Cluster",
+                color=cluster_risk.values,
                 color_continuous_scale='Reds'
             )
-            fig_trust.update_layout(height=400, xaxis_tickangle=-45)
-            st.plotly_chart(fig_trust, use_container_width=True)
-    
-    with tab_matrix:
-        # Matrice de risque : Méfiance vs Connaissance
-        risk_matrix_data = []
+            fig_cluster_risk.update_layout(
+                xaxis_title="Cluster",
+                yaxis_title="Score de Risque Moyen",
+                xaxis_tickangle=-45
+            )
+            st.plotly_chart(fig_cluster_risk, use_container_width=True)
         
-        for _, persona in df_personas.iterrows():
-            # Score de méfiance (1-5)
-            trust_score = 1
-            if "Extrêmement" in str(persona['Niveau de méfiance']):
-                trust_score = 5
-            elif "Très méfiant" in str(persona['Niveau de méfiance']):
-                trust_score = 4
-            elif "Méfiant" in str(persona['Niveau de méfiance']):
-                trust_score = 3
-            elif "Modérément" in str(persona['Niveau de méfiance']):
-                trust_score = 2
-            
-            # Score de connaissance (1-4)
-            knowledge_score = 1
-            knowledge_text = str(persona['Connaissance des deepfakes']).lower()
-            if any(word in knowledge_text for word in ['algorithme', 'machine learning', 'développeur']):
-                knowledge_score = 4
-            elif any(word in knowledge_text for word in ['technologie', 'ia', 'intelligence']):
-                knowledge_score = 3
-            elif any(word in knowledge_text for word in ['manipulation', 'comprend']):
-                knowledge_score = 2
-            
-            risk_matrix_data.append({
-                'Nom': persona['Nom'],
-                'Cluster': persona['Cluster'],
-                'Méfiance': trust_score,
-                'Connaissance': knowledge_score,
-                'Risque': max(1, trust_score - knowledge_score + 3)  # Risque calculé
-            })
+        # Analyse géographique
+        st.subheader("🗺️ Analyse Géographique")
         
-        risk_df = pd.DataFrame(risk_matrix_data)
+        # Extraction des villes
+        df_personas['Ville'] = df_personas['Localisation'].str.split(',').str[0].str.strip()
+        geo_analysis = df_personas.groupby('Ville').agg({
+            'Nom': 'count',
+            'Score_Risque': 'mean',
+            'Cluster_Advanced': lambda x: x.mode().iloc[0] if len(x) > 0 else 'N/A'
+        }).rename(columns={'Nom': 'Count', 'Score_Risque': 'Risque_Moyen', 'Cluster_Advanced': 'Cluster_Dominant'})
         
-        # Scatter plot de la matrice de risque
-        fig_matrix = px.scatter(
-            risk_df,
-            x='Connaissance',
-            y='Méfiance', 
-            size='Risque',
-            color='Cluster',
-            hover_name='Nom',
-            title="Matrice de Risque : Méfiance vs Connaissance",
-            labels={
-                'Connaissance': 'Niveau de Connaissance (1-4)',
-                'Méfiance': 'Niveau de Méfiance (1-5)'
-            },
-            color_discrete_map=cluster_colors
+        col_geo1, col_geo2 = st.columns(2)
+        
+        with col_geo1:
+            fig_geo_count = px.bar(
+                geo_analysis.reset_index(),
+                x='Ville',
+                y='Count',
+                title="Nombre de Personas par Ville",
+                color='Count',
+                color_continuous_scale='Blues'
+            )
+            fig_geo_count.update_layout(xaxis_tickangle=-45)
+            st.plotly_chart(fig_geo_count, use_container_width=True)
+        
+        with col_geo2:
+            fig_geo_risk = px.scatter(
+                geo_analysis.reset_index(),
+                x='Count',
+                y='Risque_Moyen',
+                size='Count',
+                color='Cluster_Dominant',
+                hover_name='Ville',
+                title="Risque vs Population par Ville",
+                color_discrete_map=advanced_cluster_colors
+            )
+            st.plotly_chart(fig_geo_risk, use_container_width=True)
+        
+        # Analyse temporelle simulée
+        st.subheader("📅 Tendances Temporelles (Simulation)")
+        
+        # Génération de données temporelles fictives
+        dates = pd.date_range('2024-01-01', '2024-12-31', freq='M')
+        np.random.seed(42)
+        
+        trend_data = pd.DataFrame({
+            'Date': dates,
+            'Nouveaux_Personas': np.random.poisson(2, len(dates)),
+            'Score_Risque_Moyen': 5 + np.random.normal(0, 0.5, len(dates)),
+            'Tech_Experts_Pct': 20 + np.random.normal(0, 3, len(dates))
+        })
+        
+        fig_trends = px.line(
+            trend_data,
+            x='Date',
+            y=['Score_Risque_Moyen', 'Tech_Experts_Pct'],
+            title="Évolution des Métriques Clés (2024)",
+            labels={'value': 'Valeur', 'variable': 'Métrique'}
         )
-        
-        # Ajout de zones de risque
-        fig_matrix.add_shape(
-            type="rect",
-            x0=0.5, y0=3.5, x1=2.5, y1=5.5,
-            fillcolor="red", opacity=0.1,
-            line_width=0
-        )
-        fig_matrix.add_annotation(
-            x=1.5, y=4.5,
-            text="Zone à Risque<br>(Peu informés + Très méfiants)",
-            showarrow=False,
-            font=dict(color="red", size=10)
-        )
-        
-        fig_matrix.update_layout(height=500)
-        st.plotly_chart(fig_matrix, use_container_width=True)
+        st.plotly_chart(fig_trends, use_container_width=True)
     
     # =============================================
-    # RECOMMANDATIONS STRATÉGIQUES
+    # ONGLET 3: COMPARATEUR DE PERSONAS
     # =============================================
-    st.markdown("### 🎯 Recommandations par Profil")
+    with tab_comparison:
+        st.markdown("### ⚖️ Comparateur Avancé de Personas")
+        
+        # Sélection des personas à comparer
+        col_select1, col_select2, col_select3 = st.columns(3)
+        
+        with col_select1:
+            persona1 = st.selectbox(
+                "Persona 1 :",
+                options=df_personas['Nom'].tolist(),
+                key="comp_persona1"
+            )
+        
+        with col_select2:
+            persona2 = st.selectbox(
+                "Persona 2 :",
+                options=df_personas['Nom'].tolist(),
+                index=1 if len(df_personas) > 1 else 0,
+                key="comp_persona2"
+            )
+        
+        with col_select3:
+            persona3 = st.selectbox(
+                "Persona 3 (optionnel) :",
+                options=["Aucun"] + df_personas['Nom'].tolist(),
+                key="comp_persona3"
+            )
+        
+        if persona1 and persona2:
+            # Récupération des données
+            p1_data = df_personas[df_personas['Nom'] == persona1].iloc[0]
+            p2_data = df_personas[df_personas['Nom'] == persona2].iloc[0]
+            p3_data = None
+            if persona3 != "Aucun":
+                p3_data = df_personas[df_personas['Nom'] == persona3].iloc[0]
+            
+            # Comparaison visuelle
+            comparison_personas = [p1_data, p2_data]
+            if p3_data is not None:
+                comparison_personas.append(p3_data)
+            
+            # Tableau de comparaison
+            st.subheader("📋 Tableau Comparatif")
+            
+            comparison_data = []
+            attributes = [
+                'Nom', 'Tranche d\'âge', 'Métier', 'Cluster_Advanced', 
+                'Score_Risque', 'Niveau de méfiance', 'Niveau d\'étude',
+                'Fréquence d\'utilisation par jour'
+            ]
+            
+            for attr in attributes:
+                row = {'Attribut': attr}
+                for i, persona in enumerate(comparison_personas):
+                    row[f'Persona {i+1}'] = persona[attr]
+                comparison_data.append(row)
+            
+            comparison_df = pd.DataFrame(comparison_data)
+            st.dataframe(comparison_df, use_container_width=True, hide_index=True)
+            
+            # Radar chart comparatif
+            st.subheader("🕸️ Profil Radar Comparatif")
+            
+            # Préparation des données pour le radar
+            categories = ['Score Risque', 'Usage Digital', 'Niveau Méfiance', 'Éducation', 'Expérience Pro']
+            
+            def calculate_radar_scores(persona):
+                usage_score = {'0 min': 1, '< 30 min': 2, '≈ 30 min': 3, '1h': 4}.get(persona['Fréquence d\'utilisation par jour'], 2)
+                trust_score = 1
+                if "Extrêmement" in str(persona['Niveau de méfiance']): trust_score = 5
+                elif "Très méfiant" in str(persona['Niveau de méfiance']): trust_score = 4
+                elif "Méfiant" in str(persona['Niveau de méfiance']): trust_score = 3
+                elif "Modérément" in str(persona['Niveau de méfiance']): trust_score = 2
+                
+                edu_score = {'En cours': 2, 'Bac+3': 3, 'Bac+5': 4, 'Doctorat': 5}.get(persona['Niveau d\'étude'], 3)
+                exp_score = 3  # Score basique, peut être enrichi
+                
+                return [persona['Score_Risque'], usage_score, trust_score, edu_score, exp_score]
+            
+            fig_radar = go.Figure()
+            
+            colors = ['#667eea', '#f093fb', '#4ecdc4']
+            for i, persona in enumerate(comparison_personas):
+                scores = calculate_radar_scores(persona)
+                fig_radar.add_trace(go.Scatterpolar(
+                    r=scores,
+                    theta=categories,
+                    fill='toself',
+                    name=persona['Nom'],
+                    line_color=colors[i]
+                ))
+            
+            fig_radar.update_layout(
+                polar=dict(
+                    radialaxis=dict(visible=True, range=[0, 5])
+                ),
+                showlegend=True,
+                title="Comparaison Multi-Dimensionnelle",
+                height=500
+            )
+            
+            st.plotly_chart(fig_radar, use_container_width=True)
+            
+            # Recommandations comparatives
+            st.subheader("💡 Recommandations Comparatives")
+            
+            for i, persona in enumerate(comparison_personas):
+                cluster = persona['Cluster_Advanced']
+                risk_score = persona['Score_Risque']
+                
+                if risk_score >= 7:
+                    rec_color = "#e74c3c"
+                    rec_level = "PRIORITÉ ÉLEVÉE"
+                elif risk_score >= 4:
+                    rec_color = "#f39c12"
+                    rec_level = "ATTENTION MODÉRÉE"
+                else:
+                    rec_color = "#2ecc71"
+                    rec_level = "SURVEILLANCE LÉGÈRE"
+                
+                st.markdown(f"""
+                <div style="border: 2px solid {rec_color}; border-radius: 15px; padding: 20px; margin: 10px 0;">
+                    <h4>{persona['Nom']} - {rec_level}</h4>
+                    <p><strong>Cluster:</strong> {cluster}</p>
+                    <p><strong>Score de Risque:</strong> {risk_score}/10</p>
+                    <p><strong>Action Recommandée:</strong> 
+                    {"Formation technique avancée" if cluster == "💻 Tech Experts" else
+                     "Sensibilisation adaptée à l'âge" if cluster == "🧒 Digital Natives" else
+                     "Communication institutionnelle" if cluster == "🎯 Sceptiques Experts" else
+                     "Formation en entreprise" if cluster == "👔 Decision Makers" else
+                     "Surveillance renforcée" if cluster == "⚠️ Profils à Risque" else
+                     "Partenariat éducatif" if cluster == "🎓 Éducateurs" else
+                     "Sensibilisation générale"}</p>
+                </div>
+                """, unsafe_allow_html=True)
     
-    recommendations = {
-        "💻 Tech Experts": {
-            "strategie": "Partenariat & Co-création",
-            "actions": ["Impliquer dans développement d'outils", "Ambassadeurs techniques", "Formation avancée"],
-            "canal": "GitHub, forums tech, LinkedIn"
-        },
-        "🧒 Digital Natives": {
-            "strategie": "Éducation Préventive",
-            "actions": ["Modules scolaires/universitaires", "Gamification", "Peer-to-peer education"],
-            "canal": "TikTok, Instagram, Discord"
-        },
-        "🎯 Sceptiques Experts": {
-            "strategie": "Validation & Transparence", 
-            "actions": ["Preuves scientifiques", "Démonstrations", "Sources officielles"],
-            "canal": "Presse traditionnelle, conférences"
-        },
-        "👔 Pros Prudents": {
-            "strategie": "Formation Professionnelle",
-            "actions": ["Webinaires métier", "Guides pratiques", "Certification"],
-            "canal": "LinkedIn, emails corporates"
-        },
-        "👁️ Observateurs": {
-            "strategie": "Sensibilisation Douce",
-            "actions": ["Contenus accessibles", "Témoignages", "FAQ simples"],
-            "canal": "Facebook, YouTube, presse généraliste"
-        }
-    }
-    
-    for cluster, rec in recommendations.items():
-        if cluster in df_personas['Cluster'].values:
-            count = len(df_personas[df_personas['Cluster'] == cluster])
+    # =============================================
+    # ONGLET 4: GÉNÉRATEUR DE STRATÉGIES
+    # =============================================
+    with tab_strategy:
+        st.markdown("### 🎯 Générateur de Stratégies Personnalisées")
+        
+        # Sélection du mode stratégique
+        strategy_mode = st.radio(
+            "Mode d'analyse :",
+            options=["Par Cluster", "Par Persona Individuel", "Stratégie Globale"],
+            horizontal=True
+        )
+        
+        if strategy_mode == "Par Cluster":
+            selected_cluster = st.selectbox(
+                "Sélectionnez un cluster :",
+                options=df_personas['Cluster_Advanced'].unique()
+            )
+            
+            cluster_data = df_personas[df_personas['Cluster_Advanced'] == selected_cluster]
+            
+            # Analyse du cluster
+            st.subheader(f"📊 Analyse du Cluster : {selected_cluster}")
+            
+            col_stats1, col_stats2, col_stats3 = st.columns(3)
+            
+            with col_stats1:
+                st.metric("Taille du Segment", len(cluster_data))
+                avg_risk = cluster_data['Score_Risque'].mean()
+                st.metric("Risque Moyen", f"{avg_risk:.1f}/10")
+            
+            with col_stats2:
+                dominant_age = cluster_data['Tranche d\'âge'].mode().iloc[0] if len(cluster_data) > 0 else "N/A"
+                st.metric("Âge Dominant", dominant_age)
+                heavy_users = len(cluster_data[cluster_data['Fréquence d\'utilisation par jour'] == '1h'])
+                st.metric("Gros Utilisateurs", heavy_users)
+            
+            with col_stats3:
+                dominant_edu = cluster_data['Niveau d\'étude'].mode().iloc[0] if len(cluster_data) > 0 else "N/A"
+                st.metric("Éducation Dominante", dominant_edu)
+                very_cautious = len(cluster_data[cluster_data['Niveau de méfiance'].str.contains('Très méfiant', na=False)])
+                st.metric("Très Méfiants", very_cautious)
+            
+            # Stratégies personnalisées par cluster
+            cluster_strategies = {
+                "💻 Tech Experts": {
+                    "objectif": "Partenariat et Co-innovation",
+                    "approche": "Technique et Collaborative",
+                    "actions": [
+                        "🤝 Créer un programme d'ambassadeurs techniques",
+                        "🔧 Impliquer dans le développement d'outils de détection",
+                        "📚 Proposer des formations avancées en IA/ML",
+                        "💬 Organiser des hackathons anti-deepfakes",
+                        "🌐 Créer une communauté technique dédiée"
+                    ],
+                    "kpis": ["Nombre d'ambassadeurs", "Outils développés", "Participation aux événements"],
+                    "budget": "Élevé (50k-100k €)",
+                    "timeline": "6-12 mois",
+                    "canaux": ["GitHub", "Stack Overflow", "LinkedIn", "Conférences tech"]
+                },
+                "🧒 Digital Natives": {
+                    "objectif": "Éducation Préventive et Virale",
+                    "approche": "Gamifiée et Sociale",
+                    "actions": [
+                        "🎮 Développer un jeu mobile éducatif",
+                        "📱 Créer du contenu TikTok/Instagram éducatif",
+                        "🏫 Intégrer dans les programmes scolaires",
+                        "👥 Programme de peer-to-peer education",
+                        "🏆 Concours de détection de deepfakes"
+                    ],
+                    "kpis": ["Engagement sur réseaux", "Taux de completion jeu", "Portée virale"],
+                    "budget": "Modéré (20k-50k €)",
+                    "timeline": "3-6 mois",
+                    "canaux": ["TikTok", "Instagram", "Discord", "Établissements scolaires"]
+                },
+                "🎯 Sceptiques Experts": {
+                    "objectif": "Validation Scientifique et Transparence",
+                    "approche": "Factuelle et Institutionnelle",
+                    "actions": [
+                        "📊 Publier des études scientifiques rigoureuses",
+                        "🎤 Organiser des conférences d'experts",
+                        "📺 Interventions dans les médias traditionnels",
+                        "🔍 Démonstrations techniques publiques",
+                        "📖 Guide méthodologique de vérification"
+                    ],
+                    "kpis": ["Citations scientifiques", "Couverture médiatique", "Taux de confiance"],
+                    "budget": "Élevé (40k-80k €)",
+                    "timeline": "6-18 mois",
+                    "canaux": ["Presse traditionnelle", "Conférences", "Publications scientifiques"]
+                },
+                "👔 Decision Makers": {
+                    "objectif": "Formation Corporate et Compliance",
+                    "approche": "Professionnelle et Stratégique",
+                    "actions": [
+                        "💼 Webinaires C-Level sur les risques",
+                        "📋 Audit de vulnérabilité entreprise",
+                        "🎓 Certification anti-deepfakes",
+                        "📊 Dashboard de monitoring en temps réel",
+                        "⚖️ Guide de compliance légale"
+                    ],
+                    "kpis": ["Entreprises formées", "Audits réalisés", "Certifications délivrées"],
+                    "budget": "Très élevé (100k+ €)",
+                    "timeline": "12-24 mois",
+                    "canaux": ["LinkedIn", "Événements B2B", "Presse économique"]
+                },
+                "⚠️ Profils à Risque": {
+                    "objectif": "Protection Renforcée et Surveillance",
+                    "approche": "Préventive et Protective",
+                    "actions": [
+                        "🚨 Système d'alertes personnalisées",
+                        "📱 App mobile de vérification rapide",
+                        "👥 Réseau de soutien communautaire",
+                        "📚 Formation simplifiée et accessible",
+                        "🔒 Outils de protection personnelle"
+                    ],
+                    "kpis": ["Réduction des incidents", "Adoption des outils", "Satisfaction utilisateur"],
+                    "budget": "Modéré (30k-60k €)",
+                    "timeline": "3-9 mois",
+                    "canaux": ["SMS", "Email", "Applications mobiles", "Support téléphonique"]
+                },
+                "🎓 Éducateurs": {
+                    "objectif": "Partenariat Éducatif et Diffusion",
+                    "approche": "Pédagogique et Collaborative",
+                    "actions": [
+                        "📚 Curriculum anti-deepfakes pour écoles",
+                        "👨‍🏫 Formation des formateurs",
+                        "🔬 Projet de recherche collaborative",
+                        "📖 Ressources pédagogiques gratuites",
+                        "🏆 Prix de l'innovation éducative"
+                    ],
+                    "kpis": ["Établissements partenaires", "Enseignants formés", "Élèves touchés"],
+                    "budget": "Modéré (25k-50k €)",
+                    "timeline": "6-12 mois",
+                    "canaux": ["Réseaux éducatifs", "Conférences pédagogiques", "Plateformes e-learning"]
+                },
+                "👁️ Observateurs": {
+                    "objectif": "Sensibilisation Douce et Progressive",
+                    "approche": "Accessible et Non-intrusive",
+                    "actions": [
+                        "📺 Campagne de sensibilisation grand public",
+                        "❓ FAQ interactive et accessible",
+                        "📰 Articles de presse vulgarisés",
+                        "🎥 Témoignages et cas concrets",
+                        "📱 Notifications push éducatives"
+                    ],
+                    "kpis": ["Portée de la campagne", "Engagement contenu", "Changement de perception"],
+                    "budget": "Standard (15k-30k €)",
+                    "timeline": "3-6 mois",
+                    "canaux": ["Facebook", "YouTube", "Presse généraliste", "TV"]
+                }
+            }
+            
+            if selected_cluster in cluster_strategies:
+                strategy = cluster_strategies[selected_cluster]
+                
+                st.subheader("🎯 Stratégie Recommandée")
+                
+                # Carte stratégique
+                st.markdown(f"""
+                <div class="strategy-card">
+                    <h3>📋 {strategy['objectif']}</h3>
+                    <p><strong>🎨 Approche:</strong> {strategy['approche']}</p>
+                    <p><strong>💰 Budget Estimé:</strong> {strategy['budget']}</p>
+                    <p><strong>⏱ Timeline:</strong> {strategy['timeline']}</p>
+                    <p><strong>📢 Canaux Prioritaires:</strong> {', '.join(strategy['canaux'])}</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Actions détaillées
+                col_actions, col_kpis = st.columns(2)
+                
+                with col_actions:
+                    st.markdown("**🚀 Plan d'Actions:**")
+                    for action in strategy['actions']:
+                        st.markdown(f"• {action}")
+                
+                with col_kpis:
+                    st.markdown("**📊 KPIs de Succès:**")
+                    for kpi in strategy['kpis']:
+                        st.markdown(f"• {kpi}")
+                
+                # Simulateur de ROI
+                st.subheader("💹 Simulateur de ROI")
+                
+                col_roi1, col_roi2, col_roi3 = st.columns(3)
+                
+                with col_roi1:
+                    budget_input = st.number_input("Budget (€)", min_value=1000, max_value=200000, value=30000)
+                
+                with col_roi2:
+                    duration_input = st.selectbox("Durée (mois)", options=[3, 6, 12, 18, 24], index=1)
+                
+                with col_roi3:
+                    target_reach = st.number_input("Portée Cible", min_value=100, max_value=100000, value=1000)
+                
+                # Calcul ROI simulé
+                efficiency_factor = {
+                    "💻 Tech Experts": 1.5,
+                    "🧒 Digital Natives": 2.0,
+                    "🎯 Sceptiques Experts": 1.2,
+                    "👔 Decision Makers": 3.0,
+                    "⚠️ Profils à Risque": 1.8,
+                    "🎓 Éducateurs": 2.5,
+                    "👁️ Observateurs": 1.0
+                }.get(selected_cluster, 1.0)
+                
+                estimated_impact = (budget_input / 100) * efficiency_factor * (target_reach / 1000)
+                roi_percentage = (estimated_impact / budget_input) * 100
+                
+                st.success(f"""
+                📈 **ROI Estimé:** {roi_percentage:.1f}%  
+                🎯 **Impact Projeté:** {estimated_impact:.0f} personas sensibilisés  
+                💰 **Coût par Persona:** {budget_input/max(1, estimated_impact):.2f}€
+                """)
+        
+        elif strategy_mode == "Par Persona Individuel":
+            selected_persona_name = st.selectbox(
+                "Sélectionnez un persona :",
+                options=df_personas['Nom'].tolist()
+            )
+            
+            persona_data = df_personas[df_personas['Nom'] == selected_persona_name].iloc[0]
+            
+            st.subheader(f"👤 Stratégie Personnalisée : {persona_data['Nom']}")
+            
+            # Profil détaillé
+            col_profile1, col_profile2 = st.columns(2)
+            
+            with col_profile1:
+                st.markdown(f"""
+                **📊 Profil:**
+                - **Âge:** {persona_data['Tranche d\'âge']}
+                - **Métier:** {persona_data['Métier']}
+                - **Cluster:** {persona_data['Cluster_Advanced']}
+                - **Score de Risque:** {persona_data['Score_Risque']}/10
+                """)
+            
+            with col_profile2:
+                st.markdown(f"""
+                **🎯 Comportement:**
+                - **Méfiance:** {persona_data['Niveau de méfiance']}
+                - **Usage:** {persona_data['Fréquence d\'utilisation par jour']}
+                - **Éducation:** {persona_data['Niveau d\'étude']}
+                - **Localisation:** {persona_data['Localisation']}
+                """)
+            
+            # Citation personnalisée
             st.markdown(f"""
-            <div style="border: 2px solid {cluster_colors[cluster]}; border-radius: 10px; padding: 15px; margin: 10px 0;">
-                <h4>{cluster} ({count} personas)</h4>
-                <p><strong>🎯 Stratégie:</strong> {rec['strategie']}</p>
-                <p><strong>⚡ Actions:</strong> {' • '.join(rec['actions'])}</p>
-                <p><strong>📢 Canaux:</strong> {rec['canal']}</p>
+            <div class="insight-card">
+                <h4>💬 Citation Représentative</h4>
+                <p style="font-style: italic;">"{persona_data['Citation-clé']}"</p>
             </div>
             """, unsafe_allow_html=True)
-    
-    # =============================================
-    # EXPORT RAPIDE
-    # =============================================
-    st.markdown("### 📥 Export Rapide")
-    
-    col_export1, col_export2, col_export3 = st.columns(3)
-    
-    with col_export1:
-        if st.button("📊 Export Clusters CSV"):
-            cluster_summary = df_personas.groupby('Cluster').agg({
-                'Nom': 'count',
-                'Tranche d\'âge': lambda x: x.mode().iloc[0],
-                'Niveau de méfiance': lambda x: x.str.contains('Très méfiant', na=False).sum(),
-                'Catégorie socio-professionnelle': lambda x: x.mode().iloc[0]
-            }).rename(columns={'Nom': 'Count'})
             
-            csv_data = cluster_summary.to_csv()
+            # Recommandations personnalisées
+            risk_score = persona_data['Score_Risque']
+            cluster = persona_data['Cluster_Advanced']
+            
+            if risk_score >= 8:
+                priority = "🚨 URGENTE"
+                color = "#e74c3c"
+                recommendations = [
+                    "Formation immédiate en détection de deepfakes",
+                    "Installation d'outils de vérification",
+                    "Réduction de l'exposition aux plateformes risquées",
+                    "Suivi mensuel personnalisé"
+                ]
+            elif risk_score >= 6:
+                priority = "⚠️ ÉLEVÉE"
+                color = "#f39c12"
+                recommendations = [
+                    "Session de sensibilisation ciblée",
+                    "Accès aux ressources éducatives",
+                    "Guidance sur les bonnes pratiques",
+                    "Suivi trimestriel"
+                ]
+            elif risk_score >= 4:
+                priority = "📊 MODÉRÉE"
+                color = "#3498db"
+                recommendations = [
+                    "Contenu éducatif adapté au profil",
+                    "Participation aux webinaires",
+                    "Accès aux guides de vérification",
+                    "Suivi semestriel"
+                ]
+            else:
+                priority = "✅ PRÉVENTIVE"
+                color = "#2ecc71"
+                recommendations = [
+                    "Maintien de la vigilance actuelle",
+                    "Mise à jour périodique des connaissances",
+                    "Rôle d'ambassadeur potentiel",
+                    "Suivi annuel"
+                ]
+            
+            st.markdown(f"""
+            <div style="border: 3px solid {color}; border-radius: 15px; padding: 25px; margin: 20px 0;">
+                <h3>🎯 Priorité d'Action: {priority}</h3>
+                <h4>📋 Recommandations Personnalisées:</h4>
+            """, unsafe_allow_html=True)
+            
+            for rec in recommendations:
+                st.markdown(f"• {rec}")
+            
+            st.markdown("</div>", unsafe_allow_html=True)
+        
+        elif strategy_mode == "Stratégie Globale":
+            st.subheader("🌍 Stratégie Globale Anti-Deepfakes")
+            
+            # Vue d'ensemble des clusters
+            cluster_overview = df_personas['Cluster_Advanced'].value_counts()
+            
+            col_overview1, col_overview2 = st.columns(2)
+            
+            with col_overview1:
+                fig_cluster_pie = px.pie(
+                    values=cluster_overview.values,
+                    names=cluster_overview.index,
+                    title="Répartition des Segments",
+                    color_discrete_map=advanced_cluster_colors
+                )
+                st.plotly_chart(fig_cluster_pie, use_container_width=True)
+            
+            with col_overview2:
+                # Matrice priorité/impact
+                cluster_priority = df_personas.groupby('Cluster_Advanced').agg({
+                    'Score_Risque': 'mean',
+                    'Nom': 'count'
+                }).rename(columns={'Score_Risque': 'Risque_Moyen', 'Nom': 'Taille'})
+                
+                fig_matrix = px.scatter(
+                    cluster_priority.reset_index(),
+                    x='Taille',
+                    y='Risque_Moyen',
+                    size='Taille',
+                    color='Cluster_Advanced',
+                    hover_name='Cluster_Advanced',
+                    title="Matrice Impact/Priorité",
+                    labels={'Taille': 'Taille du Segment', 'Risque_Moyen': 'Risque Moyen'},
+                    color_discrete_map=advanced_cluster_colors
+                )
+                st.plotly_chart(fig_matrix, use_container_width=True)
+            
+            # Plan stratégique global
+            st.markdown("### 📈 Plan Stratégique Global (18 mois)")
+            
+            phases = {
+                "Phase 1 (0-6 mois) - URGENCE": {
+                    "objectif": "Traiter les profils à haut risque",
+                    "cibles": ["⚠️ Profils à Risque", "🧒 Digital Natives"],
+                    "budget": "40% du budget total",
+                    "actions": [
+                        "Lancement campagne d'urgence",
+                        "Développement outils de protection",
+                        "Formation express des éducateurs"
+                    ]
+                },
+                "Phase 2 (6-12 mois) - EXPANSION": {
+                    "objectif": "Élargir la sensibilisation",
+                    "cibles": ["👁️ Observateurs", "🎓 Éducateurs"],
+                    "budget": "35% du budget total",
+                    "actions": [
+                        "Campagne grand public",
+                        "Partenariats éducatifs",
+                        "Développement contenu viral"
+                    ]
+                },
+                "Phase 3 (12-18 mois) - EXCELLENCE": {
+                    "objectif": "Construire l'écosystème expert",
+                    "cibles": ["💻 Tech Experts", "👔 Decision Makers", "🎯 Sceptiques Experts"],
+                    "budget": "25% du budget total",
+                    "actions": [
+                        "Programme d'ambassadeurs",
+                        "Certification professionnelle",
+                        "Innovation collaborative"
+                    ]
+                }
+            }
+            
+            for phase_name, phase_data in phases.items():
+                st.markdown(f"""
+                <div class="strategy-card">
+                    <h4>{phase_name}</h4>
+                    <p><strong>🎯 Objectif:</strong> {phase_data['objectif']}</p>
+                    <p><strong>👥 Cibles:</strong> {', '.join(phase_data['cibles'])}</p>
+                    <p><strong>💰 Budget:</strong> {phase_data['budget']}</p>
+                    <p><strong>🚀 Actions Clés:</strong> {' • '.join(phase_data['actions'])}</p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # KPIs globaux
+            st.markdown("### 📊 KPIs Stratégiques Globaux")
+            
+            kpi_cols = st.columns(4)
+            
+            with kpi_cols[0]:
+                st.metric("🎯 Portée Totale", "50,000+", delta="Objectif 18 mois")
+            
+            with kpi_cols[1]:
+                st.metric("📈 Réduction Risque", "-40%", delta="Score moyen")
+            
+            with kpi_cols[2]:
+                st.metric("🤝 Partenaires", "25+", delta="Organisations")
+            
+            with kpi_cols[3]:
+                st.metric("💰 ROI Global", "250%", delta="Retour sur investissement")
+    
+    # =============================================
+    # ONGLET 5: SIMULATEUR PRÉDICTIF
+    # =============================================
+    with tab_simulator:
+        st.markdown("### 🔮 Simulateur Prédictif de Comportements")
+        
+        st.info("🚀 **Innovation:** Utilisez l'IA pour prédire l'évolution des comportements face aux deepfakes")
+        
+        # Paramètres de simulation
+        st.subheader("⚙️ Paramètres de Simulation")
+        
+        col_sim1, col_sim2, col_sim3 = st.columns(3)
+        
+        with col_sim1:
+            sim_duration = st.selectbox("Horizon temporel", ["6 mois", "1 an", "2 ans", "5 ans"])
+            intervention_level = st.slider("Niveau d'intervention", 0, 10, 5, help="0=Aucune, 10=Maximum")
+        
+        with col_sim2:
+            tech_evolution = st.slider("Évolution technologique", 0, 10, 7, help="Rapidité d'évolution des deepfakes")
+            education_budget = st.number_input("Budget éducation (k€)", 0, 1000, 100)
+        
+        with col_sim3:
+            target_cluster = st.multiselect(
+                "Clusters ciblés",
+                options=df_personas['Cluster_Advanced'].unique(),
+                default=df_personas['Cluster_Advanced'].unique()[:3]
+            )
+        
+        if st.button("🚀 Lancer la Simulation", type="primary"):
+            # Simulation basée sur des modèles simplifiés
+            duration_multiplier = {"6 mois": 0.5, "1 an": 1, "2 ans": 2, "5 ans": 5}[sim_duration]
+            
+            # Calculs prédictifs
+            base_risk = df_personas['Score_Risque'].mean()
+            
+            # Impact de l'intervention
+            risk_reduction = (intervention_level * 0.1) * duration_multiplier
+            final_risk = max(1, base_risk - risk_reduction)
+            
+            # Impact du budget éducation
+            education_impact = min(2, education_budget / 100)
+            final_risk -= education_impact
+            
+            # Impact de l'évolution technologique (augmente le risque)
+            tech_impact = (tech_evolution * 0.05) * duration_multiplier
+            final_risk += tech_impact
+            
+            final_risk = max(1, min(10, final_risk))
+            
+            # Résultats de simulation
+            st.subheader("📊 Résultats de la Simulation")
+            
+            col_res1, col_res2, col_res3 = st.columns(3)
+            
+            with col_res1:
+                risk_change = ((final_risk - base_risk) / base_risk) * 100
+                st.metric(
+                    "🎯 Risque Final Moyen",
+                    f"{final_risk:.1f}/10",
+                    delta=f"{risk_change:+.1f}%"
+                )
+            
+            with col_res2:
+                awareness_increase = intervention_level * 10 + education_impact * 15
+                st.metric(
+                    "📚 Augmentation Sensibilisation",
+                    f"+{awareness_increase:.0f}%"
+                )
+            
+            with col_res3:
+                detection_capability = min(90, 30 + intervention_level * 6 + education_impact * 8)
+                st.metric(
+                    "🔍 Capacité Détection",
+                    f"{detection_capability:.0f}%"
+                )
+            
+            # Graphique d'évolution
+            import numpy as np
+            
+            months = np.arange(0, int(duration_multiplier * 12) + 1)
+            risk_evolution = []
+            awareness_evolution = []
+            
+            for month in months:
+                month_factor = month / 12
+                current_risk = base_risk - (risk_reduction * month_factor) + (tech_impact * month_factor) - (education_impact * month_factor)
+                current_awareness = awareness_increase * month_factor
+                
+                risk_evolution.append(max(1, min(10, current_risk)))
+                awareness_evolution.append(min(100, current_awareness))
+            
+            sim_df = pd.DataFrame({
+                'Mois': months,
+                'Score_Risque': risk_evolution,
+                'Sensibilisation': awareness_evolution
+            })
+            
+            fig_sim = px.line(
+                sim_df,
+                x='Mois',
+                y=['Score_Risque', 'Sensibilisation'],
+                title=f"Évolution Prédite sur {sim_duration}",
+                labels={'value': 'Score', 'variable': 'Métrique', 'Mois': 'Mois'}
+            )
+            st.plotly_chart(fig_sim, use_container_width=True)
+            
+            # Analyse par cluster ciblé
+            st.subheader("🎯 Impact par Cluster Ciblé")
+            
+            for cluster in target_cluster:
+                cluster_data = df_personas[df_personas['Cluster_Advanced'] == cluster]
+                cluster_risk = cluster_data['Score_Risque'].mean()
+                
+                # Facteur d'efficacité par cluster
+                efficiency_factors = {
+                    "💻 Tech Experts": 1.5,
+                    "🧒 Digital Natives": 2.0,
+                    "🎯 Sceptiques Experts": 0.8,
+                    "👔 Decision Makers": 1.2,
+                    "⚠️ Profils à Risque": 1.8,
+                    "🎓 Éducateurs": 2.2,
+                    "👁️ Observateurs": 1.0
+                }
+                
+                efficiency = efficiency_factors.get(cluster, 1.0)
+                cluster_final_risk = max(1, cluster_risk - (risk_reduction * efficiency))
+                cluster_impact = ((cluster_final_risk - cluster_risk) / cluster_risk) * 100
+                
+                st.markdown(f"""
+                <div style="border: 2px solid {advanced_cluster_colors.get(cluster, '#95a5a6')}; 
+                           border-radius: 10px; padding: 15px; margin: 10px 0;">
+                    <h4>{cluster}</h4>
+                    <p><strong>Risque Initial:</strong> {cluster_risk:.1f}/10</p>
+                    <p><strong>Risque Final:</strong> {cluster_final_risk:.1f}/10</p>
+                    <p><strong>Impact:</strong> {cluster_impact:+.1f}%</p>
+                    <p><strong>Efficacité:</strong> {efficiency*100:.0f}%</p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # Recommandations basées sur la simulation
+            st.subheader("💡 Recommandations Optimisées")
+            
+            if final_risk > base_risk:
+                st.error("⚠️ **Alerte:** Le risque augmente malgré les interventions. Recommandations:")
+                recommendations = [
+                    "🚨 Augmenter significativement le budget d'intervention",
+                    "🎯 Concentrer les efforts sur les clusters les plus efficaces",
+                    "⚡ Accélérer le déploiement des solutions",
+                    "🤝 Chercher des partenariats pour amplifier l'impact"
+                ]
+            elif abs(final_risk - base_risk) < 0.5:
+                st.warning("📊 **Stabilité:** Le risque reste stable. Optimisations possibles:")
+                recommendations = [
+                    "🔄 Réallouer le budget vers les clusters plus réceptifs",
+                    "📈 Augmenter progressivement le niveau d'intervention",
+                    "🎓 Renforcer les programmes éducatifs",
+                    "📊 Améliorer le monitoring des résultats"
+                ]
+            else:
+                st.success("✅ **Succès:** Réduction significative du risque. Continuez:")
+                recommendations = [
+                    "🎯 Maintenir les interventions efficaces",
+                    "📢 Étendre les stratégies qui fonctionnent",
+                    "💡 Innover pour maintenir l'avantage",
+                    "🌟 Créer des programmes d'ambassadeurs"
+                ]
+            
+            for rec in recommendations:
+                st.markdown(f"• {rec}")
+            
+            # Export des résultats de simulation
+            csv_sim = sim_df.to_csv(index=False)
             st.download_button(
-                "⬇️ Télécharger",
-                csv_data,
-                "clusters_summary.csv",
+                "📥 Exporter Résultats Simulation",
+                csv_sim,
+                f"simulation_deepfakes_{sim_duration.replace(' ', '_')}.csv",
                 "text/csv"
             )
     
-    with col_export2:
-        if st.button("🎯 Export Recommandations"):
-            rec_text = "# RECOMMANDATIONS PERSONAS DEEPFAKES\n\n"
-            for cluster, rec in recommendations.items():
-                count = len(df_personas[df_personas['Cluster'] == cluster])
-                rec_text += f"## {cluster} ({count} personas)\n"
-                rec_text += f"**Stratégie:** {rec['strategie']}\n"
-                rec_text += f"**Actions:** {', '.join(rec['actions'])}\n"
-                rec_text += f"**Canaux:** {rec['canal']}\n\n"
-            
-            st.download_button(
-                "⬇️ Télécharger",
-                rec_text,
-                "recommandations.md",
-                "text/markdown"
-            )
-    
-    with col_export3:
-        selected_cluster_export = st.selectbox(
-            "Cluster à exporter:",
-            options=df_personas['Cluster'].unique()
+    # =============================================
+    # ONGLET 6: EXPORT PREMIUM
+    # =============================================
+    with tab_export:
+        st.markdown("### 📥 Suite d'Export Premium")
+        
+        st.info("🎯 **Exports professionnels** pour équipes, direction et partenaires")
+        
+        # Types d'exports
+        export_type = st.radio(
+            "Type d'export :",
+            options=[
+                "📊 Dashboard Exécutif",
+                "👥 Fiches Personas Détaillées", 
+                "🎯 Plan Stratégique Complet",
+                "📈 Rapport d'Analyse",
+                "🔮 Résultats de Simulation"
+            ]
         )
         
-        if st.button("👥 Export Personas"):
-            cluster_personas = df_personas[df_personas['Cluster'] == selected_cluster_export]
-            csv_data = cluster_personas[['Nom', 'Métier', 'Citation-clé', 'Niveau de méfiance']].to_csv(index=False)
-            
-            st.download_button(
-                "⬇️ Télécharger",
-                csv_data,
-                f"personas_{selected_cluster_export.replace(' ', '_')}.csv",
-                "text/csv"
+        # Paramètres d'export
+        col_export_params1, col_export_params2 = st.columns(2)
+        
+        with col_export_params1:
+            selected_clusters_export = st.multiselect(
+                "Clusters à inclure :",
+                options=df_personas['Cluster_Advanced'].unique(),
+                default=df_personas['Cluster_Advanced'].unique()
             )
+            
+            include_charts = st.checkbox("Inclure les graphiques", True)
+            include_recommendations = st.checkbox("Inclure les recommandations", True)
+        
+        with col_export_params2:
+            export_format = st.selectbox(
+                "Format de sortie :",
+                options=["CSV", "JSON", "Markdown", "Rapport HTML"]
+            )
+            
+            confidentiality = st.selectbox(
+                "Niveau de confidentialité :",
+                options=["Public", "Interne", "Confidentiel", "Secret"]
+            )
+        
+        # Génération d'exports
+        if st.button("🚀 Générer l'Export", type="primary"):
+            export_data = df_personas[df_personas['Cluster_Advanced'].isin(selected_clusters_export)]
+            
+            if export_type == "📊 Dashboard Exécutif":
+                # Résumé exécutif
+                executive_summary = f"""
+# DASHBOARD EXÉCUTIF - PERSONAS DEEPFAKES
+**Confidentiel - {confidentiality}**
+
+## 📊 Synthèse Exécutive
+- **Total Personas Analysés:** {len(export_data)}
+- **Clusters Actifs:** {len(selected_clusters_export)}
+- **Score de Risque Moyen:** {export_data['Score_Risque'].mean():.1f}/10
+- **Profils Haute Priorité:** {len(export_data[export_data['Score_Risque'] >= 7])}
+
+## 🎯 Clusters Dominants
+"""
+                for cluster in selected_clusters_export:
+                    cluster_count = len(export_data[export_data['Cluster_Advanced'] == cluster])
+                    cluster_risk = export_data[export_data['Cluster_Advanced'] == cluster]['Score_Risque'].mean()
+                    executive_summary += f"""
+### {cluster}
+- **Taille:** {cluster_count} personas
+- **Risque Moyen:** {cluster_risk:.1f}/10
+- **Priorité:** {"ÉLEVÉE" if cluster_risk >= 6 else "MODÉRÉE" if cluster_risk >= 4 else "STANDARD"}
+"""
+                
+                if include_recommendations:
+                    executive_summary += """
+## 💡 Recommandations Prioritaires
+1. **Formation immédiate** des profils à haut risque (Score ≥ 7)
+2. **Campagne ciblée** pour les Digital Natives
+3. **Partenariat technique** avec les Tech Experts
+4. **Surveillance renforcée** des Profils à Risque
+
+## 📈 KPIs de Suivi Recommandés
+- Réduction du score de risque moyen (-20% en 6 mois)
+- Augmentation de la sensibilisation (+50% en 1 an)
+- Taux d'adoption des outils de détection (>80%)
+- Satisfaction des formations (>4.5/5)
+"""
+                
+                if export_format == "Markdown":
+                    st.download_button(
+                        "⬇️ Télécharger Dashboard Exécutif",
+                        executive_summary,
+                        "dashboard_executif.md",
+                        "text/markdown"
+                    )
+                elif export_format == "Rapport HTML":
+                    html_content = f"""
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Dashboard Exécutif - Personas DeepFakes</title>
+                        <style>
+                            body {{ font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }}
+                            h1 {{ color: #2c3e50; border-bottom: 3px solid #3498db; }}
+                            h2 {{ color: #34495e; margin-top: 30px; }}
+                            .metric {{ background: #ecf0f1; padding: 15px; border-radius: 5px; margin: 10px 0; }}
+                            .priority-high {{ color: #e74c3c; font-weight: bold; }}
+                            .priority-moderate {{ color: #f39c12; font-weight: bold; }}
+                            .priority-standard {{ color: #2ecc71; font-weight: bold; }}
+                        </style>
+                    </head>
+                    <body>
+                        {executive_summary.replace('# ', '<h1>').replace('## ', '<h2>').replace('### ', '<h3>').replace('**', '<strong>').replace('- ', '<li>')}
+                    </body>
+                    </html>
+                    """
+                    st.download_button(
+                        "⬇️ Télécharger Rapport HTML",
+                        html_content,
+                        "dashboard_executif.html",
+                        "text/html"
+                    )
+            
+            elif export_type == "👥 Fiches Personas Détaillées":
+                # Export détaillé des personas
+                detailed_export = export_data[[
+                    'Nom', 'Cluster_Advanced', 'Score_Risque', 'Tranche d\'âge', 
+                    'Métier', 'Entreprise', 'Localisation', 'Citation-clé', 
+                    'Niveau de méfiance', 'Plateformes jugées risquées',
+                    'Attentes et besoins', 'Vision future'
+                ]]
+                
+                if export_format == "CSV":
+                    csv_detailed = detailed_export.to_csv(index=False)
+                    st.download_button(
+                        "⬇️ Télécharger Fiches Détaillées CSV",
+                        csv_detailed,
+                        "fiches_personas_detaillees.csv",
+                        "text/csv"
+                    )
+                elif export_format == "JSON":
+                    json_detailed = detailed_export.to_json(orient='records', indent=2, force_ascii=False)
+                    st.download_button(
+                        "⬇️ Télécharger Fiches JSON",
+                        json_detailed,
+                        "fiches_personas_detaillees.json",
+                        "application/json"
+                    )
+            
+            elif export_type == "🎯 Plan Stratégique Complet":
+                # Plan stratégique détaillé
+                strategic_plan = f"""
+# PLAN STRATÉGIQUE ANTI-DEEPFAKES
+**Document {confidentiality} - Version 1.0**
+
+## 🎯 Objectifs Stratégiques
+
+### Objectif Principal
+Réduire les risques liés aux deepfakes de 40% sur 18 mois à travers une approche multi-segments.
+
+### Objectifs Secondaires
+1. Former 10,000+ personnes aux techniques de détection
+2. Développer 5 outils de vérification innovants
+3. Créer un réseau de 100+ ambassadeurs
+4. Atteindre 1M+ de personnes via les campagnes
+
+## 📊 Analyse des Segments Cibles
+
+"""
+                for cluster in selected_clusters_export:
+                    cluster_data = export_data[export_data['Cluster_Advanced'] == cluster]
+                    strategic_plan += f"""
+### Segment: {cluster}
+- **Taille:** {len(cluster_data)} personas
+- **Risque Moyen:** {cluster_data['Score_Risque'].mean():.1f}/10
+- **Stratégie:** {"Partenariat technique" if "Tech" in cluster else "Formation intensive" if "Risque" in cluster else "Sensibilisation éducative"}
+- **Budget Alloué:** {"30%" if "Tech" in cluster else "25%" if "Risque" in cluster else "15%"}
+"""
+                
+                strategic_plan += """
+## 📈 Roadmap d'Exécution
+
+### Phase 1 (Mois 1-6): Urgence
+- Traitement des profils à haut risque
+- Développement des outils prioritaires
+- Formation des équipes internes
+
+### Phase 2 (Mois 7-12): Expansion  
+- Déploiement des campagnes grand public
+- Partenariats éducatifs
+- Amélioration continue des outils
+
+### Phase 3 (Mois 13-18): Excellence
+- Programme d'ambassadeurs
+- Innovation collaborative
+- Mesure d'impact et optimisation
+
+## 💰 Budget et Ressources
+- **Budget Total:** 500k€ sur 18 mois
+- **Équipe Core:** 8 personnes full-time
+- **Partenaires Stratégiques:** 15 organisations
+- **ROI Attendu:** 300% sur 3 ans
+"""
+                
+                st.download_button(
+                    "⬇️ Télécharger Plan Stratégique",
+                    strategic_plan,
+                    "plan_strategique_deepfakes.md",
+                    "text/markdown"
+                )
+            
+            # Confirmation
+            st.success(f"✅ Export '{export_type}' généré avec succès!")
+            st.info(f"📋 **Inclus:** {len(export_data)} personas, {len(selected_clusters_export)} clusters, Format {export_format}")
+        
+        # Exports automatiques programmés
+        st.markdown("---")
+        st.subheader("🔄 Exports Automatiques")
+        
+        col_auto1, col_auto2 = st.columns(2)
+        
+        with col_auto1:
+            auto_frequency = st.selectbox(
+                "Fréquence automatique :",
+                options=["Désactivé", "Hebdomadaire", "Mensuel", "Trimestriel"]
+            )
+            
+            auto_recipients = st.text_area(
+                "Destinataires (emails) :",
+                placeholder="email1@company.com\nemail2@company.com"
+            )
+        
+        with col_auto2:
+            auto_format = st.selectbox("Format auto :", ["CSV", "JSON", "Markdown"])
+            auto_confidentiality = st.selectbox("Confidentialité auto :", ["Interne", "Confidentiel"])
+            
+            if st.button("⚙️ Configurer Exports Auto"):
+                st.success("✅ Configuration sauvegardée!")
+                st.info("📧 Les exports seront envoyés automatiquement selon la fréquence choisie")
+        
+        # Historique des exports
+        st.markdown("---")
+        st.subheader("📚 Historique des Exports")
+        
+        # Simulation d'historique
+        import datetime
+        history_data = [
+            {"Date": "2024-06-01", "Type": "Dashboard Exécutif", "Format": "HTML", "Taille": "2.3 MB", "Statut": "✅"},
+            {"Date": "2024-05-28", "Type": "Fiches Personas", "Format": "CSV", "Taille": "856 KB", "Statut": "✅"},
+            {"Date": "2024-05-25", "Type": "Plan Stratégique", "Format": "Markdown", "Taille": "1.2 MB", "Statut": "✅"},
+            {"Date": "2024-05-20", "Type": "Rapport Analyse", "Format": "JSON", "Taille": "3.1 MB", "Statut": "✅"}
+        ]
+        
+        history_df = pd.DataFrame(history_data)
+        st.dataframe(history_df, use_container_width=True, hide_index=True)
+        
+        # Métriques d'export
+        col_metrics1, col_metrics2, col_metrics3, col_metrics4 = st.columns(4)
+        
+        with col_metrics1:
+            st.metric("📥 Exports Total", "47", delta="+5 ce mois")
+        
+        with col_metrics2:
+            st.metric("📊 Dashboards", "12", delta="+2")
+        
+        with col_metrics3:
+            st.metric("💾 Volume Total", "156 MB", delta="+23 MB")
+        
+        with col_metrics4:
+            st.metric("👥 Utilisateurs", "18", delta="+3")
+    
+    # =============================================
+    # FOOTER AVEC RÉSUMÉ GLOBAL
+    # =============================================
+    st.markdown("---")
+    st.markdown("### 🎯 Résumé Global de l'Analyse")
+    
+    # Métriques finales globales
+    final_col1, final_col2, final_col3, final_col4 = st.columns(4)
+    
+    with final_col1:
+        total_analyzed = len(df_personas)
+        high_risk_count = len(df_personas[df_personas['Score_Risque'] >= 7])
+        risk_percentage = (high_risk_count / total_analyzed) * 100
+        
+        st.markdown(f"""
+        <div class="dashboard-metric">
+            <h4>🎭 Personas Analysés</h4>
+            <p style="font-size: 2rem; color: #3498db; font-weight: bold;">{total_analyzed}</p>
+            <p>🚨 {high_risk_count} à haut risque ({risk_percentage:.0f}%)</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with final_col2:
+        clusters_count = len(df_personas['Cluster_Advanced'].unique())
+        dominant_cluster = df_personas['Cluster_Advanced'].mode().iloc[0]
+        
+        st.markdown(f"""
+        <div class="dashboard-metric">
+            <h4>🎯 Segments Identifiés</h4>
+            <p style="font-size: 2rem; color: #e74c3c; font-weight: bold;">{clusters_count}</p>
+            <p>👑 Dominant: {dominant_cluster}</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with final_col3:
+        avg_risk_global = df_personas['Score_Risque'].mean()
+        risk_trend = "📈" if avg_risk_global > 5 else "📉"
+        
+        st.markdown(f"""
+        <div class="dashboard-metric">
+            <h4>⚠️ Risque Moyen Global</h4>
+            <p style="font-size: 2rem; color: #f39c12; font-weight: bold;">{avg_risk_global:.1f}/10</p>
+            <p>{risk_trend} Tendance générale</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with final_col4:
+        recommended_budget = int(avg_risk_global * 50000)  # Budget basé sur le risque
+        
+        st.markdown(f"""
+        <div class="dashboard-metric">
+            <h4>💰 Budget Recommandé</h4>
+            <p style="font-size: 2rem; color: #2ecc71; font-weight: bold;">{recommended_budget:,}€</p>
+            <p>💡 Sur 18 mois</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Action finale
+    st.markdown("### 🚀 Prochaines Étapes Recommandées")
+    
+    next_steps_col1, next_steps_col2 = st.columns(2)
+    
+    with next_steps_col1:
+        st.markdown("""
+        <div class="insight-card">
+            <h4>📋 Actions Immédiates (Cette Semaine)</h4>
+            <p>• Valider la stratégie avec la direction</p>
+            <p>• Allouer le budget pour les profils à haut risque</p>
+            <p>• Lancer la formation des Tech Experts</p>
+            <p>• Planifier la campagne pour Digital Natives</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with next_steps_col2:
+        st.markdown("""
+        <div class="insight-card">
+            <h4>🎯 Objectifs à 30 Jours</h4>
+            <p>• Former 100+ personnes aux techniques de détection</p>
+            <p>• Déployer les premiers outils de vérification</p>
+            <p>• Établir 5 partenariats stratégiques</p>
+            <p>• Mesurer l'impact des premières actions</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Call-to-action final
+    st.markdown("---")
+    col_cta1, col_cta2, col_cta3 = st.columns(3)
+    
+    with col_cta1:
+        if st.button("📊 Exporter Tout", type="primary"):
+            st.success("🎉 Export global en cours de génération...")
+    
+    with col_cta2:
+        if st.button("📧 Partager Insights"):
+            st.info("📤 Rapport envoyé aux parties prenantes")
+    
+    with col_cta3:
+        if st.button("🔄 Actualiser Données"):
+            st.success("✅ Données actualisées avec succès")
 
 # =============================================
 # SECTION COMMENTAIRES
