@@ -1054,7 +1054,7 @@ with tab2:
 """, unsafe_allow_html=True)
 
 # =============================================
-# ONGLET 3 - MACHINE LEARNING SIMPLIFIÉ ET VISUEL
+# ONGLET 3 - MACHINE LEARNING
 # =============================================
 
 with tab3:
@@ -1860,6 +1860,854 @@ with tab3:
     if 'results' not in locals():
         st.info("👆 **Cliquez sur 'LANCER L'ANALYSE COMPLÈTE' pour voir la magie opérer !**")
 
+# =============================================
+# ONGLET 4 - ANALYSE QUALITATIVE COMPLÈTE
+# =============================================
+
+with tab4:
+    st.title("🎭 Analyse Qualitative des Personas DeepFakes")
+    
+    # =============================================
+    # CHARGEMENT DES DONNÉES QUALITATIVES
+    # =============================================
+    @st.cache_data
+    def load_personas_data():
+        """Charge les données qualitatives depuis GitHub"""
+        try:
+            url = 'https://raw.githubusercontent.com/Gnatey/M-moire_Deepfake/refs/heads/main/quantitatif.csv'
+            df_personas = pd.read_csv(url, encoding='utf-8')
+            return df_personas
+        except Exception as e:
+            st.error(f"Erreur lors du chargement des personas : {str(e)}")
+            return pd.DataFrame()
+    
+    # Chargement des données
+    df_personas = load_personas_data()
+    
+    if df_personas.empty:
+        st.warning("⚠️ Impossible de charger les données qualitatives")
+        st.stop()
+    
+    # =============================================
+    # MÉTRIQUES GLOBALES
+    # =============================================
+    st.header("📊 Vue d'Ensemble des Personas")
+    
+    col_metric1, col_metric2, col_metric3, col_metric4 = st.columns(4)
+    
+    with col_metric1:
+        total_personas = len(df_personas)
+        st.metric("Nombre de Personas", total_personas)
+    
+    with col_metric2:
+        avg_age = df_personas['Tranche d\'âge'].apply(
+            lambda x: int(x.split(':')[1].split('-')[0].strip()) if ':' in str(x) and '-' in str(x) else 30
+        ).mean()
+        st.metric("Âge Moyen", f"{avg_age:.0f} ans")
+    
+    with col_metric3:
+        cadres_pct = (df_personas['Catégorie socio-professionnelle'] == 'Cadre').mean() * 100
+        st.metric("% Cadres", f"{cadres_pct:.0f}%")
+    
+    with col_metric4:
+        high_mistrust = df_personas['Niveau de méfiance'].str.contains('Très méfiant|Extrêmement méfiant', na=False).mean() * 100
+        st.metric("% Très Méfiants", f"{high_mistrust:.0f}%")
+    
+    # =============================================
+    # SECTION 1 : GALERIE INTERACTIVE DES PERSONAS
+    # =============================================
+    st.header("🖼️ Galerie Interactive des Personas")
+    
+    # Filtres pour la galerie
+    col_filter1, col_filter2, col_filter3 = st.columns(3)
+    
+    with col_filter1:
+        age_filter = st.multiselect(
+            "Filtrer par âge :",
+            options=df_personas['Tranche d\'âge'].unique(),
+            default=df_personas['Tranche d\'âge'].unique()
+        )
+    
+    with col_filter2:
+        csp_filter = st.multiselect(
+            "Filtrer par CSP :",
+            options=df_personas['Catégorie socio-professionnelle'].unique(),
+            default=df_personas['Catégorie socio-professionnelle'].unique()
+        )
+    
+    with col_filter3:
+        mefi_filter = st.selectbox(
+            "Niveau de méfiance :",
+            options=["Tous"] + list(df_personas['Niveau de méfiance'].unique()),
+            index=0
+        )
+    
+    # Application des filtres
+    filtered_personas = df_personas[
+        (df_personas['Tranche d\'âge'].isin(age_filter)) &
+        (df_personas['Catégorie socio-professionnelle'].isin(csp_filter))
+    ]
+    
+    if mefi_filter != "Tous":
+        filtered_personas = filtered_personas[filtered_personas['Niveau de méfiance'] == mefi_filter]
+    
+    # Affichage des cartes personas
+    st.subheader(f"🎭 {len(filtered_personas)} Personas Sélectionnés")
+    
+    # Grille de personas (3 par ligne)
+    for i in range(0, len(filtered_personas), 3):
+        cols = st.columns(3)
+        for j, col in enumerate(cols):
+            if i + j < len(filtered_personas):
+                persona = filtered_personas.iloc[i + j]
+                
+                with col:
+                    # Déterminer la couleur selon le niveau de méfiance
+                    if "Très méfiant" in str(persona['Niveau de méfiance']):
+                        border_color = "red"
+                        emoji = "🔴"
+                    elif "Méfiant" in str(persona['Niveau de méfiance']):
+                        border_color = "orange" 
+                        emoji = "🟠"
+                    else:
+                        border_color = "green"
+                        emoji = "🟢"
+                    
+                    # Carte persona
+                    st.markdown(f"""
+                    <div style="border: 2px solid {border_color}; border-radius: 15px; padding: 15px; margin: 10px 0; background-color: rgba(255,255,255,0.05);">
+                        <h4>{emoji} {persona['Nom']}</h4>
+                        <p><strong>👤 {persona['Tranche d\'âge']}</strong></p>
+                        <p><strong>💼 {persona['Métier']}</strong></p>
+                        <p><strong>📍 {persona['Localisation']}</strong></p>
+                        <p style="font-style: italic; color: #888;">"{persona['Citation-clé'][:80]}..."</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # Bouton détails
+                    if st.button(f"👁️ Détails", key=f"details_{i+j}"):
+                        st.session_state[f'show_details_{i+j}'] = True
+                    
+                    # Affichage des détails si demandé
+                    if st.session_state.get(f'show_details_{i+j}', False):
+                        with st.expander(f"Détails complets - {persona['Nom']}", expanded=True):
+                            st.markdown(f"**Profil :** {persona['Résumé du profil']}")
+                            st.markdown(f"**Expérience :** {persona['Expérience vécue']}")
+                            st.markdown(f"**Comportements :** {persona['Comportements numériques']}")
+                            st.markdown(f"**Attentes :** {persona['Attentes et besoins']}")
+                            st.markdown(f"**Vision future :** {persona['Vision future']}")
+                            
+                            if st.button("✖️ Fermer", key=f"close_{i+j}"):
+                                st.session_state[f'show_details_{i+j}'] = False
+                                st.experimental_rerun()
+    
+    # =============================================
+    # SECTION 2 : ANALYSE THÉMATIQUE AVANCÉE
+    # =============================================
+    st.header("☁️ Analyse Thématique des Verbatims")
+    
+    tab_theme1, tab_theme2, tab_theme3 = st.tabs(["Citations Clés", "Expériences", "Attentes"])
+    
+    with tab_theme1:
+        st.subheader("💬 Nuage de Mots - Citations Clés")
+        
+        # Concaténation des citations
+        all_citations = ' '.join(filtered_personas['Citation-clé'].dropna())
+        
+        # Mots les plus fréquents (version simple)
+        words = all_citations.lower().split()
+        stop_words = {'le', 'la', 'les', 'de', 'du', 'des', 'un', 'une', 'et', 'ou', 'à', 'ce', 'qui', 'que', 'sur', 'il', 'elle', 'on', 'pas', 'ne', 'plus', 'tout', 'je', 'avec', 'pour', 'dans', 'par', 'sans', 'peut', 'faire', 'mais', 'ça', 'aux', 'avoir', 'être', 'très', 'bien', 'encore', 'toujours', 'même'}
+        clean_words = [word.strip('.,!?";()') for word in words if len(word) > 3 and word not in stop_words]
+        
+        word_freq = pd.Series(clean_words).value_counts().head(20)
+        
+        # Graphique horizontal des mots-clés
+        fig_words = px.bar(
+            x=word_freq.values,
+            y=word_freq.index,
+            orientation='h',
+            title="Top 20 des Mots-Clés dans les Citations",
+            color=word_freq.values,
+            color_continuous_scale='Viridis'
+        )
+        fig_words.update_layout(yaxis={'categoryorder':'total ascending'})
+        st.plotly_chart(fig_words, use_container_width=True)
+        
+        # Analyse de sentiment simple
+        st.subheader("📊 Analyse de Sentiment des Citations")
+        
+        # Classification simple par mots-clés
+        positive_words = ['confiance', 'fiable', 'bon', 'bien', 'positif', 'sûr', 'vrai']
+        negative_words = ['méfiance', 'faux', 'dangereux', 'risqué', 'peur', 'problème', 'tromper']
+        
+        sentiments = []
+        for citation in filtered_personas['Citation-clé'].dropna():
+            citation_lower = citation.lower()
+            pos_count = sum(1 for word in positive_words if word in citation_lower)
+            neg_count = sum(1 for word in negative_words if word in citation_lower)
+            
+            if pos_count > neg_count:
+                sentiments.append('Positif')
+            elif neg_count > pos_count:
+                sentiments.append('Négatif')
+            else:
+                sentiments.append('Neutre')
+        
+        sentiment_counts = pd.Series(sentiments).value_counts()
+        
+        fig_sentiment = px.pie(
+            values=sentiment_counts.values,
+            names=sentiment_counts.index,
+            title="Répartition des Sentiments",
+            color_discrete_map={'Positif': '#2ecc71', 'Négatif': '#e74c3c', 'Neutre': '#95a5a6'}
+        )
+        st.plotly_chart(fig_sentiment, use_container_width=True)
+    
+    with tab_theme2:
+        st.subheader("📖 Analyse des Expériences Vécues")
+        
+        # Extraction des plateformes mentionnées
+        all_experiences = ' '.join(filtered_personas['Expérience vécue'].dropna())
+        platforms_mentioned = ['YouTube', 'TikTok', 'Facebook', 'Instagram', 'Twitter', 'LinkedIn']
+        
+        platform_counts = {}
+        for platform in platforms_mentioned:
+            count = all_experiences.lower().count(platform.lower())
+            if count > 0:
+                platform_counts[platform] = count
+        
+        if platform_counts:
+            fig_platforms_exp = px.bar(
+                x=list(platform_counts.keys()),
+                y=list(platform_counts.values()),
+                title="Plateformes Mentionnées dans les Expériences",
+                color=list(platform_counts.values()),
+                color_continuous_scale='Plasma'
+            )
+            st.plotly_chart(fig_platforms_exp, use_container_width=True)
+        
+        # Timeline des types d'expériences
+        st.subheader("🕐 Types d'Expériences Rapportées")
+        
+        experience_types = {
+            'Exposition directe': ['vu', 'regardé', 'découvert'],
+            'Sensibilisation indirecte': ['entendu parler', 'collègues', 'amis'],
+            'Analyse technique': ['analysé', 'vérifié', 'technique'],
+            'Partage/Viral': ['partagé', 'viral', 'diffusé']
+        }
+        
+        type_counts = {}
+        for exp_type, keywords in experience_types.items():
+            count = sum(1 for exp in filtered_personas['Expérience vécue'].dropna() 
+                       if any(keyword in exp.lower() for keyword in keywords))
+            type_counts[exp_type] = count
+        
+        fig_exp_types = px.bar(
+            x=list(type_counts.keys()),
+            y=list(type_counts.values()),
+            title="Types d'Expériences avec les DeepFakes",
+            color=list(type_counts.values()),
+            color_continuous_scale='Blues'
+        )
+        st.plotly_chart(fig_exp_types, use_container_width=True)
+    
+    with tab_theme3:
+        st.subheader("🎯 Attentes et Besoins Exprimés")
+        
+        # Analyse des attentes
+        all_attentes = ' '.join(filtered_personas['Attentes et besoins'].dropna())
+        
+        # Catégories d'attentes
+        attente_categories = {
+            'Formation/Éducation': ['formation', 'éducation', 'sensibilisation', 'cours'],
+            'Outils Techniques': ['outils', 'détection', 'logiciel', 'algorithme'],
+            'Régulation': ['législation', 'loi', 'contrôle', 'interdiction'],
+            'Transparence': ['signalement', 'alerte', 'identification', 'marquage']
+        }
+        
+        attente_counts = {}
+        for category, keywords in attente_categories.items():
+            count = sum(1 for attente in filtered_personas['Attentes et besoins'].dropna()
+                       if any(keyword in attente.lower() for keyword in keywords))
+            attente_counts[category] = count
+        
+        fig_attentes = px.bar(
+            x=list(attente_counts.keys()),
+            y=list(attente_counts.values()),
+            title="Catégories d'Attentes et Besoins",
+            color=list(attente_counts.values()),
+            color_continuous_scale='Oranges'
+        )
+        st.plotly_chart(fig_attentes, use_container_width=True)
+        
+        # Top citations d'attentes
+        st.subheader("💡 Citations Marquantes sur les Attentes")
+        for i, attente in enumerate(filtered_personas['Attentes et besoins'].dropna().head(5)):
+            st.markdown(f"""
+            <div style="border-left: 4px solid #3498db; padding-left: 15px; margin: 10px 0; background-color: rgba(52, 152, 219, 0.1);">
+                <em>"{attente[:150]}..."</em>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    # =============================================
+    # SECTION 3 : CARTOGRAPHIE COMPORTEMENTALE
+    # =============================================
+    st.header("🗺️ Cartographie Géographique et Sociale")
+    
+    tab_geo, tab_social, tab_network = st.tabs(["Géographie", "Sociologie", "Réseau"])
+    
+    with tab_geo:
+        st.subheader("📍 Répartition Géographique")
+        
+        # Extraction des villes
+        villes_count = filtered_personas['Localisation'].str.extract(r'([^,]+)')[0].value_counts()
+        
+        fig_geo = px.bar(
+            x=villes_count.index,
+            y=villes_count.values,
+            title="Répartition par Ville",
+            color=villes_count.values,
+            color_continuous_scale='Viridis'
+        )
+        fig_geo.update_layout(xaxis_tickangle=-45)
+        st.plotly_chart(fig_geo, use_container_width=True)
+        
+        # Cartographie simple (simulée)
+        st.subheader("🗺️ Carte de France des Personas")
+        
+        # Coordonnées approximatives des villes principales
+        city_coords = {
+            'Paris': [48.8566, 2.3522],
+            'Lyon': [45.7640, 4.8357],
+            'Marseille': [43.2965, 5.3698],
+            'Toulouse': [43.6047, 1.4442],
+            'Nice': [43.7102, 7.2620],
+            'Nantes': [47.2184, -1.5536],
+            'Strasbourg': [48.5734, 7.7521],
+            'Montpellier': [43.6110, 3.8767],
+            'Lille': [50.6292, 3.0573],
+            'Rennes': [48.1173, -1.6778],
+            'Bordeaux': [44.8378, -0.5792],
+            'Reims': [49.2583, 4.0317]
+        }
+        
+        # Préparation des données de carte
+        map_data = []
+        for _, persona in filtered_personas.iterrows():
+            ville = persona['Localisation'].split(',')[0].strip()
+            if ville in city_coords:
+                map_data.append({
+                    'ville': ville,
+                    'lat': city_coords[ville][0],
+                    'lon': city_coords[ville][1],
+                    'nom': persona['Nom'],
+                    'metier': persona['Métier'],
+                    'méfiance': persona['Niveau de méfiance']
+                })
+        
+        if map_data:
+            df_map = pd.DataFrame(map_data)
+            fig_map = px.scatter_mapbox(
+                df_map,
+                lat="lat",
+                lon="lon",
+                hover_name="nom",
+                hover_data={"metier": True, "méfiance": True},
+                color="méfiance",
+                size_max=15,
+                zoom=5,
+                mapbox_style="open-street-map",
+                title="Localisation des Personas en France"
+            )
+            fig_map.update_layout(height=500)
+            st.plotly_chart(fig_map, use_container_width=True)
+    
+    with tab_social:
+        st.subheader("👥 Analyse Sociologique")
+        
+        # Pyramide des âges
+        age_ranges = filtered_personas['Tranche d\'âge'].value_counts()
+        
+        fig_pyramid = px.bar(
+            x=age_ranges.values,
+            y=age_ranges.index,
+            orientation='h',
+            title="Pyramide des Âges",
+            color=age_ranges.values,
+            color_continuous_scale='Blues'
+        )
+        st.plotly_chart(fig_pyramid, use_container_width=True)
+        
+        # Heatmap Classe sociale vs Niveau d'étude
+        heatmap_data = pd.crosstab(
+            filtered_personas['Classe sociale'],
+            filtered_personas['Niveau d\'étude']
+        )
+        
+        fig_heatmap = px.imshow(
+            heatmap_data,
+            text_auto=True,
+            aspect="auto",
+            title="Matrice Classe Sociale × Niveau d'Étude",
+            color_continuous_scale='Oranges'
+        )
+        st.plotly_chart(fig_heatmap, use_container_width=True)
+        
+        # Distribution des CSP
+        csp_counts = filtered_personas['Catégorie socio-professionnelle'].value_counts()
+        
+        fig_csp = px.pie(
+            values=csp_counts.values,
+            names=csp_counts.index,
+            title="Répartition des Catégories Socio-Professionnelles",
+            color_discrete_sequence=px.colors.qualitative.Set3
+        )
+        st.plotly_chart(fig_csp, use_container_width=True)
+    
+    with tab_network:
+        st.subheader("🕸️ Réseau de Similarités")
+        
+        # Analyse de réseau basée sur les plateformes risquées
+        st.markdown("**Connexions basées sur les plateformes jugées risquées**")
+        
+        # Préparation du réseau
+        import networkx as nx
+        
+        G = nx.Graph()
+        
+        # Ajouter les nœuds (personas)
+        for _, persona in filtered_personas.iterrows():
+            G.add_node(persona['Nom'], 
+                      type='persona',
+                      metier=persona['Métier'],
+                      méfiance=persona['Niveau de méfiance'])
+        
+        # Ajouter les plateformes comme nœuds
+        all_platforms = set()
+        for plateformes in filtered_personas['Plateformes jugées risquées'].dropna():
+            platforms = [p.strip() for p in plateformes.split(',')]
+            all_platforms.update(platforms)
+        
+        for platform in all_platforms:
+            G.add_node(platform, type='platform')
+        
+        # Créer les connexions persona-plateforme
+        for _, persona in filtered_personas.iterrows():
+            if pd.notna(persona['Plateformes jugées risquées']):
+                platforms = [p.strip() for p in persona['Plateformes jugées risquées'].split(',')]
+                for platform in platforms:
+                    if platform in all_platforms:
+                        G.add_edge(persona['Nom'], platform)
+        
+        # Visualisation du réseau
+        if len(G.nodes()) > 0:
+            pos = nx.spring_layout(G, k=3, iterations=50)
+            
+            # Préparation des données pour Plotly
+            edge_x = []
+            edge_y = []
+            for edge in G.edges():
+                x0, y0 = pos[edge[0]]
+                x1, y1 = pos[edge[1]]
+                edge_x.extend([x0, x1, None])
+                edge_y.extend([y0, y1, None])
+            
+            # Traces des arêtes
+            edge_trace = go.Scatter(
+                x=edge_x, y=edge_y,
+                line=dict(width=0.5, color='#888'),
+                hoverinfo='none',
+                mode='lines'
+            )
+            
+            # Traces des nœuds
+            node_x = []
+            node_y = []
+            node_info = []
+            node_colors = []
+            
+            for node in G.nodes():
+                x, y = pos[node]
+                node_x.append(x)
+                node_y.append(y)
+                
+                if G.nodes[node].get('type') == 'persona':
+                    node_info.append(f"👤 {node}<br>Métier: {G.nodes[node].get('metier', 'N/A')}")
+                    node_colors.append('#3498db')
+                else:
+                    node_info.append(f"📱 {node}")
+                    node_colors.append('#e74c3c')
+            
+            node_trace = go.Scatter(
+                x=node_x, y=node_y,
+                mode='markers+text',
+                hoverinfo='text',
+                text=[node for node in G.nodes()],
+                textposition="middle center",
+                hovertext=node_info,
+                marker=dict(
+                    size=15,
+                    color=node_colors,
+                    line=dict(width=2)
+                )
+            )
+            
+            # Création de la figure
+            fig_network = go.Figure(
+                data=[edge_trace, node_trace],
+                layout=go.Layout(
+                    title='Réseau Personas ↔ Plateformes Risquées',
+                    showlegend=False,
+                    hovermode='closest',
+                    margin=dict(b=20,l=5,r=5,t=40),
+                    annotations=[
+                        dict(
+                            text="Bleu = Personas, Rouge = Plateformes",
+                            showarrow=False,
+                            xref="paper", yref="paper",
+                            x=0.005, y=-0.002,
+                            xanchor='left', yanchor='bottom',
+                            font=dict(size=12)
+                        )
+                    ],
+                    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                    height=600
+                )
+            )
+            
+            st.plotly_chart(fig_network, use_container_width=True)
+        else:
+            st.warning("Pas assez de données pour créer le réseau")
+    
+    # =============================================
+    # SECTION 4 : GÉNÉRATEUR D'INSIGHTS
+    # =============================================
+    st.header("🧠 Générateur d'Insights Automatiques")
+    
+    col_insight1, col_insight2 = st.columns(2)
+    
+    with col_insight1:
+        st.subheader("🎯 Segments Identifiés")
+        
+        # Segmentation automatique basique
+        segments = {
+            "Tech Experts": filtered_personas[
+                (filtered_personas['Métier'].str.contains('Développeur|IT|Tech|Informatique', na=False)) &
+                (filtered_personas['Niveau de méfiance'].str.contains('Méfiant mais', na=False))
+            ],
+            "Sceptiques Avertis": filtered_personas[
+                (filtered_personas['Niveau de méfiance'].str.contains('Très méfiant', na=False)) &
+                (filtered_personas['Niveau d\'étude'].isin(['Bac+5', 'Doctorat']))
+            ],
+            "Jeunes Sensibilisés": filtered_personas[
+                (filtered_personas['Tranche d\'âge'].str.contains('16-17|20-25', na=False)) &
+                (filtered_personas['Niveau de méfiance'].str.contains('méfiant', na=False))
+            ],
+            "Prudents Expérimentés": filtered_personas[
+                (filtered_personas['Tranche d\'âge'].str.contains('45-55', na=False)) &
+                (filtered_personas['Fréquence d\'utilisation par jour'] == '< 30 min')
+            ]
+        }
+        
+        for segment_name, segment_data in segments.items():
+            if len(segment_data) > 0:
+                st.markdown(f"""
+                <div style="border: 1px solid #3498db; border-radius: 10px; padding: 15px; margin: 10px 0; background-color: rgba(52, 152, 219, 0.1);">
+                    <h4>📊 {segment_name}</h4>
+                    <p><strong>{len(segment_data)} personas</strong></p>
+                    <p><em>Noms :</em> {', '.join(segment_data['Nom'].tolist())}</p>
+                </div>
+                """, unsafe_allow_html=True)
+    
+    with col_insight2:
+        st.subheader("💡 Insights Clés")
+        
+        # Génération d'insights automatiques
+        insights = []
+        
+        # Insight 1: Corrélation âge-méfiance
+        young_cautious = len(filtered_personas[
+            (filtered_personas['Tranche d\'âge'].str.contains('16-17|20-25', na=False)) &
+            (filtered_personas['Niveau de méfiance'].str.contains('méfiant', na=False))
+        ])
+        if young_cautious > 0:
+            insights.append(f"🔍 {young_cautious} jeunes personas montrent une méfiance précoce")
+        
+        # Insight 2: Expertise vs comportement
+        tech_experts = len(filtered_personas[
+            filtered_personas['Métier'].str.contains('Développeur|IT|Tech', na=False)
+        ])
+        if tech_experts > 0:
+            insights.append(f"⚡ {tech_experts} experts techniques dans l'échantillon")
+        
+        # Insight 3: Plateformes les plus citées
+        all_platforms_text = ' '.join(filtered_personas['Plateformes jugées risquées'].dropna())
+        common_platforms = ['Facebook', 'Instagram', 'TikTok', 'Twitter']
+        most_mentioned = max(common_platforms, key=lambda x: all_platforms_text.count(x))
+        insights.append(f"📱 {most_mentioned} = plateforme la plus mentionnée comme risquée")
+        
+        # Insight 4: Formations demandées
+        formations_mentioned = filtered_personas['Attentes et besoins'].str.contains('formation', na=False).sum()
+        insights.append(f"🎓 {formations_mentioned} personas demandent explicitement des formations")
+        
+        # Affichage des insights
+        for i, insight in enumerate(insights):
+            st.markdown(f"""
+            <div style="border-left: 4px solid #e74c3c; padding: 10px; margin: 5px 0; background-color: rgba(231, 76, 60, 0.1);">
+                <strong>Insight #{i+1}:</strong> {insight}
+            </div>
+            """, unsafe_allow_html=True)
+    
+    # =============================================
+    # SECTION 5 : COMPARAISONS AVANCÉES
+    # =============================================
+    st.header("⚖️ Comparaisons Multi-Niveaux")
+    
+    tab_comp1, tab_comp2, tab_comp3 = st.tabs(["Méfiance vs Connaissance", "Générations", "Comportements"])
+    
+    with tab_comp1:
+        st.subheader("🔍 Analyse Méfiance vs Connaissance")
+        
+        # Création d'un score de méfiance numérique
+        def score_mefiance(mefiance_text):
+            if "Extrêmement" in str(mefiance_text):
+                return 5
+            elif "Très méfiant" in str(mefiance_text):
+                return 4
+            elif "Méfiant" in str(mefiance_text):
+                return 3
+            elif "Modérément" in str(mefiance_text):
+                return 2
+            else:
+                return 1
+        
+        # Score de connaissance
+        def score_connaissance(conn_text):
+            if "comprend" in str(conn_text).lower() or "algorithme" in str(conn_text).lower():
+                return 4
+            elif "technologie" in str(conn_text).lower() or "ia" in str(conn_text).lower():
+                return 3
+            elif "sais" in str(conn_text).lower() or "entendu" in str(conn_text).lower():
+                return 2
+            else:
+                return 1
+        
+        # Application des scores
+        scatter_data = filtered_personas.copy()
+        scatter_data['Score_Méfiance'] = scatter_data['Niveau de méfiance'].apply(score_mefiance)
+        scatter_data['Score_Connaissance'] = scatter_data['Connaissance des deepfakes'].apply(score_connaissance)
+        
+        # Scatter plot
+        fig_scatter = px.scatter(
+            scatter_data,
+            x='Score_Connaissance',
+            y='Score_Méfiance',
+            hover_name='Nom',
+            color='Catégorie socio-professionnelle',
+            size='Score_Méfiance',
+            title="Relation Connaissance ↔ Méfiance",
+            labels={'Score_Connaissance': 'Niveau de Connaissance (1-4)', 
+                   'Score_Méfiance': 'Niveau de Méfiance (1-5)'}
+        )
+        st.plotly_chart(fig_scatter, use_container_width=True)
+        
+        # Corrélation
+        correlation = scatter_data['Score_Connaissance'].corr(scatter_data['Score_Méfiance'])
+        st.metric("Corrélation Connaissance-Méfiance", f"{correlation:.3f}")
+    
+    with tab_comp2:
+        st.subheader("👶👴 Analyse Générationnelle")
+        
+        # Regroupement par générations
+        def categorize_generation(age_text):
+            if "16-17" in str(age_text) or "20-25" in str(age_text):
+                return "Gen Z (16-25)"
+            elif "30-35" in str(age_text) or "30-40" in str(age_text):
+                return "Millennials (30-40)"
+            elif "45-55" in str(age_text) or "40-50" in str(age_text):
+                return "Gen X (40-55)"
+            else:
+                return "Autres"
+        
+        gen_data = filtered_personas.copy()
+        gen_data['Génération'] = gen_data['Tranche d\'âge'].apply(categorize_generation)
+        
+        # Comparaison par génération
+        gen_comparison = gen_data.groupby('Génération').agg({
+            'Nom': 'count',
+            'Fréquence d\'utilisation par jour': lambda x: (x == '1h').sum(),
+            'Niveau de méfiance': lambda x: x.str.contains('Très méfiant', na=False).sum()
+        }).rename(columns={
+            'Nom': 'Nombre',
+            'Fréquence d\'utilisation par jour': 'Gros Utilisateurs',
+            'Niveau de méfiance': 'Très Méfiants'
+        })
+        
+        # Graphique générationnel
+        fig_gen = px.bar(
+            gen_comparison.reset_index(),
+            x='Génération',
+            y=['Nombre', 'Gros Utilisateurs', 'Très Méfiants'],
+            title="Comparaison Générationnelle",
+            barmode='group',
+            color_discrete_sequence=['#3498db', '#e74c3c', '#f39c12']
+        )
+        st.plotly_chart(fig_gen, use_container_width=True)
+        
+        # Tableau détaillé
+        st.dataframe(gen_comparison, use_container_width=True)
+    
+    with tab_comp3:
+        st.subheader("💻 Analyse des Comportements Numériques")
+        
+        # Radar chart des comportements
+        comportements_keywords = {
+            'Vérification': ['vérifie', 'vérification', 'contrôle'],
+            'Partage': ['partage', 'diffuse', 'transmet'],
+            'Évitement': ['évite', 'fuis', 'ignore'],
+            'Analyse': ['analyse', 'examine', 'étudie'],
+            'Sensibilisation': ['sensibilise', 'éduque', 'alerte']
+        }
+        
+        # Score par comportement
+        behavior_scores = {}
+        for behavior, keywords in comportements_keywords.items():
+            score = 0
+            for text in filtered_personas['Comportements numériques'].dropna():
+                if any(keyword in text.lower() for keyword in keywords):
+                    score += 1
+            behavior_scores[behavior] = score
+        
+        # Radar chart
+        fig_radar = go.Figure()
+        
+        fig_radar.add_trace(go.Scatterpolar(
+            r=list(behavior_scores.values()),
+            theta=list(behavior_scores.keys()),
+            fill='toself',
+            name='Comportements Observés',
+            line_color='#3498db'
+        ))
+        
+        fig_radar.update_layout(
+            polar=dict(
+                radialaxis=dict(visible=True, range=[0, max(behavior_scores.values())])
+            ),
+            showlegend=True,
+            title="Radar des Comportements Numériques",
+            height=500
+        )
+        
+        st.plotly_chart(fig_radar, use_container_width=True)
+    
+    # =============================================
+    # SECTION 6 : EXPORT DE FICHES PERSONAS
+    # =============================================
+    st.header("📄 Export de Fiches Personas")
+    
+    col_export1, col_export2 = st.columns(2)
+    
+    with col_export1:
+        selected_personas = st.multiselect(
+            "Sélectionnez les personas à exporter :",
+            options=filtered_personas['Nom'].tolist(),
+            default=filtered_personas['Nom'].tolist()[:3]
+        )
+    
+    with col_export2:
+        export_format = st.selectbox(
+            "Format d'export :",
+            options=["CSV Complet", "JSON Structuré", "Résumé Exécutif"]
+        )
+    
+    if st.button("📥 Générer l'Export"):
+        export_data = filtered_personas[filtered_personas['Nom'].isin(selected_personas)]
+        
+        if export_format == "CSV Complet":
+            csv_data = export_data.to_csv(index=False)
+            st.download_button(
+                label="⬇️ Télécharger CSV",
+                data=csv_data,
+                file_name="personas_deepfakes_export.csv",
+                mime="text/csv"
+            )
+        
+        elif export_format == "JSON Structuré":
+            json_data = export_data.to_json(orient='records', indent=2)
+            st.download_button(
+                label="⬇️ Télécharger JSON",
+                data=json_data,
+                file_name="personas_deepfakes_export.json",
+                mime="application/json"
+            )
+        
+        elif export_format == "Résumé Exécutif":
+            executive_summary = f"""
+# RÉSUMÉ EXÉCUTIF - PERSONAS DEEPFAKES
+
+## 📊 Vue d'ensemble
+- **Nombre de personas analysés** : {len(export_data)}
+- **Âge moyen** : {export_data['Tranche d\'âge'].mode().iloc[0] if len(export_data) > 0 else 'N/A'}
+- **CSP dominante** : {export_data['Catégorie socio-professionnelle'].mode().iloc[0] if len(export_data) > 0 else 'N/A'}
+
+## 🎯 Insights Clés
+1. **Niveau de méfiance** : {export_data['Niveau de méfiance'].value_counts().index[0] if len(export_data) > 0 else 'N/A'}
+2. **Plateforme la plus citée** : Analyse des citations
+3. **Attente principale** : Formation et sensibilisation
+
+## 👥 Personas Sélectionnés
+"""
+            for _, persona in export_data.iterrows():
+                executive_summary += f"""
+### {persona['Nom']}
+- **Profil** : {persona['Métier']}, {persona['Tranche d\'âge']}
+- **Citation** : "{persona['Citation-clé']}"
+- **Comportement** : {persona['Comportements numériques'][:100]}...
+
+---
+"""
+            
+            st.download_button(
+                label="⬇️ Télécharger Résumé",
+                data=executive_summary,
+                file_name="resume_executif_personas.md",
+                mime="text/markdown"
+            )
+        
+        st.success(f"✅ Export de {len(selected_personas)} personas préparé !")
+    
+    # =============================================
+    # FOOTER INSIGHTS
+    # =============================================
+    st.markdown("---")
+    st.markdown("### 🎯 Recommandations Stratégiques")
+    
+    col_rec1, col_rec2, col_rec3 = st.columns(3)
+    
+    with col_rec1:
+        st.info("""
+        **🎓 Formation & Éducation**
+        - Cibler les jeunes générations
+        - Modules techniques pour experts
+        - Sensibilisation grand public
+        """)
+    
+    with col_rec2:
+        st.warning("""
+        **🛡️ Protection & Outils**
+        - Développer outils de détection
+        - Alertes sur plateformes
+        - Guides de vérification
+        """)
+    
+    with col_rec3:
+        st.success("""
+        **📢 Communication**
+        - Messages adaptés par segment
+        - Canaux de confiance privilégiés
+        - Témoignages d'experts
+        """)
 
 # =============================================
 # SECTION COMMENTAIRES
