@@ -1503,8 +1503,217 @@ with tab3:
                 st.error("❌ **Surapprentissage important** : Le modèle mémorise trop les données")
             
             # =============================================
-            # IMPORTANCE DES VARIABLES
+            # ANALYSE SHAP - TOP 5 EXPLICATIONS
             # =============================================
+            
+            st.markdown("### 🧠 **Top 5 Explications SHAP : Pourquoi ces prédictions ?**")
+            
+            try:
+                # Utiliser le meilleur modèle pour SHAP
+                best_model_obj = results[best_model_name]['model']
+                
+                # Préparer les données pour SHAP selon le modèle
+                if best_model_name in ["Régression Logistique", "SVM"]:
+                    X_test_shap = X_test_scaled
+                    X_train_shap = X_train_scaled
+                else:
+                    X_test_shap = X_test
+                    X_train_shap = X_train
+                
+                # Créer l'explainer SHAP
+                if best_model_name == "Random Forest":
+                    explainer = shap.TreeExplainer(best_model_obj)
+                    shap_values = explainer.shap_values(X_test_shap)
+                    
+                    # Pour les problèmes multiclass, prendre la classe positive
+                    if isinstance(shap_values, list):
+                        shap_values_positive = shap_values[1]  # Classe "Oui" 
+                    else:
+                        shap_values_positive = shap_values
+                else:
+                    # Pour Logistic Regression et SVM
+                    explainer = shap.LinearExplainer(best_model_obj, X_train_shap)
+                    shap_values = explainer.shap_values(X_test_shap)
+                    shap_values_positive = shap_values
+                
+                # Sélectionner les 5 prédictions les plus intéressantes
+                y_pred_proba_best = results[best_model_name]['y_pred_proba']
+                
+                # Critères de sélection : prédictions confiantes ET diversifiées
+                confidence_scores = np.max(y_pred_proba_best, axis=1)
+                
+                # Mélanger certitude élevée et cas limites
+                high_confidence_idx = np.where(confidence_scores > 0.8)[0]
+                medium_confidence_idx = np.where((confidence_scores > 0.5) & (confidence_scores <= 0.8))[0]
+                low_confidence_idx = np.where(confidence_scores <= 0.5)[0]
+                
+                # Prendre 2 high, 2 medium, 1 low (si disponibles)
+                selected_indices = []
+                
+                if len(high_confidence_idx) >= 2:
+                    selected_indices.extend(np.random.choice(high_confidence_idx, 2, replace=False))
+                elif len(high_confidence_idx) > 0:
+                    selected_indices.extend(high_confidence_idx)
+                
+                if len(medium_confidence_idx) >= 2:
+                    selected_indices.extend(np.random.choice(medium_confidence_idx, 2, replace=False))
+                elif len(medium_confidence_idx) > 0:
+                    selected_indices.extend(medium_confidence_idx)
+                
+                if len(low_confidence_idx) >= 1:
+                    selected_indices.extend(np.random.choice(low_confidence_idx, 1, replace=False))
+                
+                # Compléter jusqu'à 5 si nécessaire
+                while len(selected_indices) < 5 and len(selected_indices) < len(X_test_shap):
+                    remaining_idx = [i for i in range(len(X_test_shap)) if i not in selected_indices]
+                    if remaining_idx:
+                        selected_indices.append(np.random.choice(remaining_idx))
+                    else:
+                        break
+                
+                selected_indices = selected_indices[:5]  # Limiter à 5
+                
+                st.markdown("*Sélection intelligente : prédictions confiantes + cas limites*")
+                
+                # Créer les explications visuelles pour chaque prédiction
+                for idx, test_idx in enumerate(selected_indices):
+                    
+                    # Récupérer les données de l'individu
+                    individual_features = X_test.iloc[test_idx]
+                    shap_individual = shap_values_positive[test_idx]
+                    predicted_proba = y_pred_proba_best[test_idx]
+                    predicted_class = results[best_model_name]['y_pred'][test_idx]
+                    actual_class = y_test[test_idx]
+                    
+                    # Decoder les classes si nécessaire
+                    if target_encoder:
+                        predicted_class_name = target_encoder.inverse_transform([predicted_class])[0]
+                        actual_class_name = target_encoder.inverse_transform([actual_class])[0]
+                    else:
+                        predicted_class_name = str(predicted_class)
+                        actual_class_name = str(actual_class)
+                    
+                    # Couleur selon si c'est correct ou non
+                    is_correct = predicted_class == actual_class
+                    border_color = "green" if is_correct else "red"
+                    status_emoji = "✅" if is_correct else "❌"
+                    
+                    with st.container():
+                        st.markdown(f"""
+                        <div style="border: 2px solid {border_color}; border-radius: 10px; padding: 15px; margin: 10px 0;">
+                        <h4>{status_emoji} Prédiction #{idx+1} - {'Correcte' if is_correct else 'Incorrecte'}</h4>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        col_profile, col_shap = st.columns([1, 2])
+                        
+                        with col_profile:
+                            st.markdown("**👤 Profil de l'individu :**")
+                            for feature, value in individual_features.items():
+                                # Décoder si c'est encodé numériquement
+                                if feature in encoders:
+                                    try:
+                                        value_decoded = encoders[feature].inverse_transform([int(value)])[0]
+                                        st.write(f"• **{feature}** : {value_decoded}")
+                                    except:
+                                        st.write(f"• **{feature}** : {value}")
+                                else:
+                                    st.write(f"• **{feature}** : {value}")
+                            
+                            st.markdown("**🎯 Prédiction :**")
+                            confidence = np.max(predicted_proba) * 100
+                            st.write(f"• **Prédite** : {predicted_class_name} ({confidence:.1f}%)")
+                            st.write(f"• **Réelle** : {actual_class_name}")
+                        
+                        with col_shap:
+                            st.markdown("**🔍 Pourquoi cette prédiction ? (Valeurs SHAP)**")
+                            
+                            # Créer un DataFrame des contributions SHAP
+                            shap_df = pd.DataFrame({
+                                'Feature': feature_cols,
+                                'SHAP_Value': shap_individual,
+                                'Impact': ['Augmente' if x > 0 else 'Diminue' for x in shap_individual]
+                            })
+                            
+                            # Trier par valeur absolue
+                            shap_df['Abs_SHAP'] = np.abs(shap_df['SHAP_Value'])
+                            shap_df = shap_df.sort_values('Abs_SHAP', ascending=False)
+                            
+                            # Graphique SHAP pour cet individu
+                            colors_shap = ['#FF6B6B' if x > 0 else '#4ECDC4' for x in shap_df['SHAP_Value']]
+                            
+                            fig_shap_ind = go.Figure(go.Bar(
+                                x=shap_df['SHAP_Value'],
+                                y=shap_df['Feature'],
+                                orientation='h',
+                                marker_color=colors_shap,
+                                text=[f"{val:.3f}" for val in shap_df['SHAP_Value']],
+                                textposition='auto',
+                                hovertemplate='<b>%{y}</b><br>Contribution: %{x:.3f}<br>Impact: %{text}<extra></extra>'
+                            ))
+                            
+                            fig_shap_ind.update_layout(
+                                title=f"Contributions à la prédiction #{idx+1}",
+                                xaxis_title="Contribution SHAP",
+                                yaxis_title="Variables",
+                                height=300,
+                                margin=dict(l=10, r=10, t=30, b=10)
+                            )
+                            
+                            # Ligne verticale à x=0
+                            fig_shap_ind.add_vline(x=0, line_dash="dash", line_color="gray")
+                            
+                            st.plotly_chart(fig_shap_ind, use_container_width=True)
+                            
+                            # Explication textuelle
+                            top_positive = shap_df[shap_df['SHAP_Value'] > 0].head(2)
+                            top_negative = shap_df[shap_df['SHAP_Value'] < 0].head(2)
+                            
+                            explanations = []
+                            for _, row in top_positive.iterrows():
+                                explanations.append(f"✅ **{row['Feature']}** pousse vers '{predicted_class_name}' (+{row['SHAP_Value']:.3f})")
+                            
+                            for _, row in top_negative.iterrows():
+                                explanations.append(f"⬇️ **{row['Feature']}** pousse contre '{predicted_class_name}' ({row['SHAP_Value']:.3f})")
+                            
+                            if explanations:
+                                st.markdown("**📝 En résumé :**")
+                                for exp in explanations[:3]:  # Top 3 explications
+                                    st.markdown(exp)
+                
+                # Récapitulatif global SHAP
+                st.markdown("### 📊 **Récapitulatif : Importance Globale des Variables**")
+                
+                # Moyenne des valeurs SHAP absolues
+                global_importance = np.abs(shap_values_positive).mean(0)
+                importance_df = pd.DataFrame({
+                    'Variable': feature_cols,
+                    'Importance_Moyenne': global_importance
+                }).sort_values('Importance_Moyenne', ascending=True)
+                
+                fig_global_shap = px.bar(
+                    importance_df,
+                    x='Importance_Moyenne',
+                    y='Variable',
+                    orientation='h',
+                    title="Impact Moyen des Variables (SHAP)",
+                    color='Importance_Moyenne',
+                    color_continuous_scale='Viridis',
+                    height=400
+                )
+                
+                fig_global_shap.update_layout(
+                    xaxis_title="Importance SHAP Moyenne",
+                    yaxis_title="Variables"
+                )
+                
+                st.plotly_chart(fig_global_shap, use_container_width=True)
+                
+                st.success("✨ **SHAP révèle les vraies raisons derrière chaque prédiction !**")
+                
+            except Exception as e:
+                st.warning(f"⚠️ Analyse SHAP non disponible pour ce modèle : {str(e)}")
+                st.info("💡 SHAP fonctionne mieux avec Random Forest ou Régression Logistique")
             
             st.markdown("### 🔍 **Quelles variables sont les plus importantes ?**")
             
