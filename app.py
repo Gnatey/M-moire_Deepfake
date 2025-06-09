@@ -1105,25 +1105,70 @@ with tab3:
         def prepare_ml_data(df, target):
             """Prépare les données pour le machine learning"""
             
-            # Colonnes features (exclure la target et colonnes non pertinentes)
-            exclude_cols = [target, 'Date de saisie', 'Plateformes']  # Plateformes sera traitée séparément
+            # Vérification que la colonne target existe
+            if target not in df.columns:
+                st.error(f"La colonne '{target}' n'existe pas dans les données")
+                return pd.DataFrame(), []
+            
+            # Colonnes à exclure
+            exclude_cols = [target, 'Date de saisie', 'Plateformes']
+            exclude_cols = [col for col in exclude_cols if col in df.columns]
+            
+            # Sélection des colonnes features
             feature_cols = [col for col in df.columns if col not in exclude_cols]
             
-            # Créer le dataset
+            # Créer le dataset initial
             ml_data = df[feature_cols + [target]].copy()
             
-            # Traitement des plateformes (encodage multi-label)
+            # Nettoyage initial - supprimer les lignes avec target manquant
+            initial_size = len(ml_data)
+            ml_data = ml_data.dropna(subset=[target])
+            st.info(f"Suppression de {initial_size - len(ml_data)} lignes avec target manquante")
+            
+            # Traitement des plateformes si disponible
             if "Plateformes" in df.columns:
-                # Extraction des plateformes individuelles
                 platform_series = df["Plateformes"].fillna("Aucune").str.split(';')
-                all_platforms = sorted(set(p.strip() for sublist in platform_series.dropna() for p in sublist if p.strip()))
+                all_platforms = sorted(set(p.strip() for sublist in platform_series.dropna() for p in sublist if p.strip() and p.strip() != "Aucune"))
                 
-                # Encodage binaire pour chaque plateforme
-                for platform in all_platforms[:5]:  # Limiter aux 5 principales
+                # Limiter aux 5 plateformes principales pour éviter trop de features
+                top_platforms = all_platforms[:5]
+                for platform in top_platforms:
                     ml_data[f"Platform_{platform}"] = df["Plateformes"].fillna("").str.contains(platform, na=False).astype(int)
             
-            # Nettoyage des valeurs manquantes
-            ml_data = ml_data.dropna(subset=[target])
+            # Identifier les colonnes avec trop de valeurs manquantes (>50%)
+            missing_pct = ml_data.isnull().sum() / len(ml_data)
+            cols_to_drop = missing_pct[missing_pct > 0.5].index.tolist()
+            
+            if cols_to_drop:
+                st.warning(f"Suppression des colonnes avec >50% de valeurs manquantes: {cols_to_drop}")
+                ml_data = ml_data.drop(columns=cols_to_drop)
+            
+            # Gestion des valeurs manquantes restantes
+            # Pour les colonnes numériques : remplir par la médiane
+            numeric_cols = ml_data.select_dtypes(include=[np.number]).columns
+            for col in numeric_cols:
+                if col != target and ml_data[col].isnull().sum() > 0:
+                    median_val = ml_data[col].median()
+                    ml_data[col] = ml_data[col].fillna(median_val)
+            
+            # Pour les colonnes catégorielles : remplir par le mode ou "Inconnu"
+            categorical_cols = ml_data.select_dtypes(include=['object']).columns
+            for col in categorical_cols:
+                if col != target and ml_data[col].isnull().sum() > 0:
+                    mode_val = ml_data[col].mode()
+                    if len(mode_val) > 0:
+                        ml_data[col] = ml_data[col].fillna(mode_val[0])
+                    else:
+                        ml_data[col] = ml_data[col].fillna("Inconnu")
+            
+            # Vérification finale des valeurs manquantes
+            remaining_missing = ml_data.isnull().sum().sum()
+            if remaining_missing > 0:
+                st.warning(f"⚠️ {remaining_missing} valeurs manquantes restantes - suppression des lignes concernées")
+                ml_data = ml_data.dropna()
+            
+            # Mise à jour de la liste des features
+            feature_cols = [col for col in ml_data.columns if col != target]
             
             return ml_data, feature_cols
         
@@ -1178,92 +1223,171 @@ with tab3:
         if st.button("🚀 Lancer l'analyse ML"):
             with st.spinner("🤖 Entraînement des modèles en cours..."):
                 
-                # Séparation features/target
-                feature_columns = [col for col in ml_data.columns if col != target_var]
-                X = ml_data[feature_columns]
-                y = ml_data[target_var]
-                
-                # Preprocessing pipeline
-                # Identification des colonnes numériques et catégorielles
-                numeric_columns = X.select_dtypes(include=[np.number]).columns.tolist()
-                categorical_columns = X.select_dtypes(include=['object']).columns.tolist()
-                
-                # Pipeline de preprocessing
-                preprocessor = ColumnTransformer(
-                    transformers=[
-                        ('num', StandardScaler(), numeric_columns),
-                        ('cat', OneHotEncoder(drop='first', sparse_output=False), categorical_columns)
-                    ]
-                )
-                
-                # Split train/test
-                X_train, X_test, y_train, y_test = train_test_split(
-                    X, y, test_size=test_size, random_state=42, stratify=y if y.dtype == 'object' else None
-                )
-                
-                # Définition des modèles
-                models = {}
-                
-                if "Régression Logistique" in models_to_use:
-                    models["Logistic Regression"] = Pipeline([
-                        ('preprocessor', preprocessor),
-                        ('classifier', LogisticRegression(random_state=42, max_iter=1000))
-                    ])
-                
-                if "Random Forest" in models_to_use:
-                    models["Random Forest"] = Pipeline([
-                        ('preprocessor', preprocessor),
-                        ('classifier', RandomForestClassifier(n_estimators=100, random_state=42))
-                    ])
-                
-                if "SVM" in models_to_use:
-                    from sklearn.svm import SVC
-                    models["SVM"] = Pipeline([
-                        ('preprocessor', preprocessor),
-                        ('classifier', SVC(probability=True, random_state=42))
-                    ])
-                
-                if "Gradient Boosting" in models_to_use:
-                    from sklearn.ensemble import GradientBoostingClassifier
-                    models["Gradient Boosting"] = Pipeline([
-                        ('preprocessor', preprocessor),
-                        ('classifier', GradientBoostingClassifier(random_state=42))
-                    ])
-                
-                # Entraînement et évaluation
-                results = {}
-                
-                for name, model in models.items():
-                    # Entraînement
-                    model.fit(X_train, y_train)
+                try:
+                    # Séparation features/target
+                    feature_columns = [col for col in ml_data.columns if col != target_var]
+                    X = ml_data[feature_columns]
+                    y = ml_data[target_var]
                     
-                    # Prédictions
-                    y_pred = model.predict(X_test)
-                    y_pred_proba = model.predict_proba(X_test)[:, 1] if hasattr(model, 'predict_proba') else None
+                    # Vérification de la qualité des données
+                    st.write("🔍 **Vérification de la qualité des données**")
                     
-                    # Métriques
-                    from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+                    # Vérifier les valeurs infinies et NaN
+                    inf_count = np.isinf(X.select_dtypes(include=[np.number])).sum().sum()
+                    nan_count = X.isnull().sum().sum()
                     
-                    accuracy = accuracy_score(y_test, y_pred)
-                    precision = precision_score(y_test, y_pred, average='weighted')
-                    recall = recall_score(y_test, y_pred, average='weighted')
-                    f1 = f1_score(y_test, y_pred, average='weighted')
+                    st.write(f"- Valeurs infinies: {inf_count}")
+                    st.write(f"- Valeurs manquantes: {nan_count}")
+                    st.write(f"- Taille finale du dataset: {len(X)} x {len(feature_columns)}")
                     
-                    # AUC seulement pour classification binaire
-                    auc = None
-                    if y.nunique() == 2 and y_pred_proba is not None:
-                        auc = roc_auc_score(y_test, y_pred_proba)
+                    # Nettoyer les valeurs infinies si présentes
+                    if inf_count > 0:
+                        st.warning("Remplacement des valeurs infinies par NaN puis suppression")
+                        X = X.replace([np.inf, -np.inf], np.nan)
+                        # Supprimer les lignes avec des NaN
+                        mask = X.isnull().any(axis=1)
+                        X = X[~mask]
+                        y = y[~mask]
+                        st.write(f"Taille après nettoyage: {len(X)} observations")
                     
-                    results[name] = {
-                        'model': model,
-                        'accuracy': accuracy,
-                        'precision': precision,
-                        'recall': recall,
-                        'f1': f1,
-                        'auc': auc,
-                        'y_pred': y_pred,
-                        'y_pred_proba': y_pred_proba
-                    }
+                    # Vérification taille minimale
+                    if len(X) < 20:
+                        st.error("❌ Dataset trop petit après nettoyage (minimum 20 observations)")
+                        st.stop()
+                    
+                    # Preprocessing pipeline
+                    numeric_columns = X.select_dtypes(include=[np.number]).columns.tolist()
+                    categorical_columns = X.select_dtypes(include=['object']).columns.tolist()
+                    
+                    st.write(f"- Colonnes numériques: {len(numeric_columns)}")
+                    st.write(f"- Colonnes catégorielles: {len(categorical_columns)}")
+                    
+                    # Pipeline de preprocessing avec gestion d'erreur
+                    transformers = []
+                    if numeric_columns:
+                        transformers.append(('num', StandardScaler(), numeric_columns))
+                    if categorical_columns:
+                        transformers.append(('cat', OneHotEncoder(drop='first', sparse_output=False, handle_unknown='ignore'), categorical_columns))
+                    
+                    if not transformers:
+                        st.error("❌ Aucune colonne valide pour l'entraînement")
+                        st.stop()
+                    
+                    preprocessor = ColumnTransformer(transformers=transformers, remainder='drop')
+                    
+                    # Split train/test avec gestion d'erreur
+                    try:
+                        X_train, X_test, y_train, y_test = train_test_split(
+                            X, y, test_size=test_size, random_state=42, 
+                            stratify=y if y.dtype == 'object' and y.nunique() > 1 else None
+                        )
+                    except ValueError as e:
+                        st.warning(f"Stratification impossible: {e}")
+                        X_train, X_test, y_train, y_test = train_test_split(
+                            X, y, test_size=test_size, random_state=42
+                        )
+                    
+                    st.write(f"- Taille train: {len(X_train)}")
+                    st.write(f"- Taille test: {len(X_test)}")
+                    
+                    # Définition des modèles
+                    models = {}
+                    
+                    if "Régression Logistique" in models_to_use:
+                        models["Logistic Regression"] = Pipeline([
+                            ('preprocessor', preprocessor),
+                            ('classifier', LogisticRegression(random_state=42, max_iter=1000, solver='liblinear'))
+                        ])
+                    
+                    if "Random Forest" in models_to_use:
+                        models["Random Forest"] = Pipeline([
+                            ('preprocessor', preprocessor),
+                            ('classifier', RandomForestClassifier(n_estimators=50, random_state=42, max_depth=10))
+                        ])
+                    
+                    if "SVM" in models_to_use:
+                        from sklearn.svm import SVC
+                        models["SVM"] = Pipeline([
+                            ('preprocessor', preprocessor),
+                            ('classifier', SVC(probability=True, random_state=42, C=1.0))
+                        ])
+                    
+                    if "Gradient Boosting" in models_to_use:
+                        from sklearn.ensemble import GradientBoostingClassifier
+                        models["Gradient Boosting"] = Pipeline([
+                            ('preprocessor', preprocessor),
+                            ('classifier', GradientBoostingClassifier(random_state=42, n_estimators=50))
+                        ])
+                    
+                    # Entraînement et évaluation
+                    results = {}
+                    
+                    for name, model in models.items():
+                        try:
+                            st.write(f"🔄 Entraînement de {name}...")
+                            
+                            # Entraînement
+                            model.fit(X_train, y_train)
+                            
+                            # Prédictions
+                            y_pred = model.predict(X_test)
+                            y_pred_proba = None
+                            
+                            # Vérifier si predict_proba est disponible
+                            if hasattr(model.named_steps['classifier'], 'predict_proba'):
+                                y_pred_proba = model.predict_proba(X_test)
+                                if y_pred_proba.shape[1] > 1:
+                                    y_pred_proba = y_pred_proba[:, 1]
+                                else:
+                                    y_pred_proba = None
+                            
+                            # Métriques
+                            from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+                            
+                            accuracy = accuracy_score(y_test, y_pred)
+                            
+                            # Gestion des moyennes pour multiclass
+                            average_method = 'weighted' if y.nunique() > 2 else 'binary'
+                            precision = precision_score(y_test, y_pred, average=average_method, zero_division=0)
+                            recall = recall_score(y_test, y_pred, average=average_method, zero_division=0)
+                            f1 = f1_score(y_test, y_pred, average=average_method, zero_division=0)
+                            
+                            # AUC seulement pour classification binaire
+                            auc = None
+                            if y.nunique() == 2 and y_pred_proba is not None:
+                                try:
+                                    auc = roc_auc_score(y_test, y_pred_proba)
+                                except:
+                                    auc = None
+                            
+                            results[name] = {
+                                'model': model,
+                                'accuracy': accuracy,
+                                'precision': precision,
+                                'recall': recall,
+                                'f1': f1,
+                                'auc': auc,
+                                'y_pred': y_pred,
+                                'y_pred_proba': y_pred_proba
+                            }
+                            
+                            st.success(f"✅ {name} entraîné avec succès")
+                            
+                        except Exception as e:
+                            st.error(f"❌ Erreur avec {name}: {str(e)}")
+                            continue
+                    
+                    if not results:
+                        st.error("❌ Aucun modèle n'a pu être entraîné avec succès")
+                        st.stop()
+                
+                except Exception as e:
+                    st.error(f"❌ Erreur lors de la préparation des données: {str(e)}")
+                    st.info("💡 Suggestions:")
+                    st.info("- Vérifiez que la variable cible ne contient pas trop de valeurs manquantes")
+                    st.info("- Essayez avec un dataset plus large")
+                    st.info("- Vérifiez les filtres appliqués")
+                    st.stop()
                 
                 # =============================================
                 # VISUALISATION DES RÉSULTATS
