@@ -1861,739 +1861,705 @@ with tab3:
         st.info("👆 **Cliquez sur 'LANCER L'ANALYSE COMPLÈTE' pour voir la magie opérer !**")
 
 # =============================================
-# ONGLET 4 - ANALYSE NON SUPERVISÉE & CLUSTERING
+# ONGLET 4 - CLUSTERING INTELLIGENT & PERSONAS INTERACTIFS
 # =============================================
 
 with tab4:
-    st.title("🔬 Analyse Non Supervisée - Clustering des Personas")
-    st.markdown("*Analyse technique par clustering automatique et réduction dimensionnelle*")
+    st.title("🧠 Intelligence Artificielle : Découverte de Profils DeepFakes")
+    st.markdown("*L'IA analyse automatiquement vos données pour identifier des groupes de comportements similaires*")
     
     # =============================================
-    # CHARGEMENT ET PREPROCESSING DES DONNÉES
+    # CSS POUR CARTES INTERACTIVES AU CLIC
+    # =============================================
+    st.markdown("""
+    <style>
+    .persona-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 15px;
+        padding: 20px;
+        margin: 10px 0;
+        color: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        position: relative;
+        min-height: 200px;
+    }
+    
+    .persona-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    }
+    
+    .persona-front {
+        display: block;
+    }
+    
+    .persona-back {
+        display: none;
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        right: 20px;
+        bottom: 20px;
+    }
+    
+    .persona-card.flipped .persona-front {
+        display: none;
+    }
+    
+    .persona-card.flipped .persona-back {
+        display: block;
+    }
+    
+    .cluster-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(255,255,255,0.9);
+        color: #333;
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+    
+    .persona-photo {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin: 0 auto 10px;
+        border: 2px solid rgba(255,255,255,0.3);
+    }
+    
+    .metric-simple {
+        background: rgba(255,255,255,0.1);
+        border-radius: 8px;
+        padding: 8px;
+        margin: 5px 0;
+        text-align: center;
+        font-size: 0.9rem;
+    }
+    
+    .explanation-box {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        border-radius: 15px;
+        padding: 20px;
+        color: white;
+        margin: 20px 0;
+    }
+    
+    .insight-highlight {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        border-radius: 10px;
+        padding: 15px;
+        color: white;
+        margin: 10px 0;
+        border-left: 5px solid rgba(255,255,255,0.5);
+    }
+    
+    .step-indicator {
+        background: #2c3e50;
+        color: white;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 10px;
+        font-weight: bold;
+    }
+    </style>
+    
+    <script>
+    function toggleCard(cardId) {
+        const card = document.getElementById(cardId);
+        if (card) {
+            card.classList.toggle('flipped');
+        }
+    }
+    </script>
+    """, unsafe_allow_html=True)
+    
+    # =============================================
+    # INTRODUCTION PÉDAGOGIQUE
+    # =============================================
+    st.markdown("""
+    <div class="explanation-box">
+        <h3>🎯 Que fait cette analyse ?</h3>
+        <p><strong>L'IA va examiner les 14 personas</strong> et les regrouper automatiquement selon leurs similarités :</p>
+        <p>• <strong>Même âge</strong> et mêmes habitudes numériques</p>
+        <p>• <strong>Même niveau de méfiance</strong> face aux deepfakes</p>
+        <p>• <strong>Même type de plateforme</strong> utilisée</p>
+        <p>• <strong>Même profil professionnel</strong></p>
+        <br>
+        <p>🎉 <strong>Résultat :</strong> Au lieu de 14 profils individuels, vous obtenez 3-4 groupes clairs pour cibler vos actions !</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # =============================================
+    # CHARGEMENT ET PREPROCESSING SIMPLIFIÉ
     # =============================================
     @st.cache_data
-    def load_and_preprocess_data():
+    def load_and_prepare_data():
         try:
             url = 'https://raw.githubusercontent.com/Gnatey/M-moire_Deepfake/refs/heads/main/quantitatif.csv'
             df = pd.read_csv(url, encoding='utf-8')
             
-            # Feature Engineering
+            # Transformation simple des données pour l'IA
             processed_df = df.copy()
             
-            # Encodage des variables catégorielles
-            categorical_features = {
-                'Tranche d\'âge': {'Estimé : 16-17 ans': 1, 'Estimé : 20-25 ans': 2, 'Estimé : 30-35 ans': 3, 
-                                 'Estimé : 30-40 ans': 3.5, 'Estimé : 40-50 ans': 4, 'Estimé : 45-55 ans': 4.5},
-                'Niveau d\'étude': {'En cours': 1, 'Bac+3': 3, 'Bac+5': 5, 'Doctorat': 7},
-                'Catégorie socio-professionnelle': {'Autre': 1, 'Profession intermédiaire': 2, 'Cadre': 3},
-                'Classe sociale': {'Classe populaire': 1, 'Classe moyenne': 2, 'Classe moyenne supérieure': 3},
-                'Fréquence d\'utilisation par jour': {'0 min': 0, '< 30 min': 1, '≈ 30 min': 2, '1h': 3}
-            }
+            # Score d'âge (plus jeune = score plus bas)
+            def age_to_score(age_text):
+                if '16-17' in str(age_text): return 1
+                elif '20-25' in str(age_text): return 2
+                elif '30-35' in str(age_text) or '30-40' in str(age_text): return 3
+                elif '40-50' in str(age_text) or '45-55' in str(age_text): return 4
+                else: return 3
             
-            # Application de l'encodage
-            for feature, mapping in categorical_features.items():
-                if feature in processed_df.columns:
-                    processed_df[f'{feature}_encoded'] = processed_df[feature].map(mapping).fillna(processed_df[feature].map(mapping).median())
-            
-            # Scores calculés
-            def calculate_trust_score(trust_text):
-                if pd.isna(trust_text):
-                    return 2.5
+            # Score de méfiance (plus méfiant = score plus haut)
+            def trust_to_score(trust_text):
+                if pd.isna(trust_text): return 2.5
                 trust_str = str(trust_text).lower()
-                if 'extrêmement' in trust_str:
-                    return 5
-                elif 'très méfiant' in trust_str:
-                    return 4
-                elif 'méfiant' in trust_str and 'modérément' not in trust_str:
-                    return 3
-                elif 'modérément' in trust_str or 'moyennement' in trust_str:
-                    return 2
-                else:
-                    return 1
+                if 'extrêmement' in trust_str: return 5
+                elif 'très méfiant' in trust_str: return 4
+                elif 'méfiant' in trust_str: return 3
+                elif 'modérément' in trust_str: return 2
+                else: return 1
             
-            def calculate_knowledge_score(knowledge_text):
-                if pd.isna(knowledge_text):
-                    return 2
-                knowledge_str = str(knowledge_text).lower()
-                tech_keywords = ['algorithme', 'machine learning', 'développeur', 'technique', 'ia']
-                medium_keywords = ['technologie', 'intelligence artificielle', 'manipulation']
-                basic_keywords = ['sais', 'entendu', 'vu']
-                
-                if any(keyword in knowledge_str for keyword in tech_keywords):
-                    return 4
-                elif any(keyword in knowledge_str for keyword in medium_keywords):
-                    return 3
-                elif any(keyword in knowledge_str for keyword in basic_keywords):
-                    return 2
-                else:
-                    return 1
+            # Score d'usage numérique
+            def usage_to_score(usage_text):
+                if '0 min' in str(usage_text): return 0
+                elif '< 30 min' in str(usage_text): return 1
+                elif '30 min' in str(usage_text): return 2
+                elif '1h' in str(usage_text): return 3
+                else: return 1
             
-            def calculate_platform_risk_score(platforms_text):
-                if pd.isna(platforms_text):
-                    return 1
-                platform_str = str(platforms_text).lower()
-                high_risk = ['tiktok', 'facebook', 'twitter', 'x ']
-                medium_risk = ['instagram', 'youtube']
-                
-                score = 1
-                for platform in high_risk:
-                    if platform in platform_str:
-                        score += 1
-                for platform in medium_risk:
-                    if platform in platform_str:
-                        score += 0.5
-                
-                return min(5, score)
+            # Score d'éducation
+            def education_to_score(edu_text):
+                if 'En cours' in str(edu_text): return 1
+                elif 'Bac+3' in str(edu_text): return 3
+                elif 'Bac+5' in str(edu_text): return 5
+                elif 'Doctorat' in str(edu_text): return 7
+                else: return 3
             
             # Application des scores
-            processed_df['Trust_Score'] = processed_df['Niveau de méfiance'].apply(calculate_trust_score)
-            processed_df['Knowledge_Score'] = processed_df['Connaissance des deepfakes'].apply(calculate_knowledge_score)
-            processed_df['Platform_Risk_Score'] = processed_df['Plateformes jugées risquées'].apply(calculate_platform_risk_score)
+            processed_df['Score_Age'] = processed_df['Tranche d\'âge'].apply(age_to_score)
+            processed_df['Score_Méfiance'] = processed_df['Niveau de méfiance'].apply(trust_to_score)
+            processed_df['Score_Usage'] = processed_df['Fréquence d\'utilisation par jour'].apply(usage_to_score)
+            processed_df['Score_Education'] = processed_df['Niveau d\'étude'].apply(education_to_score)
             
-            # Score composite de risque
-            processed_df['Composite_Risk'] = (
-                processed_df['Trust_Score'] * 0.3 +
-                processed_df['Knowledge_Score'] * (-0.2) +  # Plus de connaissance = moins de risque
-                processed_df['Platform_Risk_Score'] * 0.25 +
-                processed_df['Fréquence d\'utilisation par jour_encoded'] * 0.25
+            # Score de risque global (plus c'est haut, plus c'est risqué)
+            processed_df['Score_Risque_Global'] = (
+                processed_df['Score_Age'] * 0.2 +  # Les jeunes sont plus à risque
+                (6 - processed_df['Score_Méfiance']) * 0.4 +  # Moins méfiant = plus risqué
+                processed_df['Score_Usage'] * 0.3 +  # Plus d'usage = plus risqué
+                (8 - processed_df['Score_Education']) * 0.1  # Moins éduqué = plus risqué
             )
             
             return processed_df
             
         except Exception as e:
-            st.error(f"Erreur lors du chargement : {str(e)}")
+            st.error(f"Erreur : {str(e)}")
             return pd.DataFrame()
     
-    df_processed = load_and_preprocess_data()
+    df_data = load_and_prepare_data()
     
-    if df_processed.empty:
+    if df_data.empty:
         st.error("Impossible de charger les données")
         st.stop()
     
     # =============================================
-    # SÉLECTION DES FEATURES POUR CLUSTERING
+    # ÉTAPE 1 : ANALYSE PRÉLIMINAIRE
     # =============================================
-    st.header("🔧 Configuration de l'Analyse")
+    st.markdown("---")
+    st.markdown("## <span class='step-indicator'>1</span> Analyse Préliminaire des Données", unsafe_allow_html=True)
     
-    col_config1, col_config2 = st.columns(2)
+    col_prelim1, col_prelim2, col_prelim3 = st.columns(3)
     
-    with col_config1:
-        st.subheader("📊 Features Sélectionnées")
-        
-        # Features numériques disponibles
-        available_features = [
-            'Tranche d\'âge_encoded',
-            'Niveau d\'étude_encoded', 
-            'Catégorie socio-professionnelle_encoded',
-            'Classe sociale_encoded',
-            'Fréquence d\'utilisation par jour_encoded',
-            'Trust_Score',
-            'Knowledge_Score',
-            'Platform_Risk_Score',
-            'Composite_Risk'
-        ]
-        
-        # Filtrer les features qui existent réellement
-        existing_features = [f for f in available_features if f in df_processed.columns]
-        
-        selected_features = st.multiselect(
-            "Choisir les variables pour le clustering :",
-            options=existing_features,
-            default=existing_features[:6]  # Prendre les 6 premières par défaut
-        )
-        
-        if len(selected_features) < 2:
-            st.warning("⚠️ Sélectionnez au moins 2 variables")
-            st.stop()
+    with col_prelim1:
+        st.metric("👥 Personas Analysés", len(df_data))
+        avg_age = df_data['Score_Age'].mean()
+        age_label = "Plutôt Jeune" if avg_age < 2.5 else "Âge Moyen" if avg_age < 3.5 else "Plutôt Expérimenté"
+        st.metric("🎂 Profil d'Âge Moyen", age_label)
     
-    with col_config2:
-        st.subheader("⚙️ Paramètres d'Analyse")
-        
-        max_clusters = st.slider("Nombre max de clusters à tester", 2, 10, 8)
-        pca_components = st.slider("Composantes PCA", 2, min(len(selected_features), 5), 2)
-        random_state = st.number_input("Random State", 0, 1000, 42)
-        
-        standardize = st.checkbox("Standardiser les données", True)
-        show_dendogram = st.checkbox("Afficher le dendrogramme", True)
+    with col_prelim2:
+        avg_trust = df_data['Score_Méfiance'].mean()
+        trust_label = "Très Méfiant" if avg_trust > 3.5 else "Modérément Méfiant" if avg_trust > 2.5 else "Peu Méfiant"
+        st.metric("🛡️ Niveau de Méfiance", trust_label)
     
-    # =============================================
-    # PREPROCESSING FINAL
-    # =============================================
-    # Extraction des données pour clustering
-    X = df_processed[selected_features].copy()
+    with col_prelim3:
+        avg_risk = df_data['Score_Risque_Global'].mean()
+        risk_label = "🔴 Élevé" if avg_risk > 3 else "🟡 Modéré" if avg_risk > 2 else "🟢 Faible"
+        st.metric("⚠️ Risque Global", risk_label)
     
-    # Gestion des valeurs manquantes
-    X = X.fillna(X.mean())
+    # Graphique de distribution simple
+    st.subheader("📊 Répartition des Niveaux de Risque")
     
-    # Standardisation optionnelle
-    if standardize:
-        from sklearn.preprocessing import StandardScaler
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(X)
-        X_scaled = pd.DataFrame(X_scaled, columns=selected_features, index=X.index)
-    else:
-        X_scaled = X
+    # Créer des catégories de risque
+    df_data['Catégorie_Risque'] = df_data['Score_Risque_Global'].apply(
+        lambda x: "🔴 Risque Élevé" if x > 3 else "🟡 Risque Modéré" if x > 2 else "🟢 Risque Faible"
+    )
     
-    st.success(f"✅ Dataset préparé : {X_scaled.shape[0]} observations × {X_scaled.shape[1]} features")
+    risk_counts = df_data['Catégorie_Risque'].value_counts()
+    
+    fig_risk_dist = px.pie(
+        values=risk_counts.values,
+        names=risk_counts.index,
+        title="Comment se répartissent les niveaux de risque ?",
+        color_discrete_map={
+            "🔴 Risque Élevé": "#e74c3c",
+            "🟡 Risque Modéré": "#f39c12", 
+            "🟢 Risque Faible": "#2ecc71"
+        }
+    )
+    fig_risk_dist.update_traces(textposition='inside', textinfo='percent+label')
+    st.plotly_chart(fig_risk_dist, use_container_width=True)
     
     # =============================================
-    # DÉTERMINATION DU NOMBRE OPTIMAL DE CLUSTERS
+    # ÉTAPE 2 : DÉTERMINATION AUTOMATIQUE DU NOMBRE DE GROUPES
     # =============================================
-    st.header("📈 Optimisation du Nombre de Clusters")
+    st.markdown("---")
+    st.markdown("## <span class='step-indicator'>2</span> L'IA Détermine le Nombre Optimal de Groupes", unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div class="explanation-box">
+        <h4>🤖 Comment l'IA trouve le bon nombre de groupes ?</h4>
+        <p><strong>L'IA teste plusieurs options</strong> (2, 3, 4, 5 groupes...) et calcule un <strong>"score de qualité"</strong> pour chacune.</p>
+        <p>Le <strong>score de silhouette</strong> mesure si les groupes sont bien séparés :</p>
+        <p>• <strong>Score proche de 1</strong> = Groupes très distincts ✅</p>
+        <p>• <strong>Score proche de 0</strong> = Groupes mal définis ❌</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Préparation des données pour clustering
+    features_for_clustering = ['Score_Age', 'Score_Méfiance', 'Score_Usage', 'Score_Education']
+    X_cluster = df_data[features_for_clustering].copy()
+    
+    # Standardisation
+    from sklearn.preprocessing import StandardScaler
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X_cluster)
+    
+    # Test de différents nombres de clusters
+    from sklearn.cluster import KMeans
+    from sklearn.metrics import silhouette_score
+    
+    K_range = range(2, 7)  # Test de 2 à 6 groupes
+    silhouette_scores = []
+    inertias = []
+    
+    for k in K_range:
+        kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
+        labels = kmeans.fit_predict(X_scaled)
+        
+        sil_score = silhouette_score(X_scaled, labels)
+        silhouette_scores.append(sil_score)
+        inertias.append(kmeans.inertia_)
+    
+    # Trouver le k optimal
+    optimal_k = K_range[np.argmax(silhouette_scores)]
+    best_score = max(silhouette_scores)
     
     col_optim1, col_optim2 = st.columns(2)
     
     with col_optim1:
-        st.subheader("🔍 Méthode du Coude (Elbow)")
+        st.subheader("🎯 Score de Qualité par Nombre de Groupes")
         
-        # Calcul de l'inertie pour différents nombres de clusters
-        from sklearn.cluster import KMeans
-        
-        K_range = range(1, max_clusters + 1)
-        inertias = []
-        silhouette_scores = []
-        
-        for k in K_range:
-            if k == 1:
-                inertias.append(((X_scaled - X_scaled.mean()) ** 2).sum().sum())
-                silhouette_scores.append(0)
-            else:
-                kmeans = KMeans(n_clusters=k, random_state=random_state, n_init=10)
-                kmeans.fit(X_scaled)
-                inertias.append(kmeans.inertia_)
-                
-                # Silhouette score
-                from sklearn.metrics import silhouette_score
-                if k <= len(X_scaled):
-                    sil_score = silhouette_score(X_scaled, kmeans.labels_)
-                    silhouette_scores.append(sil_score)
-                else:
-                    silhouette_scores.append(0)
-        
-        # Graphique de l'inertie
-        fig_elbow = px.line(
-            x=list(K_range), 
-            y=inertias,
-            title="Méthode du Coude - Inertie",
-            labels={'x': 'Nombre de Clusters (k)', 'y': 'Inertie'},
-            markers=True
+        # Graphique avec explication
+        fig_silhouette = px.line(
+            x=list(K_range),
+            y=silhouette_scores,
+            markers=True,
+            title="Plus le score est haut, mieux c'est !",
+            labels={'x': 'Nombre de Groupes', 'y': 'Score de Qualité (Silhouette)'}
         )
-        fig_elbow.add_vline(x=3, line_dash="dash", annotation_text="k=3")
-        fig_elbow.add_vline(x=4, line_dash="dash", annotation_text="k=4")
-        st.plotly_chart(fig_elbow, use_container_width=True)
+        fig_silhouette.add_vline(
+            x=optimal_k, 
+            line_dash="dash", 
+            line_color="red",
+            annotation_text=f"Optimal: {optimal_k} groupes"
+        )
+        fig_silhouette.update_layout(height=400)
+        st.plotly_chart(fig_silhouette, use_container_width=True)
     
     with col_optim2:
-        st.subheader("📊 Score de Silhouette")
+        st.subheader("📈 Évolution de la Cohésion Interne")
         
-        # Graphique silhouette
-        fig_sil = px.line(
-            x=list(K_range)[1:],  # Exclure k=1
-            y=silhouette_scores[1:],
-            title="Score de Silhouette",
-            labels={'x': 'Nombre de Clusters (k)', 'y': 'Silhouette Score'},
-            markers=True
+        # Graphique de l'inertie (simplifié)
+        fig_inertia = px.line(
+            x=list(K_range),
+            y=inertias,
+            markers=True,
+            title="Cohésion interne des groupes",
+            labels={'x': 'Nombre de Groupes', 'y': 'Dispersion Interne'}
         )
-        
-        # Trouver le k optimal
-        optimal_k = K_range[1:][np.argmax(silhouette_scores[1:])] if silhouette_scores[1:] else 3
-        fig_sil.add_vline(x=optimal_k, line_dash="dash", annotation_text=f"Optimal k={optimal_k}")
-        st.plotly_chart(fig_sil, use_container_width=True)
-        
-        st.metric("🎯 Nombre Optimal de Clusters", optimal_k)
-        st.metric("📊 Silhouette Score Optimal", f"{max(silhouette_scores[1:]):.3f}" if silhouette_scores[1:] else "N/A")
+        fig_inertia.add_vline(x=optimal_k, line_dash="dash", line_color="red")
+        fig_inertia.update_layout(height=400)
+        st.plotly_chart(fig_inertia, use_container_width=True)
+    
+    # Résultat de l'optimisation
+    st.markdown(f"""
+    <div class="insight-highlight">
+        <h4>🎉 Résultat de l'IA :</h4>
+        <p><strong>Nombre optimal de groupes : {optimal_k}</strong></p>
+        <p><strong>Score de qualité : {best_score:.2f}/1.00</strong></p>
+        <p>{"🟢 Excellente séparation" if best_score > 0.5 else "🟡 Bonne séparation" if best_score > 0.3 else "🟠 Séparation correcte"}</p>
+    </div>
+    """, unsafe_allow_html=True)
     
     # =============================================
-    # CLUSTERING K-MEANS FINAL
+    # ÉTAPE 3 : CLUSTERING FINAL
     # =============================================
-    st.header("🎯 Clustering K-Means")
+    st.markdown("---")
+    st.markdown("## <span class='step-indicator'>3</span> Création des Groupes de Personas", unsafe_allow_html=True)
     
-    col_kmeans1, col_kmeans2 = st.columns([2, 1])
+    # Clustering final avec le k optimal
+    kmeans_final = KMeans(n_clusters=optimal_k, random_state=42, n_init=10)
+    cluster_labels = kmeans_final.fit_predict(X_scaled)
     
-    with col_kmeans2:
-        n_clusters_final = st.selectbox(
-            "Nombre de clusters final :",
-            options=list(range(2, max_clusters + 1)),
-            index=optimal_k - 2 if optimal_k <= max_clusters else 1
+    # Ajout des labels au dataframe
+    df_clustered = df_data.copy()
+    df_clustered['Groupe'] = cluster_labels
+    df_clustered['Nom_Groupe'] = [f"Groupe {i+1}" for i in cluster_labels]
+    
+    # Métriques finales
+    final_silhouette = silhouette_score(X_scaled, cluster_labels)
+    
+    st.success(f"✅ L'IA a créé {optimal_k} groupes avec un score de qualité de {final_silhouette:.2f}")
+    
+    # =============================================
+    # ÉTAPE 4 : VISUALISATION DES GROUPES
+    # =============================================
+    st.markdown("---")
+    st.markdown("## <span class='step-indicator'>4</span> Visualisation des Groupes dans l'Espace", unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div class="explanation-box">
+        <h4>🗺️ Carte des Groupes</h4>
+        <p>L'IA <strong>projette en 2D</strong> les 4 dimensions analysées (âge, méfiance, usage, éducation).</p>
+        <p>Chaque point = un persona. Les couleurs = les groupes identifiés.</p>
+        <p><strong>Points proches</strong> = comportements similaires !</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # PCA pour la visualisation
+    from sklearn.decomposition import PCA
+    
+    pca = PCA(n_components=2)
+    X_pca = pca.fit_transform(X_scaled)
+    
+    # Dataframe pour la visualisation
+    viz_df = pd.DataFrame({
+        'Axe_1': X_pca[:, 0],
+        'Axe_2': X_pca[:, 1],
+        'Groupe': [f"Groupe {i+1}" for i in cluster_labels],
+        'Nom': df_clustered['Nom'].values,
+        'Risque': df_clustered['Score_Risque_Global'].values,
+        'Méfiance': df_clustered['Score_Méfiance'].values,
+        'Âge': df_clustered['Tranche d\'âge'].values
+    })
+    
+    # Graphique interactif
+    fig_clusters = px.scatter(
+        viz_df,
+        x='Axe_1',
+        y='Axe_2',
+        color='Groupe',
+        size='Risque',
+        hover_name='Nom',
+        hover_data={'Âge': True, 'Méfiance': True, 'Risque': ':.1f'},
+        title="Carte des Groupes de Personas",
+        labels={
+            'Axe_1': f'Dimension 1 ({pca.explained_variance_ratio_[0]*100:.1f}% de l\'info)',
+            'Axe_2': f'Dimension 2 ({pca.explained_variance_ratio_[1]*100:.1f}% de l\'info)'
+        }
+    )
+    
+    # Ajouter les centres des groupes
+    centers_pca = []
+    for i in range(optimal_k):
+        group_points = X_pca[cluster_labels == i]
+        if len(group_points) > 0:
+            center = group_points.mean(axis=0)
+            centers_pca.append(center)
+    
+    if centers_pca:
+        centers_array = np.array(centers_pca)
+        fig_clusters.add_trace(go.Scatter(
+            x=centers_array[:, 0],
+            y=centers_array[:, 1],
+            mode='markers',
+            marker=dict(color='black', size=20, symbol='x', line=dict(width=2, color='white')),
+            name='Centres des Groupes',
+            showlegend=True
+        ))
+    
+    fig_clusters.update_layout(height=500)
+    st.plotly_chart(fig_clusters, use_container_width=True)
+    
+    # Explication de la variance
+    total_variance = (pca.explained_variance_ratio_[0] + pca.explained_variance_ratio_[1]) * 100
+    st.info(f"💡 Cette carte 2D représente {total_variance:.1f}% de l'information totale des 4 dimensions analysées")
+    
+    # =============================================
+    # ÉTAPE 5 : CARTES PERSONAS INTERACTIVES
+    # =============================================
+    st.markdown("---")
+    st.markdown("## <span class='step-indicator'>5</span> Personas Interactifs par Groupe", unsafe_allow_html=True)
+    
+    st.markdown("**📱 Cliquez sur une carte pour voir les détails !**")
+    
+    # Photos des personas
+    photos = {
+        'Clémence Dupont': '👩‍💼', 'Alain Airom': '👨‍💻', 'Rabiaa ZITOUNI': '👩‍🏫',
+        'Marie Moreau': '👩‍💼', 'Thomas Dubois': '👨‍💼', 'Pierre Martin': '👨‍💼',
+        'Isabelle Petit': '👩‍💼', 'Alexandre Garcia': '👨‍💻', 'Nicolas Bernard': '👨‍💼',
+        'Sophie Laurent': '👩‍🎓', 'Camille Simon': '👩‍💻', 'Elodie Roux': '👧',
+        'Jean-Michel Leroy': '👨‍🎓', 'Anonyme': '❓'
+    }
+    
+    # Couleurs par groupe
+    group_colors = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c']
+    
+    # Affichage par groupe
+    for group_id in range(optimal_k):
+        group_data = df_clustered[df_clustered['Groupe'] == group_id]
+        group_color = group_colors[group_id % len(group_colors)]
+        
+        st.subheader(f"🎯 Groupe {group_id + 1} ({len(group_data)} personas)")
+        
+        # Caractéristiques du groupe
+        avg_age = group_data['Score_Age'].mean()
+        avg_trust = group_data['Score_Méfiance'].mean()
+        avg_risk = group_data['Score_Risque_Global'].mean()
+        
+        col_group_info1, col_group_info2, col_group_info3 = st.columns(3)
+        
+        with col_group_info1:
+            age_label = "Jeunes" if avg_age < 2.5 else "Âge moyen" if avg_age < 3.5 else "Expérimentés"
+            st.metric("👥 Profil d'âge", age_label)
+        
+        with col_group_info2:
+            trust_label = "Très méfiant" if avg_trust > 3.5 else "Modérément méfiant" if avg_trust > 2.5 else "Peu méfiant"
+            st.metric("🛡️ Méfiance", trust_label)
+        
+        with col_group_info3:
+            risk_label = "🔴 Élevé" if avg_risk > 3 else "🟡 Modéré" if avg_risk > 2 else "🟢 Faible"
+            st.metric("⚠️ Risque", risk_label)
+        
+        # Cartes des personas
+        personas_in_group = group_data.to_dict('records')
+        
+        # Affichage en grille
+        for i in range(0, len(personas_in_group), 3):
+            cols = st.columns(3)
+            for j, col in enumerate(cols):
+                if i + j < len(personas_in_group):
+                    persona = personas_in_group[i + j]
+                    card_id = f"card_{group_id}_{i+j}"
+                    
+                    photo = photos.get(persona['Nom'], '👤')
+                    
+                    # Simplification des infos
+                    age_simple = persona['Tranche d\'âge'].replace('Estimé : ', '')
+                    location_simple = persona['Localisation'].split(',')[0]
+                    
+                    with col:
+                        # Carte cliquable
+                        st.markdown(f"""
+                        <div class="persona-card" id="{card_id}" onclick="toggleCard('{card_id}')" style="background: linear-gradient(135deg, {group_color} 0%, {group_color}88 100%);">
+                            <div class="cluster-badge">Groupe {group_id + 1}</div>
+                            
+                            <div class="persona-front">
+                                <div class="persona-photo">{photo}</div>
+                                <h4 style="margin: 10px 0; text-align: center;">{persona['Nom']}</h4>
+                                <div class="metric-simple">👤 {age_simple}</div>
+                                <div class="metric-simple">💼 {persona['Métier'][:25]}{'...' if len(persona['Métier']) > 25 else ''}</div>
+                                <div class="metric-simple">📍 {location_simple}</div>
+                                <div style="text-align: center; margin-top: 15px; font-size: 0.8rem; opacity: 0.8;">
+                                    👆 Cliquez pour plus d'infos
+                                </div>
+                            </div>
+                            
+                            <div class="persona-back">
+                                <h4>💬 Citation</h4>
+                                <p style="font-style: italic; font-size: 0.9rem; margin: 15px 0;">"{persona['Citation-clé'][:80]}..."</p>
+                                
+                                <div class="metric-simple">
+                                    🛡️ Méfiance: {persona['Niveau de méfiance'][:20]}{'...' if len(persona['Niveau de méfiance']) > 20 else ''}
+                                </div>
+                                <div class="metric-simple">
+                                    ⚠️ Score Risque: {persona['Score_Risque_Global']:.1f}/5
+                                </div>
+                                <div class="metric-simple">
+                                    ⏱ Usage: {persona['Fréquence d\'utilisation par jour']}
+                                </div>
+                                <div class="metric-simple">
+                                    🎓 Éducation: {persona['Niveau d\'étude']}
+                                </div>
+                                
+                                <div style="text-align: center; margin-top: 10px; font-size: 0.8rem; opacity: 0.8;">
+                                    👆 Cliquez pour revenir
+                                </div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+    
+    # =============================================
+    # ÉTAPE 6 : INSIGHTS ET RECOMMANDATIONS
+    # =============================================
+    st.markdown("---")
+    st.markdown("## <span class='step-indicator'>6</span> Insights Automatiques & Recommandations", unsafe_allow_html=True)
+    
+    # Analyse automatique des groupes
+    group_insights = []
+    
+    for group_id in range(optimal_k):
+        group_data = df_clustered[df_clustered['Groupe'] == group_id]
+        
+        # Calcul des caractéristiques dominantes
+        avg_age = group_data['Score_Age'].mean()
+        avg_trust = group_data['Score_Méfiance'].mean()
+        avg_risk = group_data['Score_Risque_Global'].mean()
+        avg_usage = group_data['Score_Usage'].mean()
+        
+        # Génération automatique d'insights
+        if avg_risk > 3 and avg_trust < 3:
+            insight = f"🚨 **Groupe à Haut Risque** : Faible méfiance + usage élevé = très vulnérable"
+            recommendation = "Action prioritaire : Formation immédiate + outils de protection"
+            priority = "URGENTE"
+            color = "#e74c3c"
+        elif avg_age < 2.5 and avg_usage > 2:
+            insight = f"📱 **Digital Natives** : Jeunes très connectés mais variables en méfiance"
+            recommendation = "Sensibilisation ciblée via leurs plateformes préférées"
+            priority = "ÉLEVÉE"
+            color = "#f39c12"
+        elif avg_trust > 3.5:
+            insight = f"🛡️ **Sceptiques Avertis** : Très méfiants, probablement bien protégés"
+            recommendation = "Capitaliser sur leur expertise pour former les autres"
+            priority = "MODÉRÉE"
+            color = "#2ecc71"
+        else:
+            insight = f"👥 **Profil Équilibré** : Comportement moyen, risque standard"
+            recommendation = "Sensibilisation générale et suivi périodique"
+            priority = "STANDARD"
+            color = "#3498db"
+        
+        group_insights.append({
+            'group_id': group_id,
+            'insight': insight,
+            'recommendation': recommendation,
+            'priority': priority,
+            'color': color,
+            'size': len(group_data)
+        })
+    
+    # Affichage des insights
+    st.subheader("🧠 Ce que l'IA a découvert")
+    
+    for insight_data in group_insights:
+        st.markdown(f"""
+        <div style="border: 2px solid {insight_data['color']}; border-radius: 15px; padding: 20px; margin: 15px 0; background: linear-gradient(135deg, {insight_data['color']}22 0%, {insight_data['color']}11 100%);">
+            <h4>Groupe {insight_data['group_id'] + 1} ({insight_data['size']} personas) - Priorité {insight_data['priority']}</h4>
+            <p><strong>🔍 Découverte :</strong> {insight_data['insight']}</p>
+            <p><strong>💡 Action recommandée :</strong> {insight_data['recommendation']}</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # =============================================
+    # STATISTIQUES GLOBALES
+    # =============================================
+    st.subheader("📊 Statistiques Globales de l'Analyse")
+    
+    col_stats1, col_stats2, col_stats3, col_stats4 = st.columns(4)
+    
+    with col_stats1:
+        high_risk_count = len(df_clustered[df_clustered['Score_Risque_Global'] > 3])
+        st.metric("🚨 Personas à Haut Risque", f"{high_risk_count}/{len(df_clustered)}")
+    
+    with col_stats2:
+        very_cautious = len(df_clustered[df_clustered['Score_Méfiance'] > 3.5])
+        st.metric("🛡️ Très Méfiants", f"{very_cautious}/{len(df_clustered)}")
+    
+    with col_stats3:
+        heavy_users = len(df_clustered[df_clustered['Score_Usage'] >= 2])
+        st.metric("📱 Gros Utilisateurs", f"{heavy_users}/{len(df_clustered)}")
+    
+    with col_stats4:
+        st.metric("🎯 Qualité du Clustering", f"{final_silhouette:.2f}/1.00")
+    
+    # =============================================
+    # EXPORT SIMPLIFIÉ
+    # =============================================
+    st.markdown("---")
+    st.subheader("📥 Télécharger les Résultats")
+    
+    col_export1, col_export2 = st.columns(2)
+    
+    with col_export1:
+        # Export des groupes
+        export_simple = df_clustered[['Nom', 'Nom_Groupe', 'Score_Risque_Global', 'Tranche d\'âge', 'Métier']].copy()
+        export_simple.columns = ['Nom', 'Groupe_Assigné', 'Score_Risque', 'Âge', 'Métier']
+        
+        csv_export = export_simple.to_csv(index=False)
+        st.download_button(
+            "📊 Groupes de Personas (CSV)",
+            csv_export,
+            "groupes_personas.csv",
+            "text/csv"
         )
-        
-        if st.button("🚀 Lancer Clustering", type="primary"):
-            st.session_state.run_clustering = True
-            st.session_state.n_clusters = n_clusters_final
     
-    # Exécution du clustering
-    if st.session_state.get('run_clustering', False):
-        
-        # K-Means final
-        kmeans_final = KMeans(n_clusters=n_clusters_final, random_state=random_state, n_init=10)
-        cluster_labels = kmeans_final.fit_predict(X_scaled)
-        
-        # Ajout des labels au dataframe
-        df_clustered = df_processed.copy()
-        df_clustered['Cluster'] = cluster_labels
-        df_clustered['Cluster_Label'] = [f"Cluster {i}" for i in cluster_labels]
-        
-        # Métriques de qualité
-        final_silhouette = silhouette_score(X_scaled, cluster_labels)
-        final_inertia = kmeans_final.inertia_
-        
-        with col_kmeans1:
-            st.success(f"✅ Clustering terminé avec {n_clusters_final} clusters")
-            
-            col_metric1, col_metric2, col_metric3 = st.columns(3)
-            with col_metric1:
-                st.metric("🎯 Silhouette Score", f"{final_silhouette:.3f}")
-            with col_metric2:
-                st.metric("📊 Inertie", f"{final_inertia:.2f}")
-            with col_metric3:
-                cluster_sizes = pd.Series(cluster_labels).value_counts()
-                balance_score = 1 - (cluster_sizes.std() / cluster_sizes.mean())
-                st.metric("⚖️ Équilibrage", f"{balance_score:.3f}")
-        
-        # =============================================
-        # ANALYSE PCA ET VISUALISATION
-        # =============================================
-        st.header("🔄 Analyse en Composantes Principales (PCA)")
-        
-        from sklearn.decomposition import PCA
-        
-        # PCA
-        pca = PCA(n_components=min(pca_components, len(selected_features)))
-        X_pca = pca.fit_transform(X_scaled)
-        
-        # Variance expliquée
-        explained_variance = pca.explained_variance_ratio_
-        cumulative_variance = np.cumsum(explained_variance)
-        
-        col_pca1, col_pca2 = st.columns(2)
-        
-        with col_pca1:
-            st.subheader("📈 Variance Expliquée")
-            
-            fig_variance = go.Figure()
-            fig_variance.add_trace(go.Bar(
-                x=[f'PC{i+1}' for i in range(len(explained_variance))],
-                y=explained_variance * 100,
-                name='Variance Individuelle',
-                marker_color='lightblue'
-            ))
-            fig_variance.add_trace(go.Scatter(
-                x=[f'PC{i+1}' for i in range(len(explained_variance))],
-                y=cumulative_variance * 100,
-                mode='lines+markers',
-                name='Variance Cumulative',
-                line=dict(color='red', width=3),
-                yaxis='y2'
-            ))
-            
-            fig_variance.update_layout(
-                title="Variance Expliquée par Composante",
-                xaxis_title="Composantes Principales",
-                yaxis_title="Variance Expliquée (%)",
-                yaxis2=dict(title="Variance Cumulative (%)", overlaying='y', side='right'),
-                height=400
-            )
-            st.plotly_chart(fig_variance, use_container_width=True)
-            
-            st.metric("🎯 Variance Totale Expliquée", f"{cumulative_variance[-1]*100:.1f}%")
-        
-        with col_pca2:
-            st.subheader("🔄 Contribution des Variables")
-            
-            # Matrice des composantes
-            components_df = pd.DataFrame(
-                pca.components_[:2].T,
-                columns=['PC1', 'PC2'],
-                index=selected_features
-            )
-            
-            # Heatmap des contributions
-            fig_contrib = px.imshow(
-                components_df.T,
-                title="Contribution des Variables aux PC",
-                color_continuous_scale='RdBu',
-                aspect='auto'
-            )
-            fig_contrib.update_layout(height=400)
-            st.plotly_chart(fig_contrib, use_container_width=True)
-        
-        # =============================================
-        # VISUALISATION DES CLUSTERS
-        # =============================================
-        st.header("🗺️ Visualisation des Clusters")
-        
-        col_viz1, col_viz2 = st.columns(2)
-        
-        with col_viz1:
-            st.subheader("🎯 Projection PCA 2D")
-            
-            # Scatter plot des clusters dans l'espace PCA
-            pca_df = pd.DataFrame({
-                'PC1': X_pca[:, 0],
-                'PC2': X_pca[:, 1],
-                'Cluster': [f"Cluster {i}" for i in cluster_labels],
-                'Nom': df_processed['Nom'].values,
-                'Risque_Composite': df_processed['Composite_Risk'].values if 'Composite_Risk' in df_processed.columns else [0]*len(cluster_labels)
-            })
-            
-            fig_clusters = px.scatter(
-                pca_df,
-                x='PC1',
-                y='PC2',
-                color='Cluster',
-                size='Risque_Composite',
-                hover_name='Nom',
-                title="Clusters dans l'Espace PCA",
-                labels={'PC1': f'PC1 ({explained_variance[0]*100:.1f}%)', 
-                       'PC2': f'PC2 ({explained_variance[1]*100:.1f}%)'}
-            )
-            
-            # Ajouter les centroïdes
-            if len(X_pca[0]) >= 2:
-                centroids_pca = []
-                for i in range(n_clusters_final):
-                    cluster_points = X_pca[cluster_labels == i]
-                    if len(cluster_points) > 0:
-                        centroid = cluster_points.mean(axis=0)
-                        centroids_pca.append(centroid)
-                
-                if centroids_pca:
-                    centroids_array = np.array(centroids_pca)
-                    fig_clusters.add_trace(go.Scatter(
-                        x=centroids_array[:, 0],
-                        y=centroids_array[:, 1],
-                        mode='markers',
-                        marker=dict(color='black', size=15, symbol='x'),
-                        name='Centroïdes',
-                        showlegend=True
-                    ))
-            
-            fig_clusters.update_layout(height=500)
-            st.plotly_chart(fig_clusters, use_container_width=True)
-        
-        with col_viz2:
-            st.subheader("📊 Distribution des Clusters")
-            
-            # Distribution des tailles de clusters
-            cluster_counts = pd.Series(cluster_labels).value_counts().sort_index()
-            
-            fig_dist = px.bar(
-                x=[f"Cluster {i}" for i in cluster_counts.index],
-                y=cluster_counts.values,
-                title="Taille des Clusters",
-                color=cluster_counts.values,
-                color_continuous_scale='viridis'
-            )
-            fig_dist.update_layout(height=300)
-            st.plotly_chart(fig_dist, use_container_width=True)
-            
-            # Statistiques par cluster
-            st.subheader("📈 Stats par Cluster")
-            cluster_stats = df_clustered.groupby('Cluster')[selected_features].mean()
-            
-            # Radar chart des profils moyens
-            fig_radar = go.Figure()
-            
-            for cluster_id in range(n_clusters_final):
-                values = cluster_stats.loc[cluster_id].values
-                # Normaliser les valeurs entre 0 et 1 pour le radar
-                normalized_values = (values - values.min()) / (values.max() - values.min() + 1e-6)
-                
-                fig_radar.add_trace(go.Scatterpolar(
-                    r=normalized_values,
-                    theta=[f.replace('_encoded', '').replace('_', ' ') for f in selected_features],
-                    fill='toself',
-                    name=f'Cluster {cluster_id}',
-                    opacity=0.7
-                ))
-            
-            fig_radar.update_layout(
-                polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
-                title="Profils Moyens des Clusters",
-                height=400
-            )
-            st.plotly_chart(fig_radar, use_container_width=True)
-        
-        # =============================================
-        # DENDROGRAMME (CLUSTERING HIÉRARCHIQUE)
-        # =============================================
-        if show_dendogram and len(df_processed) <= 50:  # Limite pour la lisibilité
-            st.header("🌳 Dendrogramme (Clustering Hiérarchique)")
-            
-            from scipy.cluster.hierarchy import dendrogram, linkage
-            from scipy.spatial.distance import pdist
-            
-            # Calcul de la matrice de distances
-            distances = pdist(X_scaled, metric='euclidean')
-            linkage_matrix = linkage(distances, method='ward')
-            
-            # Création du dendrogramme
-            fig_dendro = go.Figure()
-            
-            # Calcul du dendrogramme
-            dendro_data = dendrogram(linkage_matrix, labels=df_processed['Nom'].values, no_plot=True)
-            
-            # Extraction des coordonnées
-            icoord = np.array(dendro_data['icoord'])
-            dcoord = np.array(dendro_data['dcoord'])
-            
-            # Tracé des lignes du dendrogramme
-            for i in range(len(icoord)):
-                fig_dendro.add_trace(go.Scatter(
-                    x=icoord[i],
-                    y=dcoord[i],
-                    mode='lines',
-                    line=dict(color='blue', width=1),
-                    showlegend=False,
-                    hoverinfo='skip'
-                ))
-            
-            # Ajout des labels
-            fig_dendro.update_layout(
-                title="Dendrogramme - Clustering Hiérarchique",
-                xaxis_title="Personas",
-                yaxis_title="Distance",
-                height=500,
-                xaxis=dict(tickangle=-45)
-            )
-            
-            st.plotly_chart(fig_dendro, use_container_width=True)
-        
-        # =============================================
-        # PROFILAGE AUTOMATIQUE DES CLUSTERS
-        # =============================================
-        st.header("🎯 Profilage Automatique des Clusters")
-        
-        for cluster_id in range(n_clusters_final):
-            cluster_data = df_clustered[df_clustered['Cluster'] == cluster_id]
-            
-            st.subheader(f"📊 Cluster {cluster_id} ({len(cluster_data)} personas)")
-            
-            col_profile1, col_profile2, col_profile3 = st.columns(3)
-            
-            with col_profile1:
-                st.markdown("**👥 Membres:**")
-                membres = cluster_data['Nom'].tolist()
-                for membre in membres[:5]:  # Afficher max 5 membres
-                    st.markdown(f"• {membre}")
-                if len(membres) > 5:
-                    st.markdown(f"• ... et {len(membres)-5} autres")
-            
-            with col_profile2:
-                st.markdown("**📊 Caractéristiques Moyennes:**")
-                
-                # Calcul des moyennes
-                if 'Trust_Score' in cluster_data.columns:
-                    trust_avg = cluster_data['Trust_Score'].mean()
-                    st.metric("🛡️ Score Méfiance", f"{trust_avg:.2f}/5")
-                
-                if 'Knowledge_Score' in cluster_data.columns:
-                    knowledge_avg = cluster_data['Knowledge_Score'].mean()
-                    st.metric("🧠 Score Connaissance", f"{knowledge_avg:.2f}/4")
-                
-                if 'Composite_Risk' in cluster_data.columns:
-                    risk_avg = cluster_data['Composite_Risk'].mean()
-                    st.metric("⚠️ Risque Composite", f"{risk_avg:.2f}")
-            
-            with col_profile3:
-                st.markdown("**🏷️ Profil Dominant:**")
-                
-                # Variables les plus caractéristiques
-                modal_age = cluster_data['Tranche d\'âge'].mode()
-                if len(modal_age) > 0:
-                    st.markdown(f"**Âge:** {modal_age.iloc[0]}")
-                
-                modal_edu = cluster_data['Niveau d\'étude'].mode()
-                if len(modal_edu) > 0:
-                    st.markdown(f"**Éducation:** {modal_edu.iloc[0]}")
-                
-                modal_csp = cluster_data['Catégorie socio-professionnelle'].mode()
-                if len(modal_csp) > 0:
-                    st.markdown(f"**CSP:** {modal_csp.iloc[0]}")
-        
-        # =============================================
-        # ANALYSE DE STABILITÉ
-        # =============================================
-        st.header("🔍 Analyse de Stabilité du Clustering")
-        
-        col_stab1, col_stab2 = st.columns(2)
-        
-        with col_stab1:
-            st.subheader("🎲 Test de Stabilité")
-            
-            # Test avec différents random states
-            stability_scores = []
-            n_tests = 10
-            
-            for rs in range(42, 42 + n_tests):
-                kmeans_test = KMeans(n_clusters=n_clusters_final, random_state=rs, n_init=10)
-                labels_test = kmeans_test.fit_predict(X_scaled)
-                sil_test = silhouette_score(X_scaled, labels_test)
-                stability_scores.append(sil_test)
-            
-            stability_mean = np.mean(stability_scores)
-            stability_std = np.std(stability_scores)
-            
-            st.metric("📊 Silhouette Moyen", f"{stability_mean:.3f}")
-            st.metric("📏 Écart-Type", f"{stability_std:.3f}")
-            st.metric("🎯 Coefficient de Variation", f"{(stability_std/stability_mean)*100:.1f}%")
-            
-            # Graphique de stabilité
-            fig_stability = px.box(
-                y=stability_scores,
-                title="Distribution des Scores de Silhouette",
-                labels={'y': 'Silhouette Score'}
-            )
-            st.plotly_chart(fig_stability, use_container_width=True)
-        
-        with col_stab2:
-            st.subheader("📈 Métriques de Qualité")
-            
-            # Calcul de métriques additionnelles
-            from sklearn.metrics import calinski_harabasz_score, davies_bouldin_score
-            
-            calinski_score = calinski_harabasz_score(X_scaled, cluster_labels)
-            davies_bouldin = davies_bouldin_score(X_scaled, cluster_labels)
-            
-            # Affichage des métriques
-            st.metric("🎯 Calinski-Harabasz Index", f"{calinski_score:.2f}")
-            st.metric("📊 Davies-Bouldin Index", f"{davies_bouldin:.3f}")
-            st.metric("🔄 Inertie Intra-Clusters", f"{kmeans_final.inertia_:.2f}")
-            
-            # Interprétation
-            if final_silhouette > 0.5:
-                quality = "🟢 Excellente"
-            elif final_silhouette > 0.3:
-                quality = "🟡 Bonne"
-            else:
-                quality = "🔴 Faible"
-            
-            st.markdown(f"**Qualité du Clustering:** {quality}")
-            
-            # Recommandations
-            st.markdown("**🎯 Recommandations:**")
-            if final_silhouette < 0.3:
-                st.markdown("• Essayer un nombre différent de clusters")
-                st.markdown("• Considérer d'autres algorithmes (DBSCAN, GMM)")
-                st.markdown("• Revoir la sélection des features")
-            elif stability_std > 0.1:
-                st.markdown("• Clustering instable, augmenter n_init")
-                st.markdown("• Vérifier la qualité des données")
-            else:
-                st.markdown("• ✅ Clustering de qualité acceptable")
-                st.markdown("• Procéder à l'interprétation métier")
-        
-        # =============================================
-        # EXPORT TECHNIQUE
-        # =============================================
-        st.header("📥 Export Technique")
-        
-        col_export1, col_export2, col_export3 = st.columns(3)
-        
-        with col_export1:
-            # Export des résultats de clustering
-            export_clustering = df_clustered[['Nom', 'Cluster', 'Cluster_Label'] + selected_features].copy()
-            csv_clustering = export_clustering.to_csv(index=False)
-            st.download_button(
-                "📊 Export Clustering CSV",
-                csv_clustering,
-                "clustering_results.csv",
-                "text/csv"
-            )
-        
-        with col_export2:
-            # Export des centroïdes
-            centroids_df = pd.DataFrame(
-                kmeans_final.cluster_centers_,
-                columns=selected_features,
-                index=[f"Cluster_{i}" for i in range(n_clusters_final)]
-            )
-            csv_centroids = centroids_df.to_csv()
-            st.download_button(
-                "🎯 Export Centroïdes CSV",
-                csv_centroids,
-                "cluster_centroids.csv",
-                "text/csv"
-            )
-        
-        with col_export3:
-            # Export des métriques
-            metrics_data = {
-                'Métrique': ['Silhouette Score', 'Calinski-Harabasz', 'Davies-Bouldin', 'Inertie', 'Stabilité (std)'],
-                'Valeur': [final_silhouette, calinski_score, davies_bouldin, kmeans_final.inertia_, stability_std]
-            }
-            metrics_df = pd.DataFrame(metrics_data)
-            csv_metrics = metrics_df.to_csv(index=False)
-            st.download_button(
-                "📈 Export Métriques CSV",
-                csv_metrics,
-                "clustering_metrics.csv",
-                "text/csv"
-            )
-        
-        # Rapport technique complet
-        technical_report = f"""
-# RAPPORT TECHNIQUE - CLUSTERING NON SUPERVISÉ
+    with col_export2:
+        # Rapport exécutif
+        rapport = f"""# RAPPORT CLUSTERING PERSONAS DEEPFAKES
 
-## Configuration
-- **Algorithme:** K-Means
-- **Nombre de clusters:** {n_clusters_final}
-- **Features utilisées:** {len(selected_features)}
-- **Standardisation:** {standardize}
-- **Random State:** {random_state}
+## Résultats de l'Analyse IA
+- **Nombre de groupes identifiés :** {optimal_k}
+- **Qualité du clustering :** {final_silhouette:.2f}/1.00
+- **Personas analysés :** {len(df_clustered)}
 
-## Métriques de Qualité
-- **Silhouette Score:** {final_silhouette:.3f}
-- **Calinski-Harabasz Index:** {calinski_score:.2f}
-- **Davies-Bouldin Index:** {davies_bouldin:.3f}
-- **Inertie:** {kmeans_final.inertia_:.2f}
-
-## Analyse PCA
-- **Variance expliquée (PC1+PC2):** {(explained_variance[0] + explained_variance[1])*100:.1f}%
-- **Composantes utilisées:** {len(explained_variance)}
-
-## Stabilité
-- **Silhouette moyen (10 tests):** {stability_mean:.3f} ± {stability_std:.3f}
-- **Coefficient de variation:** {(stability_std/stability_mean)*100:.1f}%
-
-## Distribution des Clusters
+## Répartition par Groupe
 """
-        for i, count in enumerate(pd.Series(cluster_labels).value_counts().sort_index()):
-            technical_report += f"- **Cluster {i}:** {count} personas ({count/len(cluster_labels)*100:.1f}%)\n"
+        for i in range(optimal_k):
+            count = len(df_clustered[df_clustered['Groupe'] == i])
+            rapport += f"- **Groupe {i+1} :** {count} personas\n"
+        
+        rapport += f"""
+## Insights Clés
+"""
+        for insight_data in group_insights:
+            rapport += f"- **Groupe {insight_data['group_id'] + 1} :** {insight_data['insight']}\n"
         
         st.download_button(
-            "📋 Rapport Technique Complet",
-            technical_report,
-            "rapport_technique_clustering.md",
+            "📋 Rapport Exécutif (MD)",
+            rapport,
+            "rapport_clustering.md",
             "text/markdown"
         )
     
-    else:
-        st.info("👆 Configurez les paramètres et cliquez sur 'Lancer Clustering' pour commencer l'analyse")
-        
-        # Aperçu des données
-        st.subheader("👀 Aperçu des Données Preprocessées")
-        
-        preview_data = df_processed[selected_features].head(10)
-        st.dataframe(preview_data, use_container_width=True)
-        
-        # Statistiques descriptives
-        st.subheader("📊 Statistiques Descriptives")
-        
-        stats_data = df_processed[selected_features].describe()
-        st.dataframe(stats_data, use_container_width=True)
-        
-        # Matrice de corrélation
-        st.subheader("🔗 Matrice de Corrélation")
-        
-        corr_matrix = df_processed[selected_features].corr()
-        fig_corr = px.imshow(
-            corr_matrix,
-            text_auto=True,
-            aspect="auto",
-            color_continuous_scale='RdBu',
-            title="Corrélations entre Variables"
-        )
-        st.plotly_chart(fig_corr, use_container_width=True)
+    # =============================================
+    # CONCLUSION
+    # =============================================
+    st.markdown("---")
+    st.markdown("""
+    <div class="insight-highlight">
+        <h3>🎉 Analyse Terminée !</h3>
+        <p><strong>L'IA a analysé vos 14 personas</strong> et les a regroupés en <strong>{} groupes distincts</strong>.</p>
+        <p>Vous pouvez maintenant <strong>cibler vos actions</strong> par groupe plutôt que par individu !</p>
+        <p>💡 <strong>Prochaine étape :</strong> Utiliser ces groupes pour personnaliser vos campagnes de sensibilisation.</p>
+    </div>
+    """.format(optimal_k), unsafe_allow_html=True)
+    
+    # Bouton d'action final
+    if st.button("🚀 Relancer l'Analyse avec d'Autres Paramètres", type="primary"):
+        st.experimental_rerun()
 
 # =============================================
 # SECTION COMMENTAIRES
