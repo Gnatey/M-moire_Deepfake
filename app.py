@@ -876,13 +876,13 @@ with tab2:
         fig = go.Figure()
         fig.add_trace(go.Bar(
             x=df_sample_pct["Tranche"],
-            y=df_sample_pct["Ma population"],
-            name="DeepFakes (%)",
+            y=df_sample_pct["DeepFakes (%)"],
+            name="Ma population (%)",
             marker_color="#1f77b4"
         ))
         fig.add_trace(go.Bar(
             x=df_insee_pct["Tranche"],
-            y=df_insee_pct["INSEE"],
+            y=df_insee_pct["INSEE (%)"],
             name="INSEE (%)",
             marker_color="#ff7f0e"
         ))
