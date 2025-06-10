@@ -1,5 +1,3 @@
-juste pour préciser ma bdd c'est DeepFakes comme tu peux le voir dans le code et il ya celle de l'insee. 
-
 import streamlit as st
 import pandas as pd
 import numpy as np
