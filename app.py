@@ -172,7 +172,7 @@ else:
 # ONGLETS PRINCIPAUX
 # =============================================
 st.title("📊 Dashboard Analyse des DeepFakes")
-tab1, tab2,tab3,tab4 = st.tabs(["🏠 Analyse exploratoire (EDA)", "🔬 Exploration Avancée", "📈 Analyse Statistique & Machine Learning", "Personae"])
+tab1, tab2,tab3,tab4 = st.tabs(["🏠 Analyse exploratoire (EDA)", "🔬 Exploration Avancée", "📈 Analyse Statistique & Machine Learning", "Clustering Intelligent & Personas Interactifs"])
 
 # =============================================
 # ONGLET 1 - TABLEAU DE BORD PRINCIPAL
