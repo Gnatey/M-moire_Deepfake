@@ -845,55 +845,70 @@ with tab2:
                               color_discrete_sequence=px.colors.qualitative.Pastel)
             st.plotly_chart(fig_genre, use_container_width=True)
 
-# =============================================
-# SECTION 2 : REPRÉSENTATIVITÉ
-# =============================================
-    with st.expander("🧮 Analyse de représentativité", expanded=True):
-        st.subheader("Test de représentativité")
+with st.expander("🧮 Analyse de représentativité", expanded=True):
+    st.subheader("Test de représentativité")
 
-        # 1. Répartition DeepFakes (%) par tranche d’âge
-        df_sample_pct = (
-            df["Tranche d'âge"]
-            .value_counts(normalize=True)
-            .mul(100)
-            .rename_axis("Tranche")
-            .reset_index(name="DeepFakes (%)")
-        )
+    # 1. On crée un mapping qui ramène vos tranches à celles de l’INSEE
+    map_to_insee = {
+        "Moins de 18 ans":    "0-19 ans",
+        "18-25 ans":          "20-39 ans",
+        "26-40 ans":          "20-39 ans",
+        "41-60 ans":          "40-59 ans",
+        "Plus de 60 ans":     "60-74 ans",  # ou "75 ans et plus" selon choix
+        # ajoutez ou ajustez selon vos libellés exacts
+    }
+    df["Tranche_INSEE"] = df["Tranche d'âge"].map(map_to_insee)
 
-        # 2. Répartition INSEE (%) par tranche d’âge (depuis l’Excel)
-        insee_url = "https://raw.githubusercontent.com/Gnatey/M-moire_Deepfake/main/insee.xlsx"
-        df_insee = pd.read_excel(insee_url, sheet_name="2025", header=[0,1])
-        df_insee.columns = ["_".join(col).strip().replace(" ", "_")
-                            for col in df_insee.columns.values]
-        age_cols = [c for c in df_insee.columns if c.startswith("Ensemble_") and "ans" in c]
-        pop_pct = df_insee[age_cols].sum() / df_insee[age_cols].sum().sum() * 100
-        df_insee_pct = pd.DataFrame({
-            "Tranche": [c.replace("Ensemble_", "").replace("_", " ") for c in age_cols],
-            "INSEE (%)": pop_pct.values
-        })
+    # 2. Calcul de vos % par tranche INSEE
+    df_sample_pct = (
+        df["Tranche_INSEE"]
+          .value_counts(normalize=True)
+          .mul(100)
+          .rename_axis("Tranche")
+          .reset_index(name="DeepFakes (%)")
+    )
 
-        # 3. Tracer les deux séries sans merge
-        fig = go.Figure()
-        fig.add_trace(go.Bar(
-            x=df_sample_pct["Tranche"],
-            y=df_sample_pct["DeepFakes (%)"],
-            name="Ma population (%)",
-            marker_color="#1f77b4"
-        ))
-        fig.add_trace(go.Bar(
-            x=df_insee_pct["Tranche"],
-            y=df_insee_pct["INSEE (%)"],
-            name="INSEE (%)",
-            marker_color="#ff7f0e"
-        ))
-        fig.update_layout(
-            barmode="group",
-            title="Répartition par tranche d'âge : DeepFakes vs INSEE",
-            xaxis_title="Tranche d'âge",
-            yaxis_title="Pourcentage (%)",
-            xaxis_tickangle=-45
-        )
-        st.plotly_chart(fig, use_container_width=True)
+    # 3. Lecture et préparation des % INSEE réels
+    insee_url = "https://raw.githubusercontent.com/Gnatey/M-moire_Deepfake/main/insee.xlsx"
+    df_insee = pd.read_excel(insee_url, sheet_name="2025", header=[0,1])
+    df_insee.columns = ["_".join(c).strip().replace(" ", "_") for c in df_insee.columns.values]
+    age_cols = [c for c in df_insee.columns if c.startswith("Ensemble_") and "ans" in c]
+    pop_pct = df_insee[age_cols].sum() / df_insee[age_cols].sum().sum() * 100
+    df_insee_pct = pd.DataFrame({
+        "Tranche": [c.replace("Ensemble_", "").replace("_", " ") for c in age_cols],
+        "INSEE (%)": pop_pct.values
+    })
+
+    # 4. Fusion et tri décroissant sur votre échantillon
+    df_compare = (
+        df_sample_pct
+        .merge(df_insee_pct, on="Tranche", how="left")
+        .sort_values("DeepFakes (%)", ascending=False)
+    )
+
+    # 5. Affichage groupé
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=df_compare["Tranche"],
+        y=df_compare["DeepFakes (%)"],
+        name="DeepFakes (%)",
+        marker_color="#1f77b4"
+    ))
+    fig.add_trace(go.Bar(
+        x=df_compare["Tranche"],
+        y=df_compare["INSEE (%)"],
+        name="INSEE (%)",
+        marker_color="#ff7f0e"
+    ))
+    fig.update_layout(
+        barmode="group",
+        title="Répartition par tranche d'âge : DeepFakes vs INSEE",
+        xaxis_title="Tranche d'âge (INSEE)",
+        yaxis_title="Pourcentage (%)",
+        xaxis_tickangle=-45
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
 
     # =============================================
     # SECTION 3 : INTERVALLES DE CONFIANCE
