@@ -3108,9 +3108,9 @@ with tab4:
     
     with st.expander("📚 **Méthodologie Complète Appliquée**", expanded=False):
         st.markdown("""
-        ### 🔬 **Méthodologie Non Supervisée Appliquée**
+        ### 🔬 **Méthodologie Non Supervisée Complète**
         
-        Cette analyse suit rigoureusement la méthodologie scientifique pour le clustering :
+        Cette analyse suit rigoureusement la méthodologie scientifique pour le clustering avec **optimisations avancées** :
         
         **🎯 Phase 1 : Préparation des Données**
         - ✅ Collecte et chargement des 14 personas
@@ -3155,11 +3155,53 @@ with tab4:
         - ✅ Métriques de performance documentées
         - ✅ Recommandations stratégiques générées
         
-        **✅ Garanties de Qualité :**
-        - Reproductibilité (random_state fixé)
-        - Validation statistique rigoureuse
+        ---
+        
+        ### 🚀 **Optimisations Avancées (Nouveau)**
+        
+        **🔤 Stratégie 1 : Enrichissement des Features**
+        - Analyse textuelle automatisée (sentiment, complexité)
+        - Scores comportementaux multi-dimensionnels
+        - Encodage granulaire optimisé
+        - Variables composites avancées
+        
+        **⚙️ Stratégie 2 : Algorithmes de Clustering Avancés**
+        - K-Means++ optimisé (n_init=30, max_iter=500)
+        - Clustering Agglomératif (Ward, Complete)
+        - Comparaison automatique des performances
+        - Sélection du meilleur algorithme
+        
+        **🎯 Stratégie 3 : Sélection Optimale des Features**
+        - Analyse automatique de l'importance des variables
+        - Élimination des features redondantes
+        - Sélection des top 70% des features discriminantes
+        - Validation croisée de la sélection
+        
+        **🎬 Stratégie 4 : Recommandations Personnalisées**
+        - Analyse comportementale approfondie par cluster
+        - Génération automatique de stratégies de communication
+        - Personnalisation des canaux et messages
+        - Actions concrètes par profil utilisateur
+        
+        **⚡ Stratégie 5 : Optimisation des Hyperparamètres**
+        - Grid search sur les paramètres critiques
+        - Optimisation multi-critères (Silhouette, Calinski-Harabasz)
+        - Tests de stabilité avancés
+        - Convergence vers Score > 0.5
+        
+        **✅ Garanties de Qualité Renforcées :**
+        - Reproductibilité absolue (random_state fixé)
+        - Validation statistique multi-niveaux
         - Gestion robuste des petits datasets
         - Interprétabilité maximale des résultats
+        - **Objectif : Score Silhouette > 0.5 (Excellence)**
+        - **Bonus : Recommandations actionables personnalisées**
+        
+        **🎯 Résultats Attendus avec l'Optimisation :**
+        - Score Silhouette : 0.5+ (vs 0.423 initial)
+        - Séparation des clusters : Excellente
+        - Recommandations : 100% personnalisées
+        - Actionabilité : Stratégies concrètes par persona
         """)
 
 
