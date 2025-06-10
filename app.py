@@ -845,28 +845,26 @@ with tab2:
                               color_discrete_sequence=px.colors.qualitative.Pastel)
             st.plotly_chart(fig_genre, use_container_width=True)
 
-    # =============================================
-    # SECTION 2 : REPRÉSENTATIVITÉ
-    # =============================================
+# =============================================
+# SECTION 2 : REPRÉSENTATIVITÉ
+# =============================================
     with st.expander("🧮 Analyse de représentativité", expanded=True):
         st.subheader("Test de représentativité")
 
         # 1. Répartition DeepFakes (%) par tranche d’âge
         df_sample_pct = (
             df["Tranche d'âge"]
-              .value_counts(normalize=True)
-              .mul(100)
-              .rename_axis("Tranche")
-              .reset_index(name="DeepFakes (%)")
+            .value_counts(normalize=True)
+            .mul(100)
+            .rename_axis("Tranche")
+            .reset_index(name="DeepFakes (%)")
         )
 
-        # 2. Répartition INSEE (%) par tranche d’âge (Excel GitHub)
+        # 2. Répartition INSEE (%) par tranche d’âge (depuis l’Excel)
         insee_url = "https://raw.githubusercontent.com/Gnatey/M-moire_Deepfake/main/insee.xlsx"
         df_insee = pd.read_excel(insee_url, sheet_name="2025", header=[0,1])
-        df_insee.columns = [
-            "_".join(col).strip().replace(" ", "_")
-            for col in df_insee.columns.values
-        ]
+        df_insee.columns = ["_".join(col).strip().replace(" ", "_")
+                            for col in df_insee.columns.values]
         age_cols = [c for c in df_insee.columns if c.startswith("Ensemble_") and "ans" in c]
         pop_pct = df_insee[age_cols].sum() / df_insee[age_cols].sum().sum() * 100
         df_insee_pct = pd.DataFrame({
@@ -874,22 +872,17 @@ with tab2:
             "INSEE (%)": pop_pct.values
         })
 
-        # 3. Fusionner et trier par DeepFakes (%)
-        df_compare = df_sample_pct.merge(
-            df_insee_pct, on="Tranche", how="inner"
-        ).sort_values("DeepFakes (%)", ascending=False)
-
-        # 4. Tracer en groupé
+        # 3. Tracer les deux séries sans merge
         fig = go.Figure()
         fig.add_trace(go.Bar(
-            x=df_compare["Tranche"],
-            y=df_compare["DeepFakes (%)"],
+            x=df_sample_pct["Tranche"],
+            y=df_sample_pct["DeepFakes (%)"],
             name="Ma population (%)",
             marker_color="#1f77b4"
         ))
         fig.add_trace(go.Bar(
-            x=df_compare["Tranche"],
-            y=df_compare["INSEE (%)"],
+            x=df_insee_pct["Tranche"],
+            y=df_insee_pct["INSEE (%)"],
             name="INSEE (%)",
             marker_color="#ff7f0e"
         ))
@@ -901,7 +894,6 @@ with tab2:
             xaxis_tickangle=-45
         )
         st.plotly_chart(fig, use_container_width=True)
-
 
     # =============================================
     # SECTION 3 : INTERVALLES DE CONFIANCE
