@@ -845,7 +845,7 @@ with tab2:
                               color_discrete_sequence=px.colors.qualitative.Pastel)
             st.plotly_chart(fig_genre, use_container_width=True)
 
-        # =============================================
+    # =============================================
     # SECTION 2 : REPRÉSENTATIVITÉ
     # =============================================
     with st.expander("🧮 Analyse de représentativité", expanded=True):
@@ -916,6 +916,7 @@ with tab2:
         - p-value = {p:.4f}  
         **Conclusion** : {"Représentatif (p > 0.05)" if p > 0.05 else "Biais détecté (p ≤ 0.05)"}
         """)
+
 
 
     # =============================================
