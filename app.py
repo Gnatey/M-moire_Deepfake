@@ -2444,7 +2444,7 @@ with tab4:
                             representative_name = cluster_data.iloc[0]['Nom']
                             
                             st.markdown("### 💬 **Citation Représentative**")
-                            st.blockquote(f'"{representative_quote}"')
+                            st.markdown(f"> *\"{representative_quote}\"*")
                             st.caption(f"— {representative_name}")
                     
                     # Analyse comportementale détaillée
