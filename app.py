@@ -854,7 +854,7 @@ with tab2:
         @st.cache_data
         def load_real_insee():
             try:
-                insee_url = 'https://raw.githubusercontent.com/Gnatey/M-moire_Deepfake/main/insee.xlsx'
+                insee_url = 'https://github.com/Gnatey/M-moire_Deepfake/blob/main/insee.xlsx'
                 df_insee_real = pd.read_excel(insee_url, header=[0,1])
                 # Prendre la dernière ligne (Total France)
                 last_row = df_insee_real.iloc[-1]
