@@ -848,7 +848,7 @@ with tab2:
     # =============================================
     # SECTION 2 : REPRÉSENTATIVITÉ
     # =============================================
-    # REMPLACER CETTE PARTIE :
+        # REMPLACER CETTE PARTIE :
 # Charger les données INSEE (exemple simplifié)
 insee_data = {
     "Tranche d'âge": ["18-25", "26-40", "41-60", "60+"],
