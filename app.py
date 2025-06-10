@@ -849,7 +849,7 @@ with tab2:
     # SECTION 2 : REPRÉSENTATIVITÉ
     # =============================================
     with st.expander("🧮 Analyse de représentativité", expanded=True):
-    st.subheader("Test de représentativité")
+        st.subheader("Test de représentativité")
 
     @st.cache_data
     def load_real_insee():
