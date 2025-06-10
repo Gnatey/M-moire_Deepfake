@@ -2922,45 +2922,55 @@ with tab4:
             # Visualisation PCA optimisée
             st.markdown("### 📊 **Visualisation Optimisée**")
             
-            pca_opt = PCA(n_components=2, random_state=42)
-            X_pca_opt = pca_opt.fit_transform(X_scaled_advanced)
-            
-            viz_df_opt = pd.DataFrame({
-                'PC1': X_pca_opt[:, 0],
-                'PC2': X_pca_opt[:, 1],
-                'Cluster': [f'Persona_{i}' for i in final_labels],
-                'Nom': df_personas['Nom'],
-                'Score_Sophistication': df_personas.get('sophistication_advanced', 0),
-                'Score_Awareness': df_personas.get('deepfake_awareness_score', 0)
-            })
-            
-            fig_pca_opt = px.scatter(
-                viz_df_opt,
-                x='PC1',
-                y='PC2',
-                color='Cluster',
-                size='Score_Sophistication',
-                hover_data=['Nom', 'Score_Awareness'],
-                title=f"🎯 Clustering Optimisé (Score: {final_score:.3f})",
-                color_discrete_sequence=px.colors.qualitative.Set3
-            )
-            
-            # Ajout des centroïdes
-            for i in range(final_k):
-                cluster_mask = final_labels == i
-                centroid_pc1 = X_pca_opt[cluster_mask, 0].mean()
-                centroid_pc2 = X_pca_opt[cluster_mask, 1].mean()
+            try:
+                from sklearn.decomposition import PCA
+                pca_opt = PCA(n_components=2, random_state=42)
+                X_pca_opt = pca_opt.fit_transform(X_scaled_advanced)
                 
-                fig_pca_opt.add_trace(go.Scatter(
-                    x=[centroid_pc1],
-                    y=[centroid_pc2],
-                    mode='markers',
-                    marker=dict(size=25, symbol='star', color='gold', line=dict(width=2, color='black')),
-                    name=f'⭐ Centroïde {i}',
-                    showlegend=True
-                ))
-            
-            st.plotly_chart(fig_pca_opt, use_container_width=True)
+                viz_df_opt = pd.DataFrame({
+                    'PC1': X_pca_opt[:, 0],
+                    'PC2': X_pca_opt[:, 1],
+                    'Cluster': [f'Persona_{i}' for i in final_labels],
+                    'Nom': df_personas['Nom'],
+                    'Score_Sophistication': df_personas.get('sophistication_advanced', pd.Series([0] * len(df_personas))),
+                    'Score_Awareness': df_personas.get('deepfake_awareness_score', pd.Series([0] * len(df_personas)))
+                })
+                
+                fig_pca_opt = px.scatter(
+                    viz_df_opt,
+                    x='PC1',
+                    y='PC2',
+                    color='Cluster',
+                    size='Score_Sophistication',
+                    hover_data=['Nom', 'Score_Awareness'],
+                    title=f"🎯 Clustering Optimisé (Score: {final_score:.3f})",
+                    color_discrete_sequence=px.colors.qualitative.Set3
+                )
+                
+                # Ajout des centroïdes
+                for i in range(final_k):
+                    cluster_mask = final_labels == i
+                    if np.sum(cluster_mask) > 0:  # Vérifier qu'il y a des points dans le cluster
+                        centroid_pc1 = X_pca_opt[cluster_mask, 0].mean()
+                        centroid_pc2 = X_pca_opt[cluster_mask, 1].mean()
+                        
+                        fig_pca_opt.add_trace(go.Scatter(
+                            x=[centroid_pc1],
+                            y=[centroid_pc2],
+                            mode='markers',
+                            marker=dict(size=25, symbol='star', color='gold', line=dict(width=2, color='black')),
+                            name=f'⭐ Centroïde {i}',
+                            showlegend=True
+                        ))
+                
+                st.plotly_chart(fig_pca_opt, use_container_width=True)
+                
+                variance_explained = pca_opt.explained_variance_ratio_
+                st.info(f"📊 Variance expliquée : PC1={variance_explained[0]*100:.1f}%, PC2={variance_explained[1]*100:.1f}%")
+                
+            except Exception as e:
+                st.warning(f"⚠️ Impossible d'afficher la visualisation PCA : {str(e)}")
+                st.info("Les résultats du clustering restent valides.")
             
             # ÉTAPE 6: Recommandations personnalisées avancées
             st.markdown("### 🎯 **Recommandations Personnalisées par Persona**")
