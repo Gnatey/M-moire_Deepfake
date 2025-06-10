@@ -853,12 +853,7 @@ with tab2:
     with st.expander("🧮 Analyse de représentativité", expanded=True):
         st.subheader("Test de représentativité")
         
-        # Charger les données INSEE (exemple simplifié)
-        insee_data = {
-            "Tranche d'âge": ["18-25", "26-40", "41-60", "60+"],
-            "Population (%)": [22, 35, 30, 13]
-        }
-        df_insee = pd.DataFrame(insee_data)
+        
         
         # Calcul des écarts
         df_compare = df["Tranche d'âge"].value_counts(normalize=True).reset_index()
