@@ -849,52 +849,135 @@ with tab2:
     # SECTION 2 : REPRÉSENTATIVITÉ
     # =============================================
     with st.expander("🧮 Analyse de représentativité", expanded=True):
-        st.subheader("Test de représentativité")
+    st.subheader("Test de représentativité")
+    
+    # Chargement des données INSEE réelles
+    @st.cache_data
+    def load_real_insee_data():
+        """Charge les vraies données INSEE"""
+        try:
+            insee_url = 'https://raw.githubusercontent.com/Gnatey/M-moire_Deepfake/refs/heads/main/insee.xlsx'
+            df_insee_real = pd.read_excel(insee_url)
+            return df_insee_real
+        except Exception as e:
+            st.error(f"Erreur chargement INSEE: {e}")
+            # Données de fallback
+            return pd.DataFrame({
+                "Tranche d'âge": ["18-25 ans", "26-35 ans", "36-45 ans", "46-55 ans", "56-65 ans", "66+ ans"],
+                "Population (%)": [11.2, 15.8, 16.9, 16.1, 14.3, 25.7]
+            })
+    
+    # Chargement des données
+    df_insee_real = load_real_insee_data()
+    st.info(f"✅ Données INSEE chargées : {len(df_insee_real)} tranches d'âge")
+    
+    # Affichage des données INSEE pour vérification
+    with st.expander("📊 Voir les données INSEE", expanded=False):
+        st.dataframe(df_insee_real, use_container_width=True)
+    
+    # Préparation des données échantillon (DeepFakes)
+    sample_age_counts = df["Tranche d'âge"].value_counts(normalize=True) * 100
+    sample_age_df = sample_age_counts.reset_index()
+    sample_age_df.columns = ["Tranche d'âge", "Échantillon (%)"]
+    
+    # Affichage des tranches de notre échantillon
+    st.markdown("**📋 Tranches d'âge dans notre échantillon :**")
+    st.write(sample_age_df["Tranche d'âge"].tolist())
+    
+    # Harmonisation des tranches d'âge
+    # Mapping entre nos tranches et celles de l'INSEE
+    if 'Tranche d\'âge' in df_insee_real.columns and 'Population (%)' in df_insee_real.columns:
+        insee_age_df = df_insee_real[['Tranche d\'âge', 'Population (%)']].copy()
+    elif 'Age' in df_insee_real.columns and 'Pourcentage' in df_insee_real.columns:
+        insee_age_df = df_insee_real[['Age', 'Pourcentage']].copy()
+        insee_age_df.columns = ['Tranche d\'âge', 'Population (%)']
+    else:
+        # Utiliser la première et deuxième colonne
+        insee_age_df = df_insee_real.iloc[:, [0, 1]].copy()
+        insee_age_df.columns = ['Tranche d\'âge', 'Population (%)']
+    
+    # Fusion des données
+    df_compare = sample_age_df.merge(insee_age_df, on="Tranche d'âge", how="outer")
+    df_compare = df_compare.fillna(0)
+    df_compare["Écart (%)"] = df_compare["Échantillon (%)"] - df_compare["Population (%)"]
+    
+    # Affichage du tableau de comparaison
+    st.markdown("**📊 Comparaison Échantillon vs INSEE :**")
+    df_compare_display = df_compare.copy()
+    df_compare_display["Échantillon (%)"] = df_compare_display["Échantillon (%)"].round(1)
+    df_compare_display["Population (%)"] = df_compare_display["Population (%)"].round(1) 
+    df_compare_display["Écart (%)"] = df_compare_display["Écart (%)"].round(1)
+    
+    st.dataframe(df_compare_display, hide_index=True, use_container_width=True)
+    
+    # Visualisation comparative
+    fig_comp = go.Figure()
+    fig_comp.add_trace(go.Bar(
+        x=df_compare["Tranche d'âge"],
+        y=df_compare["Échantillon (%)"],
+        name='Notre échantillon',
+        marker_color='#1f77b4',
+        text=df_compare["Échantillon (%)"].round(1),
+        textposition='outside'
+    ))
+    fig_comp.add_trace(go.Bar(
+        x=df_compare["Tranche d'âge"],
+        y=df_compare["Population (%)"],
+        name='Population INSEE',
+        marker_color='#ff7f0e',
+        text=df_compare["Population (%)"].round(1),
+        textposition='outside'
+    ))
+    fig_comp.update_layout(
+        barmode='group', 
+        title="Comparaison avec les données INSEE",
+        xaxis_tickangle=-45,
+        height=500
+    )
+    st.plotly_chart(fig_comp, use_container_width=True)
+    
+    # Test du Chi2 avec les vraies données
+    st.markdown("**Test d'adéquation du Chi²**")
+    
+    # Seulement pour les tranches communes (non nulles)
+    df_test = df_compare[(df_compare["Échantillon (%)"] > 0) & (df_compare["Population (%)"] > 0)]
+    
+    if len(df_test) > 1:
+        observed = df_test["Échantillon (%)"].values * len(df) / 100
+        expected = df_test["Population (%)"].values * len(df) / 100
         
-        # Charger les données INSEE (exemple simplifié)
-        insee_data = {
-            "Tranche d'âge": ["18-25", "26-40", "41-60", "60+"],
-            "Population (%)": [22, 35, 30, 13]
-        }
-        df_insee = pd.DataFrame(insee_data)
-        
-        # Calcul des écarts
-        df_compare = df["Tranche d'âge"].value_counts(normalize=True).reset_index()
-        df_compare.columns = ["Tranche d'âge", "Échantillon (%)"]
-        df_compare = df_compare.merge(df_insee, on="Tranche d'âge", how="left")
-        df_compare["Écart (%)"] = df_compare["Échantillon (%)"] - df_compare["Population (%)"]
-        
-        # Visualisation comparative
-        fig_comp = go.Figure()
-        fig_comp.add_trace(go.Bar(
-            x=df_compare["Tranche d'âge"],
-            y=df_compare["Échantillon (%)"],
-            name='Notre échantillon',
-            marker_color='#1f77b4'
-        ))
-        fig_comp.add_trace(go.Bar(
-            x=df_compare["Tranche d'âge"],
-            y=df_compare["Population (%)"],
-            name='Population INSEE',
-            marker_color='#ff7f0e'
-        ))
-        fig_comp.update_layout(barmode='group', title="Comparaison avec les données INSEE")
-        st.plotly_chart(fig_comp, use_container_width=True)
-        
-        # Test du Chi2
-        st.markdown("**Test d'adéquation du Chi²**")
-        from scipy.stats import chisquare
-        observed = df_compare["Échantillon (%)"].values * len(df) / 100
-        expected = df_compare["Population (%)"].values * len(df) / 100
-        chi2, p = chisquare(f_obs=observed, f_exp=expected)
-        
-        st.markdown(f"""
-        <div class='stat-test'>
-        χ² = {chi2:.3f}<br>
-        p-value = {p:.4f}<br>
-        <b>Conclusion</b> : {"L'échantillon est représentatif" if p > 0.05 else "Biais de représentativité détecté"}
-        </div>
-        """, unsafe_allow_html=True)
+        # Vérifier que les effectifs sont suffisants
+        if all(exp >= 5 for exp in expected):
+            chi2, p = chisquare(f_obs=observed, f_exp=expected)
+            
+            st.markdown(f"""
+            <div class='stat-test'>
+            χ² = {chi2:.3f}<br>
+            p-value = {p:.4f}<br>
+            Degrés de liberté = {len(df_test)-1}<br>
+            <b>Conclusion</b> : {"✅ L'échantillon est représentatif" if p > 0.05 else "⚠️ Biais de représentativité détecté"}
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Calcul de l'écart moyen
+            ecart_moyen = abs(df_compare["Écart (%)"]).mean()
+            st.metric("Écart moyen par tranche", f"{ecart_moyen:.1f}%")
+            
+        else:
+            st.warning("⚠️ Effectifs théoriques trop faibles pour le test du Chi²")
+    else:
+        st.warning("⚠️ Pas assez de tranches communes pour effectuer le test")
+    
+    # Analyse des écarts significatifs
+    ecarts_significatifs = df_compare[abs(df_compare["Écart (%)"]) > 5]
+    
+    if len(ecarts_significatifs) > 0:
+        st.markdown("**⚠️ Écarts significatifs détectés (>5%) :**")
+        for _, row in ecarts_significatifs.iterrows():
+            direction = "sur-représentée" if row["Écart (%)"] > 0 else "sous-représentée"
+            st.warning(f"• Tranche **{row['Tranche d\'âge']}** : {direction} de {abs(row['Écart (%)']):.1f}%")
+    else:
+        st.success("✅ Aucun écart significatif détecté - Bonne représentativité")
 
     # =============================================
     # SECTION 3 : INTERVALLES DE CONFIANCE
