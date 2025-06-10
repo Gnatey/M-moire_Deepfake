@@ -1860,20 +1860,12 @@ with tab3:
     if 'results' not in locals():
         st.info("👆 **Cliquez sur 'LANCER L'ANALYSE COMPLÈTE' pour voir la magie opérer !**")
 
-# =============================================
+# =========================================================
 # ONGLET 4 - CLUSTERING INTELLIGENT & PERSONAS INTERACTIFS
-# =============================================
+# =========================================================
 
 with tab4:
     st.header("🧬 Clustering Non Supervisé & Analyse des Personas")
-    
-    # Introduction méthodologique
-    st.markdown("""
-    ### 🎯 **Objectif : Découvrir les profils cachés dans vos données**
-    
-    Nous appliquons une **méthodologie non supervisée** pour identifier automatiquement 
-    des groupes d'utilisateurs ayant des comportements similaires face aux DeepFakes.
-    """)
     
     # =============================================
     # ÉTAPE 1: CHARGEMENT DES DONNÉES PERSONAS
