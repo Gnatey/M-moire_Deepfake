@@ -3406,4 +3406,3 @@ with tab4:
         st.image("images.jpeg", width=100)
     with col_msg:
         st.info("Cet onglet est en cours de rédaction. Vous verrez des visualisations sous peu.")
-
