@@ -1880,7 +1880,7 @@ with tab4:
     def load_personas_data():
         """Charge les données de personas depuis le CSV GitHub"""
         try:
-            url = 'https://raw.githubusercontent.com/Gnatey/M-moire_Deepfake/refs/heads/main/quantitatif.csv'
+            url = 'https://raw.githubusercontent.com/Gnatey/M-moire_Deepfake/refs/heads/main/qualitatif.csv'
             df_personas = pd.read_csv(url, encoding='utf-8')
             
             # Nettoyage des noms de colonnes
