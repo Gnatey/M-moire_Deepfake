@@ -1867,7 +1867,7 @@ with tab4:
     # Introduction méthodologique
     st.markdown("""
     ### 🎯 Objectif : Nous appliquons une **méthodologie non supervisée** pour identifier automatiquement 
-    des groupes d'utilisateurs ayant des comportements similaires face aux DeepFakes.**
+    des groupes d'utilisateurs ayant des comportements similaires face aux DeepFakes.
 
     """)
     
