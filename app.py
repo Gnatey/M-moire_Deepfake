@@ -2907,10 +2907,10 @@ else:
 # ONGLETS EN CONSTRUCTION - MESSAGE EDITEUR
 # =============================================
 
-with tab4:
-    st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSE")
-    col_img, col_msg = st.columns([1, 5])
-    with col_img:
-        st.image("images.jpeg", width=100)
-    with col_msg:
-        st.info("Cet onglet est en cours de rédaction. Vous verrez des visualisations sous peu.")
+#withtab4:
+    #st.markdown("### 👩‍💻 MESSAGE DEVELOPPEUSE")
+    #col_img, col_msg = st.columns([1, 5])
+    #with col_img:
+        #st.image("images.jpeg", width=100)
+    #with col_msg:
+        #st.info("Cet onglet est en cours de rédaction. Vous verrez des visualisations sous peu.")
