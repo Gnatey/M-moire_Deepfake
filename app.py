@@ -2582,7 +2582,7 @@ with tab4:
         st.info("👆 **Cliquez sur 'LANCER L'ANALYSE DE CLUSTERING' pour découvrir les personas cachées dans vos données !**")
         
         # Aperçu des données en attendant
-        st.markdown("### 👀 **Aperçu des Données en Attente**")
+        st.markdown("### 👀 **Aperçu des Données**")
         
         # Quelques statistiques descriptives
         col_preview1, col_preview2, col_preview3 = st.columns(3)
