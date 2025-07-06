@@ -287,7 +287,7 @@ with tab1:
             text="Count",
             title="Nombre de répondants par genre"
         )
-        st.plotly_chart(fig_genre, use_container_width=False)
+        st.plotly_chart(fig_genre, use_container_width=True)
 
         # 4. Boxplot : Impact vs Tranche d'âge
         st.subheader("Impact perçu selon la tranche d’âge")
