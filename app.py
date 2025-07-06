@@ -263,7 +263,6 @@ with tab1:
         )
         st.plotly_chart(fig_trust_age, use_container_width=True)
 
-
         # 3. Répartition par genre
         st.subheader("Répartition par genre")
         genre_counts = filtered_df["Genre"].value_counts().reset_index()
