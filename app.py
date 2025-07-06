@@ -263,6 +263,19 @@ with tab1:
         )
         st.plotly_chart(fig_trust_age, use_container_width=True)
 
+                # 2. Distribution de l'impact perçu
+        st.subheader("Distribution de l’impact perçu")
+        impact_order = ["Très négatif", "Négatif", "Neutre", "Positif", "Très positif"]
+        fig_impact_dist = px.histogram(
+            filtered_df,
+            x="Impact société",
+            category_orders={"Impact société": impact_order},
+            color="Impact société",
+            labels={"Impact société": "Impact perçu"},
+            title="Histogramme de l'impact perçu"
+        )
+        st.plotly_chart(fig_impact_dist, use_container_width=True)
+
         # 3. Répartition par genre
         st.subheader("Répartition par genre")
         genre_counts = filtered_df["Genre"].value_counts().reset_index()
@@ -274,7 +287,7 @@ with tab1:
             text="Count",
             title="Nombre de répondants par genre"
         )
-        st.plotly_chart(fig_genre, use_container_width=True)
+        st.plotly_chart(fig_genre, use_container_width=False)
 
         # 4. Boxplot : Impact vs Tranche d'âge
         st.subheader("Impact perçu selon la tranche d’âge")
