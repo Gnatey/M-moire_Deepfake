@@ -263,18 +263,6 @@ with tab1:
         )
         st.plotly_chart(fig_trust_age, use_container_width=True)
 
-                # 2. Distribution de l'impact perçu
-        st.subheader("Distribution de l’impact perçu")
-        impact_order = ["Très négatif", "Négatif", "Neutre", "Positif", "Très positif"]
-        fig_impact_dist = px.histogram(
-            filtered_df,
-            x="Impact société",
-            category_orders={"Impact société": impact_order},
-            color="Impact société",
-            labels={"Impact société": "Impact perçu"},
-            title="Histogramme de l'impact perçu"
-        )
-        st.plotly_chart(fig_impact_dist, use_container_width=True)
 
         # 3. Répartition par genre
         st.subheader("Répartition par genre")
