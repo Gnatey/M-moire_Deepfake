@@ -1905,7 +1905,7 @@ with tab4:
     col_overview1, col_overview2, col_overview3 = st.columns(3)
     
     with col_overview1:
-        st.metric("📏 Nombre de Personas", len(df_personas))
+        st.metric("📏 Nombre de Répondant", len(df_personas))
     
     with col_overview2:
         st.metric("📊 Variables Disponibles", len(df_personas.columns))
